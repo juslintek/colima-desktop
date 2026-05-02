@@ -15,7 +15,6 @@ struct ContainerDetailView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             HStack {
                 Circle()
                     .fill(container.state == "running" ? Color.green : container.state == "paused" ? Color.yellow : Color.red)
@@ -31,11 +30,8 @@ struct ContainerDetailView: View {
             }
             .padding()
 
-            // Tab picker
             Picker("", selection: $selectedTab) {
-                ForEach(DetailTab.allCases, id: \.self) { tab in
-                    Text(tab.rawValue).tag(tab)
-                }
+                ForEach(DetailTab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal)
@@ -43,106 +39,28 @@ struct ContainerDetailView: View {
 
             Divider().padding(.top, 8)
 
-            // Tab content
             switch selectedTab {
             case .info: infoTab
-            case .stats: statsTab
-            case .logs: logsTab
-            case .terminal: terminalTab
-            case .files: filesTab
+            case .stats: MockStatsView(name: container.name)
+            case .logs: MockLogsView(name: container.name)
+            case .terminal: MockTerminalView(name: container.name)
+            case .files: MockFileTree()
             }
         }
         .accessibilityIdentifier("container_detail_panel")
     }
 
-    // MARK: - Info Tab
-
     private var infoTab: some View {
         ScrollView {
             Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
-                GridRow {
-                    Text("Name").foregroundStyle(.secondary)
-                    Text(container.name).fontWeight(.medium)
-                }
-                GridRow {
-                    Text("ID").foregroundStyle(.secondary)
-                    Text(container.id).font(.system(.body, design: .monospaced))
-                }
-                GridRow {
-                    Text("Image").foregroundStyle(.secondary)
-                    Text(container.image)
-                }
-                GridRow {
-                    Text("Status").foregroundStyle(.secondary)
-                    Text(container.status)
-                }
-                GridRow {
-                    Text("Ports").foregroundStyle(.secondary)
-                    Text(container.ports.isEmpty ? "—" : container.ports)
-                }
-                GridRow {
-                    Text("Created").foregroundStyle(.secondary)
-                    Text(container.created)
-                }
+                GridRow { Text("Name").foregroundStyle(.secondary); Text(container.name).fontWeight(.medium) }
+                GridRow { Text("ID").foregroundStyle(.secondary); Text(container.id).font(.system(.body, design: .monospaced)) }
+                GridRow { Text("Image").foregroundStyle(.secondary); Text(container.image) }
+                GridRow { Text("Status").foregroundStyle(.secondary); Text(container.status) }
+                GridRow { Text("Ports").foregroundStyle(.secondary); Text(container.ports.isEmpty ? "—" : container.ports) }
+                GridRow { Text("Created").foregroundStyle(.secondary); Text(container.created) }
             }
             .padding()
         }
-    }
-
-    // MARK: - Stats Tab
-
-    private var statsTab: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Button("Open Stats") { appState.statsContainer(name: container.name) }
-                .accessibilityIdentifier("btn_stats_container_\(container.name)")
-            Text("Live CPU/Memory/Net/IO monitoring")
-                .font(.caption).foregroundStyle(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Logs Tab
-
-    private var logsTab: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Button("Open Logs") { appState.logsContainer(name: container.name) }
-                .accessibilityIdentifier("btn_logs_container_\(container.name)")
-            Text("Streaming container log viewer")
-                .font(.caption).foregroundStyle(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Terminal Tab
-
-    private var terminalTab: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Button("Open Terminal") { appState.execContainer(name: container.name) }
-                .accessibilityIdentifier("btn_exec_container_\(container.name)")
-            Text("Execute commands inside the container")
-                .font(.caption).foregroundStyle(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Files Tab
-
-    private var filesTab: some View {
-        VStack(spacing: 16) {
-            Spacer()
-            Image(systemName: "folder")
-                .font(.largeTitle)
-                .foregroundStyle(.secondary)
-            Text("File browser coming soon")
-                .font(.caption).foregroundStyle(.secondary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
     }
 }

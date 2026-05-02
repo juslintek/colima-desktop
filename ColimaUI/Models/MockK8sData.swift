@@ -66,6 +66,13 @@ struct MockDiscussion {
 struct MockK8sData {
     // MARK: - Kubernetes Resources
 
+    static let systemPods: [MockK8sResource] = [
+        MockK8sResource(name: "kube-apiserver-colima", status: "Running", restarts: 0, age: "3h", ip: "192.168.5.2"),
+        MockK8sResource(name: "kube-controller-manager", status: "Running", restarts: 0, age: "3h", ip: "192.168.5.2"),
+        MockK8sResource(name: "kube-scheduler-colima", status: "Running", restarts: 0, age: "3h", ip: "192.168.5.2"),
+        MockK8sResource(name: "etcd-colima", status: "Running", restarts: 0, age: "3h", ip: "192.168.5.2"),
+    ]
+
     static let pods: [MockK8sResource] = [
         MockK8sResource(name: "nginx-7c5b4f", status: "Running", restarts: 0, age: "2h", ip: "10.42.0.5"),
         MockK8sResource(name: "coredns-5c98db", status: "Running", restarts: 0, age: "3h", ip: "10.42.0.3"),

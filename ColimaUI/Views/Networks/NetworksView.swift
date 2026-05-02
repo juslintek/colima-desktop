@@ -5,12 +5,17 @@ struct NetworksView: View {
     @State private var newNetworkName = ""
     @State private var showCreate = false
     @State private var validationError: String?
+    @State private var sortAscending = true
+
+    private var sorted: [MockNetwork] {
+        sortAscending ? appState.networks.sorted { $0.name < $1.name } : appState.networks.sorted { $0.name > $1.name }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            List {
-                ForEach(appState.networks) { net in
-                    networkRow(net)
+            List(selection: $appState.selectedNetworkName) {
+                ForEach(sorted) { net in
+                    networkRow(net).tag(net.name).hoverHighlight()
                 }
             }
             .listStyle(.inset)
@@ -20,6 +25,10 @@ struct NetworksView: View {
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
+                    Button { sortAscending.toggle() } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .accessibilityIdentifier("btn_sort_networks")
                     Button { showCreate = true } label: {
                         Image(systemName: "plus")
                     }
@@ -107,5 +116,37 @@ struct NetworksView: View {
         }
         .padding()
         .frame(width: 350)
+    }
+}
+
+// MARK: - Network Detail View
+
+struct NetworkDetailView: View {
+    let network: MockNetwork
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(network.name).font(.title3).fontWeight(.semibold)
+                Spacer()
+                Text(network.driver).font(.caption).foregroundStyle(.secondary)
+            }
+            .padding()
+
+            Divider()
+
+            ScrollView {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+                    GridRow { Text("Name").foregroundStyle(.secondary); Text(network.name) }
+                    GridRow { Text("ID").foregroundStyle(.secondary); Text(network.id).font(.system(.body, design: .monospaced)) }
+                    GridRow { Text("Driver").foregroundStyle(.secondary); Text(network.driver) }
+                    GridRow { Text("Scope").foregroundStyle(.secondary); Text(network.scope) }
+                    GridRow { Text("Subnet").foregroundStyle(.secondary); Text(network.subnet.isEmpty ? "—" : network.subnet) }
+                    GridRow { Text("Gateway").foregroundStyle(.secondary); Text(network.subnet.isEmpty ? "—" : network.subnet.replacingOccurrences(of: "0/16", with: "1")) }
+                    GridRow { Text("Containers").foregroundStyle(.secondary); Text("web-server, api-service") }
+                }
+                .padding()
+            }
+        }
     }
 }

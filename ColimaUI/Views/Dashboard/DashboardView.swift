@@ -16,9 +16,8 @@ struct DashboardView: View {
                             .font(.title3).fontWeight(.semibold)
                             .accessibilityIdentifier("status_indicator_dashboard")
                             .accessibilityValue(appState.vmRunning ? "running" : "stopped")
-                        Text("Profile: \(appState.activeProfile) · v\(appState.colimaVersion)")
+                        Text("Profile: \(appState.activeProfile)")
                             .font(.caption).foregroundStyle(.secondary)
-                            .accessibilityIdentifier("text_version_dashboard")
                     }
                     Spacer()
                     HStack(spacing: 8) {
@@ -58,19 +57,10 @@ struct DashboardView: View {
                         Text("docker")
                     }
                     GridRow {
-                        Text("Arch").foregroundStyle(.secondary)
-                        Text("aarch64")
+                        Text("Version").foregroundStyle(.secondary)
+                        Text("v\(appState.colimaVersion)")
+                            .accessibilityIdentifier("text_version_dashboard")
                     }
-                }
-
-                Divider()
-
-                // Quick Stats
-                HStack(spacing: 24) {
-                    statCard("Containers", "\(appState.containers.count)")
-                    statCard("Images", "\(appState.images.count)")
-                    statCard("Volumes", "\(appState.volumes.count)")
-                    statCard("Networks", "\(appState.networks.count)")
                 }
 
                 Divider()
@@ -107,18 +97,5 @@ struct DashboardView: View {
             .padding()
         }
         .navigationTitle("Dashboard")
-    }
-
-    private func statCard(_ title: String, _ value: String) -> some View {
-        VStack(spacing: 4) {
-            Text(value)
-                .font(.title2).fontWeight(.bold)
-                .accessibilityIdentifier("stat_\(title.lowercased())_count")
-                .accessibilityLabel(value)
-                .accessibilityValue(value)
-            Text(title)
-                .font(.caption).foregroundStyle(.secondary)
-        }
-        .frame(minWidth: 60)
     }
 }

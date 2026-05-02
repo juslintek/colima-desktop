@@ -5,12 +5,17 @@ struct VolumesView: View {
     @State private var newVolumeName = ""
     @State private var showCreate = false
     @State private var validationError: String?
+    @State private var sortAscending = true
+
+    private var sorted: [MockVolume] {
+        sortAscending ? appState.volumes.sorted { $0.name < $1.name } : appState.volumes.sorted { $0.name > $1.name }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            List {
-                ForEach(appState.volumes) { vol in
-                    volumeRow(vol)
+            List(selection: $appState.selectedVolumeName) {
+                ForEach(sorted) { vol in
+                    volumeRow(vol).tag(vol.name).hoverHighlight()
                 }
             }
             .listStyle(.inset)
@@ -20,6 +25,10 @@ struct VolumesView: View {
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
+                    Button { sortAscending.toggle() } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .accessibilityIdentifier("btn_sort_volumes")
                     Button { showCreate = true } label: {
                         Image(systemName: "plus")
                     }
@@ -103,5 +112,54 @@ struct VolumesView: View {
         }
         .padding()
         .frame(width: 350)
+    }
+}
+
+// MARK: - Volume Detail View
+
+struct VolumeDetailView: View {
+    let volume: MockVolume
+    @State private var selectedTab: Tab = .info
+
+    enum Tab: String, CaseIterable {
+        case info = "Info"
+        case files = "Files"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text(volume.name).font(.title3).fontWeight(.semibold)
+                Spacer()
+                Text(volume.size).font(.caption).foregroundStyle(.secondary)
+            }
+            .padding()
+
+            Picker("", selection: $selectedTab) {
+                ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+
+            Divider().padding(.top, 8)
+
+            switch selectedTab {
+            case .info: infoTab
+            case .files: MockFileTree()
+            }
+        }
+    }
+
+    private var infoTab: some View {
+        ScrollView {
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+                GridRow { Text("Name").foregroundStyle(.secondary); Text(volume.name) }
+                GridRow { Text("Driver").foregroundStyle(.secondary); Text(volume.driver) }
+                GridRow { Text("Mountpoint").foregroundStyle(.secondary); Text(volume.mountpoint).font(.system(.body, design: .monospaced)) }
+                GridRow { Text("Size").foregroundStyle(.secondary); Text(volume.size) }
+                GridRow { Text("Created").foregroundStyle(.secondary); Text("2026-04-20 14:30:00") }
+            }
+            .padding()
+        }
     }
 }

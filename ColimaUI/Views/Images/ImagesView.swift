@@ -7,12 +7,13 @@ struct ImagesView: View {
     @State private var hubSearchTerm = ""
     @State private var importPath = ""
     @State private var showPullSheet = false
+    @State private var sortAscending = true
 
     var filtered: [MockImage] {
-        searchText.isEmpty ? appState.images : appState.images.filter { $0.repository.localizedCaseInsensitiveContains(searchText) }
+        let base = searchText.isEmpty ? appState.images : appState.images.filter { $0.repository.localizedCaseInsensitiveContains(searchText) }
+        return sortAscending ? base.sorted { $0.repository < $1.repository } : base.sorted { $0.repository > $1.repository }
     }
 
-    // Images used by running containers
     private var inUseImages: [MockImage] {
         let usedRepos = Set(appState.containers.filter { $0.state == "running" }.map { $0.image })
         return filtered.filter { img in
@@ -27,17 +28,17 @@ struct ImagesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            List {
+            List(selection: $appState.selectedImageId) {
                 if !inUseImages.isEmpty {
                     Section("In Use") {
                         ForEach(inUseImages) { img in
-                            imageRow(img)
+                            imageRow(img).tag(img.id).hoverHighlight()
                         }
                     }
                 }
                 Section(unusedImages.isEmpty ? "All Images" : "Unused") {
                     ForEach(unusedImages) { img in
-                        imageRow(img)
+                        imageRow(img).tag(img.id).hoverHighlight()
                     }
                 }
             }
@@ -48,6 +49,10 @@ struct ImagesView: View {
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
+                    Button { sortAscending.toggle() } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .accessibilityIdentifier("btn_sort_images")
                     TextField("Search…", text: $searchText)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 140)
@@ -164,5 +169,57 @@ struct ImagesView: View {
         }
         .padding()
         .frame(width: 400)
+    }
+}
+
+// MARK: - Image Detail View
+
+struct ImageDetailView: View {
+    let image: MockImage
+    @State private var selectedTab: Tab = .info
+
+    enum Tab: String, CaseIterable {
+        case info = "Info"
+        case terminal = "Terminal"
+        case files = "Files"
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("\(image.repository):\(image.tag)").font(.title3).fontWeight(.semibold)
+                Spacer()
+                Text(image.size).font(.caption).foregroundStyle(.secondary)
+            }
+            .padding()
+
+            Picker("", selection: $selectedTab) {
+                ForEach(Tab.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+
+            Divider().padding(.top, 8)
+
+            switch selectedTab {
+            case .info: infoTab
+            case .terminal: MockTerminalView(name: image.repository)
+            case .files: MockFileTree()
+            }
+        }
+    }
+
+    private var infoTab: some View {
+        ScrollView {
+            Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 10) {
+                GridRow { Text("Repository").foregroundStyle(.secondary); Text(image.repository) }
+                GridRow { Text("Tag").foregroundStyle(.secondary); Text(image.tag) }
+                GridRow { Text("ID").foregroundStyle(.secondary); Text(image.id).font(.system(.body, design: .monospaced)) }
+                GridRow { Text("Size").foregroundStyle(.secondary); Text(image.size) }
+                GridRow { Text("Created").foregroundStyle(.secondary); Text(image.created) }
+                GridRow { Text("Layers").foregroundStyle(.secondary); Text("3 layers") }
+            }
+            .padding()
+        }
     }
 }

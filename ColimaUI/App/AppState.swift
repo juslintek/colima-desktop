@@ -23,6 +23,10 @@ class AppState: ObservableObject {
     @Published var memoryGovernorTier: Int = 0
     @Published var activeProfile: String = "default"
     @Published var selectedContainerName: String?
+    @Published var selectedImageId: String?
+    @Published var selectedVolumeName: String?
+    @Published var selectedNetworkName: String?
+    @Published var selectedPodName: String?
 
     // MARK: - Sheet State
 

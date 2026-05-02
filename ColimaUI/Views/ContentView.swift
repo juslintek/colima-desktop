@@ -45,7 +45,6 @@ struct ContentView: View {
             }
         }
         .background {
-            // Cmd+K handler via hidden button
             Button("") { appState.showCommandPalette.toggle() }
                 .keyboardShortcut("k", modifiers: .command)
                 .hidden()
@@ -78,15 +77,44 @@ struct ContentView: View {
                let container = appState.containers.first(where: { $0.name == name }) {
                 ContainerDetailView(container: container)
             } else {
-                Text("Select a container")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                noSelection
+            }
+        case .images:
+            if let id = appState.selectedImageId,
+               let image = appState.images.first(where: { $0.id == id }) {
+                ImageDetailView(image: image)
+            } else {
+                noSelection
+            }
+        case .volumes:
+            if let name = appState.selectedVolumeName,
+               let volume = appState.volumes.first(where: { $0.name == name }) {
+                VolumeDetailView(volume: volume)
+            } else {
+                noSelection
+            }
+        case .networks:
+            if let name = appState.selectedNetworkName,
+               let network = appState.networks.first(where: { $0.name == name }) {
+                NetworkDetailView(network: network)
+            } else {
+                noSelection
+            }
+        case .kubernetes:
+            if let podName = appState.selectedPodName {
+                PodDetailView(podName: podName)
+            } else {
+                noSelection
             }
         default:
-            Text("Select an item")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            noSelection
         }
+    }
+
+    private var noSelection: some View {
+        Text("No Selection")
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder

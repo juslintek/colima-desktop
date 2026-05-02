@@ -9,13 +9,16 @@ struct ContainersView: View {
     @State private var nameError: String?
     @State private var imageError: String?
     @State private var showImageBrowser = false
+    @State private var sortAscending = true
 
     private var runningContainers: [MockContainer] {
-        filtered.filter { $0.state == "running" || $0.state == "paused" }
+        let r = filtered.filter { $0.state == "running" || $0.state == "paused" }
+        return sortAscending ? r.sorted { $0.name < $1.name } : r.sorted { $0.name > $1.name }
     }
 
     private var stoppedContainers: [MockContainer] {
-        filtered.filter { $0.state != "running" && $0.state != "paused" }
+        let s = filtered.filter { $0.state != "running" && $0.state != "paused" }
+        return sortAscending ? s.sorted { $0.name < $1.name } : s.sorted { $0.name > $1.name }
     }
 
     var filtered: [MockContainer] {
@@ -52,7 +55,14 @@ struct ContainersView: View {
                 HStack(spacing: 8) {
                     Text("\(runningContainers.count) running")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.green.opacity(0.15))
+                        .clipShape(Capsule())
+                    Button { sortAscending.toggle() } label: {
+                        Image(systemName: "arrow.up.arrow.down")
+                    }
+                    .accessibilityIdentifier("btn_sort_containers")
                     TextField("Search…", text: $searchText)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 140)
@@ -75,19 +85,17 @@ struct ContainersView: View {
 
     private var containerList: some View {
         List(selection: $appState.selectedContainerName) {
-            if !runningContainers.isEmpty {
-                Section("Running") {
-                    ForEach(runningContainers) { c in
-                        ContainerRowView(container: c, appState: appState)
-                            .tag(c.name)
-                    }
-                }
+            ForEach(runningContainers) { c in
+                ContainerRowView(container: c, appState: appState)
+                    .tag(c.name)
+                    .hoverHighlight()
             }
             if !stoppedContainers.isEmpty {
                 Section("Stopped") {
                     ForEach(stoppedContainers) { c in
                         ContainerRowView(container: c, appState: appState)
                             .tag(c.name)
+                            .hoverHighlight()
                     }
                 }
             }
@@ -327,7 +335,6 @@ struct ContainerRowView: View {
 
             Spacer()
 
-            // Inline icon-only actions
             if container.state == "running" {
                 Button { appState.stopContainer(name: container.name) } label: {
                     Image(systemName: "stop.fill")
