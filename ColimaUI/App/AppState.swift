@@ -5,7 +5,7 @@ class AppState: ObservableObject {
     @Published var selectedTab: NavigationItem = .dashboard
     @Published var vmRunning: Bool = true
     @Published var toastMessage: String?
-    @Published var showToast: Bool = false
+    @Published var isToastVisible: Bool = false
     @Published var isLoading: Bool = false
     @Published var errorMessage: String?
     @Published var showConfirmation: Bool = false
@@ -136,9 +136,10 @@ class AppState: ObservableObject {
 
     func showToast(_ message: String) {
         toastMessage = message
-        showToast = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
-            self?.showToast = false
+        isToastVisible = true
+        let delay: Double = useMocks ? 10 : 3  // Longer in test mode
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            self?.isToastVisible = false
         }
     }
 

@@ -6,7 +6,7 @@ final class ColimaUITests: XCTestCase {
         let state = AppState(useMocks: true)
         XCTAssertTrue(state.vmRunning)
         XCTAssertEqual(state.selectedTab, .dashboard)
-        XCTAssertFalse(state.showToast)
+        XCTAssertFalse(state.isToastVisible)
     }
 
     func testAppStateRealModeInit() {

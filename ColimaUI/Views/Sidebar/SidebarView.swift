@@ -31,6 +31,20 @@ struct SidebarView: View {
 
             Divider()
 
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(appState.vmRunning ? .green : .red)
+                    .frame(width: 8, height: 8)
+                Text(appState.vmRunning ? "Running" : "Stopped")
+                    .font(.caption)
+                    .accessibilityIdentifier("status_indicator_text")
+                Spacer()
+            }
+            .accessibilityIdentifier("status_indicator_vm")
+            .accessibilityValue(appState.vmRunning ? "running" : "stopped")
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+
             Picker("Profile", selection: $appState.activeProfile) {
                 ForEach(appState.profiles) { p in
                     Text(p.name).tag(p.name)
@@ -47,11 +61,8 @@ struct SidebarView: View {
                     Circle()
                         .fill(appState.vmRunning ? .green : .red)
                         .frame(width: 8, height: 8)
-                        .accessibilityIdentifier("status_indicator_vm")
-                        .accessibilityValue(appState.vmRunning ? "running" : "stopped")
                     Text(appState.vmRunning ? "Running" : "Stopped")
                         .font(.caption)
-                        .accessibilityIdentifier("status_indicator_text")
                 }
             }
         }

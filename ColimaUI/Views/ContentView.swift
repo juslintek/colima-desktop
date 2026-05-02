@@ -13,12 +13,13 @@ struct ContentView: View {
             } detail: {
                 detailView
             }
-
-            if appState.showToast, let msg = appState.toastMessage {
+            .accessibilityIdentifier("main_split_view")
+        }
+        .overlay(alignment: .bottom) {
+            if appState.isToastVisible, let msg = appState.toastMessage {
                 ToastView(message: msg)
             }
         }
-        .accessibilityIdentifier("main_split_view")
         .confirmationDialog(appState.confirmationMessage, isPresented: $appState.showConfirmation) {
             Button("Confirm", role: .destructive) { appState.confirmationAction?() }
             Button("Cancel", role: .cancel) {}

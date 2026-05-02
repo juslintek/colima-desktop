@@ -25,12 +25,15 @@ struct DashboardView: View {
                         Button { appState.startVM() } label: { Image(systemName: "play.fill") }
                             .disabled(appState.vmRunning)
                             .accessibilityIdentifier("btn_start_vm_dashboard")
+                            .accessibilityLabel("Start")
                         Button { appState.stopVM() } label: { Image(systemName: "stop.fill") }
                             .disabled(!appState.vmRunning)
                             .accessibilityIdentifier("btn_stop_vm_dashboard")
+                            .accessibilityLabel("Stop")
                         Button { appState.restartVM() } label: { Image(systemName: "arrow.clockwise") }
                             .disabled(!appState.vmRunning)
                             .accessibilityIdentifier("btn_restart_vm_dashboard")
+                            .accessibilityLabel("Restart")
                     }
                 }
 
@@ -111,6 +114,8 @@ struct DashboardView: View {
             Text(value)
                 .font(.title2).fontWeight(.bold)
                 .accessibilityIdentifier("stat_\(title.lowercased())_count")
+                .accessibilityLabel(value)
+                .accessibilityValue(value)
             Text(title)
                 .font(.caption).foregroundStyle(.secondary)
         }
