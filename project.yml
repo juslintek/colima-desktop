@@ -1,0 +1,55 @@
+name: ColimaUI
+options:
+  bundleIdPrefix: com.colima
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  minimumXcodeGenVersion: "2.30"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+
+targets:
+  ColimaUI:
+    type: application
+    platform: macOS
+    sources:
+      - ColimaUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.ColimaUI
+        INFOPLIST_KEY_CFBundleDisplayName: ColimaUI
+        INFOPLIST_KEY_LSApplicationIsAgent: NO
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_NAME: ColimaUI
+        SWIFT_EMIT_LOC_STRINGS: true
+        ENABLE_PREVIEWS: true
+
+  ColimaUITests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - ColimaUITests
+    dependencies:
+      - target: ColimaUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.ColimaUITests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ColimaUI.app/Contents/MacOS/ColimaUI"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
+  ColimaUIUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - ColimaUIUITests
+    dependencies:
+      - target: ColimaUI
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.ColimaUIUITests
+        GENERATE_INFOPLIST_FILE: true
+        TEST_TARGET_NAME: ColimaUI

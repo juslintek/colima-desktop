@@ -1,0 +1,42 @@
+import SwiftUI
+
+struct SidebarView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        VStack(spacing: 0) {
+            List(NavigationItem.allCases, selection: $appState.selectedTab) { item in
+                Label(item.label, systemImage: item.icon)
+                    .tag(item)
+                    .accessibilityIdentifier(item.accessibilityId)
+            }
+            .listStyle(.sidebar)
+
+            Divider()
+
+            Picker("Profile", selection: $appState.activeProfile) {
+                ForEach(appState.profiles) { p in
+                    Text(p.name).tag(p.name)
+                }
+            }
+            .accessibilityIdentifier("picker_sidebar_profile")
+            .padding(8)
+        }
+        .navigationTitle("ColimaUI")
+        .frame(minWidth: 180)
+        .toolbar {
+            ToolbarItem {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(appState.vmRunning ? .green : .red)
+                        .frame(width: 8, height: 8)
+                        .accessibilityIdentifier("status_indicator_vm")
+                        .accessibilityValue(appState.vmRunning ? "running" : "stopped")
+                    Text(appState.vmRunning ? "Running" : "Stopped")
+                        .font(.caption)
+                        .accessibilityIdentifier("status_indicator_text")
+                }
+            }
+        }
+    }
+}

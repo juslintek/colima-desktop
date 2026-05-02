@@ -1,0 +1,19 @@
+# Xcode
+build/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# Generated
+ColimaUI.xcodeproj/
+
+# Vendor (cloned repos - large)
+vendor/colima/
+vendor/docker-docs/
+vendor/docker-api/
+
+# OS
+.DS_Store
+
+# Go
+daemon/colima-daemon

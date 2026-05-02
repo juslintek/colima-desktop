@@ -1,0 +1,72 @@
+import SwiftUI
+
+struct ContentView: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        ZStack {
+            NavigationSplitView {
+                SidebarView()
+            } detail: {
+                detailView
+            }
+
+            if appState.showToast, let msg = appState.toastMessage {
+                ToastView(message: msg)
+            }
+        }
+        .accessibilityIdentifier("main_split_view")
+        .confirmationDialog(appState.confirmationMessage, isPresented: $appState.showConfirmation) {
+            Button("Confirm", role: .destructive) { appState.confirmationAction?() }
+            Button("Cancel", role: .cancel) {}
+        }
+        .sheet(item: $appState.activeSheet) { sheet in
+            sheetContent(for: sheet)
+        }
+    }
+
+    @ViewBuilder
+    private var detailView: some View {
+        switch appState.selectedTab {
+        case .dashboard: DashboardView()
+        case .containers: ContainersView()
+        case .images: ImagesView()
+        case .volumes: VolumesView()
+        case .networks: NetworksView()
+        case .configuration: ConfigurationView()
+        case .profiles: ProfilesView()
+        case .kubernetes: KubernetesView()
+        case .ai: AIWorkloadsView()
+        case .monitoring: MonitoringView()
+        case .runtimeControls: RuntimeControlsView()
+        case .community: CommunityView()
+        }
+    }
+
+    @ViewBuilder
+    private func sheetContent(for sheet: AppState.SheetType) -> some View {
+        switch sheet {
+        case .inspect:
+            InspectSheetView(title: appState.sheetEntityName, content: appState.sheetContent)
+        case .logs:
+            LogSheetView(name: appState.sheetEntityName, logs: appState.sheetLogs)
+        case .terminal:
+            TerminalSheetView(command: appState.sheetCommand)
+        case .stats:
+            StatsSheetView(name: appState.sheetEntityName)
+        case .history:
+            HistorySheetView(repo: appState.sheetEntityName)
+        case .changes:
+            ChangesSheetView(name: appState.sheetEntityName)
+        case .search:
+            SearchSheetView(initialTerm: appState.sheetSearchTerm)
+                .environmentObject(appState)
+        case .commandRunner:
+            CommandRunnerView(tool: appState.sheetTool)
+        case .copyFiles:
+            CopyFilesSheetView(containerName: appState.sheetEntityName) { cmd in
+                appState.showToast("Executed: \(cmd)")
+            }
+        }
+    }
+}
