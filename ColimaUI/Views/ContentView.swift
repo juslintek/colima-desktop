@@ -26,6 +26,29 @@ struct ContentView: View {
         .sheet(item: $appState.activeSheet) { sheet in
             sheetContent(for: sheet)
         }
+        .sheet(isPresented: $appState.showSetupWizard) {
+            GuidedSetupWizard(isPresented: $appState.showSetupWizard)
+                .environmentObject(appState)
+        }
+        .overlay {
+            if appState.showCommandPalette {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture { appState.showCommandPalette = false }
+                VStack {
+                    CommandPalette(isPresented: $appState.showCommandPalette)
+                        .environmentObject(appState)
+                    Spacer()
+                }
+                .padding(.top, 80)
+            }
+        }
+        .background {
+            // Cmd+K handler via hidden button
+            Button("") { appState.showCommandPalette.toggle() }
+                .keyboardShortcut("k", modifiers: .command)
+                .hidden()
+        }
     }
 
     @ViewBuilder
@@ -89,6 +112,9 @@ struct ContentView: View {
             CopyFilesSheetView(containerName: appState.sheetEntityName) { cmd in
                 appState.showToast("Executed: \(cmd)")
             }
+        case .createContainer:
+            CreateContainerView()
+                .environmentObject(appState)
         }
     }
 }

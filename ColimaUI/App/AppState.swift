@@ -19,6 +19,7 @@ class AppState: ObservableObject {
     @Published var networks: [MockNetwork] = []
     @Published var profiles: [MockProfile] = []
     @Published var k8sRunning: Bool = false
+    var k8sEnabled: Bool { k8sRunning }
     @Published var memoryGovernorTier: Int = 0
     @Published var activeProfile: String = "default"
     @Published var selectedContainerName: String?
@@ -26,6 +27,8 @@ class AppState: ObservableObject {
     // MARK: - Sheet State
 
     @Published var activeSheet: SheetType?
+    @Published var showCommandPalette: Bool = false
+    @Published var showSetupWizard: Bool = false
     @Published var sheetEntityName: String = ""
     @Published var sheetContent: String = ""
     @Published var sheetLogs: [String] = []
@@ -34,7 +37,7 @@ class AppState: ObservableObject {
     @Published var sheetSearchTerm: String = ""
 
     enum SheetType: Identifiable {
-        case inspect, logs, terminal, stats, history, changes, search, commandRunner, copyFiles
+        case inspect, logs, terminal, stats, history, changes, search, commandRunner, copyFiles, createContainer
         var id: Self { self }
     }
 
@@ -365,6 +368,11 @@ class AppState: ObservableObject {
                 } catch { showError(error.localizedDescription) }
             }
         }
+    }
+
+    func pruneSystem() {
+        guard requiresVM("Prune") else { return }
+        pruneColima(all: true)
     }
 
     func pruneColima(all: Bool) {

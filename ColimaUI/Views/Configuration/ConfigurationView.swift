@@ -71,17 +71,17 @@ struct ConfigurationView: View {
             // MARK: VM Resources
             Section("VM Resources") {
                 HStack {
-                    Text("CPUs"); Spacer()
+                    Text("CPUs"); TooltipButton(info: ConfigTooltips.cpus); Spacer()
                     Stepper("\(Int(cpus))", value: $cpus, in: 1...16)
                         .accessibilityIdentifier("field_config_cpus")
                 }
                 HStack {
-                    Text("Memory (GiB)"); Spacer()
+                    Text("Memory (GiB)"); TooltipButton(info: ConfigTooltips.memory); Spacer()
                     Stepper("\(Int(memory))", value: $memory, in: 1...64)
                         .accessibilityIdentifier("field_config_memory")
                 }
                 HStack {
-                    Text("Disk (GiB)"); Spacer()
+                    Text("Disk (GiB)"); TooltipButton(info: ConfigTooltips.disk); Spacer()
                     Stepper("\(Int(disk))", value: $disk, in: 10...500)
                         .accessibilityIdentifier("field_config_disk")
                 }
@@ -104,18 +104,25 @@ struct ConfigurationView: View {
                     Picker("VM Type", selection: $vmType) {
                         Text("qemu").tag("qemu"); Text("vz").tag("vz"); Text("krunkit").tag("krunkit")
                     }.accessibilityIdentifier("field_config_vmtype")
+                    TooltipButton(info: ConfigTooltips.vmType)
                     Image(systemName: "lock.fill").accessibilityIdentifier("lock_config_vmtype")
                 }
                 TextField("CPU Type", text: $cpuType).accessibilityIdentifier("field_config_cputype")
-                Toggle("Rosetta", isOn: $rosetta).accessibilityIdentifier("toggle_config_rosetta")
-                Toggle("Nested Virtualization", isOn: $nestedVirt).accessibilityIdentifier("toggle_config_nestedvirt")
+                Toggle("Rosetta", isOn: $rosetta).withTooltip(ConfigTooltips.rosetta)
+                    .accessibilityIdentifier("toggle_config_rosetta")
+                Toggle("Nested Virtualization", isOn: $nestedVirt).withTooltip(ConfigTooltips.nestedVirt)
+                    .accessibilityIdentifier("toggle_config_nestedvirt")
                 TextField("Hostname", text: $hostname).accessibilityIdentifier("field_config_hostname")
                 TextField("Disk Image", text: $diskImage).accessibilityIdentifier("field_config_diskimage")
-                Toggle("Binfmt", isOn: $binfmt).accessibilityIdentifier("toggle_config_binfmt")
+                Toggle("Binfmt", isOn: $binfmt).withTooltip(ConfigTooltips.binfmt)
+                    .accessibilityIdentifier("toggle_config_binfmt")
                 Toggle("Foreground", isOn: $foreground).accessibilityIdentifier("toggle_config_foreground")
-                Picker("Port Forwarder", selection: $portForwarder) {
-                    Text("ssh").tag("ssh"); Text("grpc").tag("grpc"); Text("none").tag("none")
-                }.accessibilityIdentifier("field_config_portforwarder")
+                HStack {
+                    Picker("Port Forwarder", selection: $portForwarder) {
+                        Text("ssh").tag("ssh"); Text("grpc").tag("grpc"); Text("none").tag("none")
+                    }.accessibilityIdentifier("field_config_portforwarder")
+                    TooltipButton(info: ConfigTooltips.portForwarder)
+                }
             }
 
             // MARK: Runtime
@@ -124,6 +131,7 @@ struct ConfigurationView: View {
                     Picker("Runtime", selection: $runtime) {
                         Text("docker").tag("docker"); Text("containerd").tag("containerd"); Text("incus").tag("incus")
                     }.accessibilityIdentifier("field_config_runtime")
+                    TooltipButton(info: ConfigTooltips.runtime)
                     Image(systemName: "lock.fill").accessibilityIdentifier("lock_config_runtime")
                 }
                 Toggle("Auto Activate", isOn: $autoActivate).accessibilityIdentifier("toggle_config_autoactivate")
@@ -141,7 +149,8 @@ struct ConfigurationView: View {
 
             // MARK: Kubernetes
             Section("Kubernetes") {
-                Toggle("Enabled", isOn: $k8sEnabled).accessibilityIdentifier("toggle_config_k8s")
+                Toggle("Enabled", isOn: $k8sEnabled).withTooltip(ConfigTooltips.kubernetes)
+                    .accessibilityIdentifier("toggle_config_k8s")
                 TextField("Version", text: $k8sVersion).accessibilityIdentifier("field_config_k8sversion")
                 VStack(alignment: .leading) {
                     Text("k3s Args (comma-separated)")
@@ -155,7 +164,8 @@ struct ConfigurationView: View {
 
             // MARK: Network
             Section("Network") {
-                Toggle("Network Address", isOn: $networkAddress).accessibilityIdentifier("toggle_config_networkaddress")
+                Toggle("Network Address", isOn: $networkAddress).withTooltip(ConfigTooltips.networkAddress)
+                    .accessibilityIdentifier("toggle_config_networkaddress")
                 Picker("Network Mode", selection: $networkMode) {
                     Text("shared").tag("shared"); Text("bridged").tag("bridged")
                 }.accessibilityIdentifier("field_config_networkmode")
@@ -179,9 +189,11 @@ struct ConfigurationView: View {
                     Picker("Mount Type", selection: $mountType) {
                         Text("sshfs").tag("sshfs"); Text("9p").tag("9p"); Text("virtiofs").tag("virtiofs")
                     }.accessibilityIdentifier("field_config_mounttype")
+                    TooltipButton(info: ConfigTooltips.mountType)
                     Image(systemName: "lock.fill").accessibilityIdentifier("lock_config_mounttype")
                 }
-                Toggle("Inotify", isOn: $mountInotify).accessibilityIdentifier("toggle_config_inotify")
+                Toggle("Inotify", isOn: $mountInotify).withTooltip(ConfigTooltips.inotify)
+                    .accessibilityIdentifier("toggle_config_inotify")
                 Toggle("Disable Mounts", isOn: $disableMounts).accessibilityIdentifier("toggle_config_disablemounts")
 
                 ForEach(Array(mounts.enumerated()), id: \.offset) { i, m in
@@ -204,7 +216,8 @@ struct ConfigurationView: View {
             // MARK: SSH
             Section("SSH") {
                 TextField("SSH Port", text: $sshPort).accessibilityIdentifier("field_config_sshport")
-                Toggle("Forward Agent", isOn: $forwardAgent).accessibilityIdentifier("toggle_config_forwardagent")
+                Toggle("Forward Agent", isOn: $forwardAgent).withTooltip(ConfigTooltips.forwardAgent)
+                    .accessibilityIdentifier("toggle_config_forwardagent")
                 Toggle("SSH Config", isOn: $sshConfig).accessibilityIdentifier("toggle_config_sshconfig")
             }
 
