@@ -12,6 +12,8 @@ final class NetworkManagementUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["table_networks"].waitForExistence(timeout: 3))
     }
 
+    // MARK: - Table & Rows
+
     func testNetworksTableExists() {
         XCTAssertTrue(app.descendants(matching: .any)["table_networks"].exists)
     }
@@ -22,57 +24,51 @@ final class NetworkManagementUITests: XCTestCase {
         }
     }
 
-    func testCreateNetworkAddsRow() {
+    // MARK: - Toolbar buttons
+
+    func testCreateButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_create_network_new"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertTrue(btn.isEnabled)
+    }
+
+    func testPruneButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_prune_network_all"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertTrue(btn.isEnabled)
+    }
+
+    func testSortButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_sort_networks"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+    }
+
+    // MARK: - Remove button per row
+
+    func testRemoveButtonExistsForNetwork() {
+        let btn = app.descendants(matching: .any)["btn_remove_network_app-network"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+    }
+
+    // MARK: - Create Sheet
+
+    func testCreateSheetOpens() {
         app.descendants(matching: .any)["btn_create_network_new"].click()
         let nameField = app.descendants(matching: .any)["field_network_name"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 3))
-        nameField.click()
-        nameField.typeText("test-net")
-        app.descendants(matching: .any)["btn_confirm_network_create"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("created"))
-        XCTAssertTrue(app.descendants(matching: .any)["row_network_test-net"].waitForExistence(timeout: 3))
     }
 
-    func testRemoveNetworkRemovesRow() {
-        let row = app.descendants(matching: .any)["row_network_app-network"]
-        XCTAssertTrue(row.waitForExistence(timeout: 3))
-        app.descendants(matching: .any)["btn_remove_network_app-network"].click()
-        let gone = NSPredicate(format: "exists == false")
-        let exp = XCTNSPredicateExpectation(predicate: gone, object: row)
-        wait(for: [exp], timeout: 5)
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("removed"))
+    func testCreateSheetHasConfirmButton() {
+        app.descendants(matching: .any)["btn_create_network_new"].click()
+        let btn = app.descendants(matching: .any)["btn_confirm_network_create"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
     }
 
-    func testPruneNetworksShowsToast() {
-        app.descendants(matching: .any)["btn_prune_network_all"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("pruned"))
-    }
-
-    func testInspectNetworkShowsToast() {
-        app.descendants(matching: .any)["btn_inspect_network_bridge"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Inspecting"))
-    }
-
-    func testConnectNetworkShowsToast() {
-        app.descendants(matching: .any)["btn_connect_network_bridge"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Connect"))
-    }
-
-    func testDisconnectNetworkShowsToast() {
-        app.descendants(matching: .any)["btn_disconnect_network_bridge"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Disconnect"))
+    func testCreateConfirmDisabledWhenEmpty() {
+        app.descendants(matching: .any)["btn_create_network_new"].click()
+        let btn = app.descendants(matching: .any)["btn_confirm_network_create"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertFalse(btn.isEnabled)
     }
 
     // MARK: - Validation

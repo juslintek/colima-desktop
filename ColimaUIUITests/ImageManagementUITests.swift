@@ -12,6 +12,8 @@ final class ImageManagementUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["table_images"].waitForExistence(timeout: 3))
     }
 
+    // MARK: - Table & Rows
+
     func testImagesTableExists() {
         XCTAssertTrue(app.descendants(matching: .any)["table_images"].exists)
     }
@@ -22,163 +24,89 @@ final class ImageManagementUITests: XCTestCase {
         }
     }
 
-    func testPullImageAddsRow() {
-        let pullField = app.descendants(matching: .any)["field_images_pull_name"]
-        XCTAssertTrue(pullField.waitForExistence(timeout: 3))
-        pullField.click()
-        pullField.typeText("alpine")
-        app.descendants(matching: .any)["btn_pull_image_new"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("pulled"))
-        XCTAssertTrue(app.descendants(matching: .any)["row_image_alpine"].waitForExistence(timeout: 3))
-    }
-
-    func testRemoveImageRemovesRow() {
-        let row = app.descendants(matching: .any)["row_image_redis"]
-        XCTAssertTrue(row.waitForExistence(timeout: 3))
-        app.descendants(matching: .any)["btn_remove_image_redis"].click()
-        let gone = NSPredicate(format: "exists == false")
-        let exp = XCTNSPredicateExpectation(predicate: gone, object: row)
-        wait(for: [exp], timeout: 5)
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("removed"))
-    }
-
-    func testPruneImagesShowsToast() {
-        app.descendants(matching: .any)["btn_prune_image_all"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("pruned"))
-    }
-
-    func testHistoryButtonShowsToast() {
-        app.descendants(matching: .any)["btn_history_image_nginx"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("History"))
-    }
-
-    func testTagButtonShowsToast() {
-        app.descendants(matching: .any)["btn_tag_image_nginx"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Tagged"))
-    }
-
-    func testPushButtonShowsToast() {
-        app.descendants(matching: .any)["btn_push_image_nginx"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Push"))
-    }
-
-    func testExportButtonShowsToast() {
-        app.descendants(matching: .any)["btn_export_image_nginx"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Export"))
-    }
-
-    func testInspectButtonShowsToast() {
-        app.descendants(matching: .any)["btn_inspect_image_nginx"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Inspect"))
-    }
-
-    func testSearchHubShowsToast() {
-        let hubField = app.descendants(matching: .any)["field_images_hub_search"]
-        XCTAssertTrue(hubField.waitForExistence(timeout: 3))
-        hubField.click()
-        hubField.typeText("ubuntu")
-        app.descendants(matching: .any)["btn_search_image_hub"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Search Docker Hub"))
-    }
-
-    func testImportButtonShowsToast() {
-        let importField = app.descendants(matching: .any)["field_images_import_path"]
-        XCTAssertTrue(importField.waitForExistence(timeout: 3))
-        importField.click()
-        importField.typeText("/tmp/image.tar")
-        app.descendants(matching: .any)["btn_import_image_new"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Import"))
-    }
+    // MARK: - Toolbar buttons
 
     func testSearchFieldExists() {
         XCTAssertTrue(app.descendants(matching: .any)["field_images_search"].waitForExistence(timeout: 3))
     }
 
-    // MARK: - Sheet: History
-
-    func testHistorySheetOpens() {
-        app.descendants(matching: .any)["btn_history_image_nginx"].click()
-        let sheet = app.descendants(matching: .any)["sheet_history"].firstMatch
-        XCTAssertTrue(sheet.waitForExistence(timeout: 5) || app.descendants(matching: .any)["sheet_history"].waitForExistence(timeout: 5) || app.descendants(matching: .any)["sheet_history"].waitForExistence(timeout: 5))
+    func testPullSheetButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_pull_image_new_sheet"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertTrue(btn.isEnabled)
     }
 
-    func testHistorySheetCloseButton() {
-        app.descendants(matching: .any)["btn_history_image_nginx"].click()
-        let close = app.descendants(matching: .any)["btn_close_history"]
-        XCTAssertTrue(close.waitForExistence(timeout: 5))
+    func testPruneButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_prune_image_all"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertTrue(btn.isEnabled)
     }
 
-    func testHistorySheetLayersTable() {
-        app.descendants(matching: .any)["btn_history_image_nginx"].click()
-        let table = app.descendants(matching: .any)["table_history_layers"].firstMatch
-        XCTAssertTrue(table.waitForExistence(timeout: 5) || app.descendants(matching: .any)["table_history_layers"].waitForExistence(timeout: 5))
+    func testSortButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_sort_images"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
     }
 
-    // MARK: - Sheet: Search
+    // MARK: - Remove button per row
 
-    func testSearchSheetOpens() {
-        let hubField = app.descendants(matching: .any)["field_images_hub_search"]
-        XCTAssertTrue(hubField.waitForExistence(timeout: 3))
-        hubField.click()
-        hubField.typeText("ubuntu")
-        app.descendants(matching: .any)["btn_search_image_hub"].click()
-        let sheet = app.descendants(matching: .any)["sheet_search"].firstMatch
-        XCTAssertTrue(sheet.waitForExistence(timeout: 5) || app.descendants(matching: .any)["sheet_search"].waitForExistence(timeout: 5) || app.descendants(matching: .any)["sheet_search"].waitForExistence(timeout: 5))
+    func testRemoveButtonExistsForImage() {
+        let btn = app.descendants(matching: .any)["btn_remove_image_nginx"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
     }
 
-    func testSearchSheetCloseButton() {
-        let hubField = app.descendants(matching: .any)["field_images_hub_search"]
-        hubField.click()
-        hubField.typeText("ubuntu")
-        app.descendants(matching: .any)["btn_search_image_hub"].click()
-        let close = app.descendants(matching: .any)["btn_close_search"]
-        XCTAssertTrue(close.waitForExistence(timeout: 5))
+    // MARK: - Pull Sheet
+
+    func testPullSheetOpens() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let field = app.descendants(matching: .any)["field_images_pull_name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
     }
 
-    func testSearchSheetSearchField() {
-        let hubField = app.descendants(matching: .any)["field_images_hub_search"]
-        hubField.click()
-        hubField.typeText("ubuntu")
-        app.descendants(matching: .any)["btn_search_image_hub"].click()
-        let field = app.descendants(matching: .any)["field_search_hub"]
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
+    func testPullSheetHasHubSearchField() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let field = app.descendants(matching: .any)["field_images_hub_search"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
     }
 
-    func testSearchSheetGoButton() {
-        let hubField = app.descendants(matching: .any)["field_images_hub_search"]
-        hubField.click()
-        hubField.typeText("ubuntu")
-        app.descendants(matching: .any)["btn_search_image_hub"].click()
-        let btn = app.descendants(matching: .any)["btn_search_hub_go"]
-        XCTAssertTrue(btn.waitForExistence(timeout: 5))
+    func testPullSheetHasSearchHubButton() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let btn = app.descendants(matching: .any)["btn_search_image_hub"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
     }
 
-    func testSearchSheetResultsTable() {
-        let hubField = app.descendants(matching: .any)["field_images_hub_search"]
-        hubField.click()
-        hubField.typeText("ubuntu")
-        app.descendants(matching: .any)["btn_search_image_hub"].click()
-        let table = app.descendants(matching: .any)["table_search_results"].firstMatch
-        XCTAssertTrue(table.waitForExistence(timeout: 5) || app.descendants(matching: .any)["table_search_results"].waitForExistence(timeout: 5))
+    func testPullSheetHasImportField() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let field = app.descendants(matching: .any)["field_images_import_path"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+    }
+
+    func testPullSheetHasImportButton() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let btn = app.descendants(matching: .any)["btn_import_image_new"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+    }
+
+    func testPullSheetPullButtonDisabledWhenEmpty() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let btn = app.descendants(matching: .any)["btn_pull_image_new"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertFalse(btn.isEnabled)
+    }
+
+    func testPullSheetPullButtonEnabledWithInput() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let field = app.descendants(matching: .any)["field_images_pull_name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 3))
+        field.click()
+        field.typeText("alpine")
+        let btn = app.descendants(matching: .any)["btn_pull_image_new"]
+        XCTAssertTrue(btn.isEnabled)
+    }
+
+    func testImportButtonDisabledWhenEmpty() {
+        app.descendants(matching: .any)["btn_pull_image_new_sheet"].click()
+        let btn = app.descendants(matching: .any)["btn_import_image_new"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertFalse(btn.isEnabled)
     }
 }

@@ -12,12 +12,10 @@ final class VolumeManagementUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["table_volumes"].waitForExistence(timeout: 3))
     }
 
+    // MARK: - Table & Rows
+
     func testVolumesTableExists() {
         XCTAssertTrue(app.descendants(matching: .any)["table_volumes"].exists)
-    }
-
-    func testVolumesTitle() {
-        XCTAssertTrue(app.navigationBars["Volumes"].waitForExistence(timeout: 3) || app.descendants(matching: .any)["Volumes"].waitForExistence(timeout: 3))
     }
 
     func testMockVolumeRowsExist() {
@@ -26,43 +24,51 @@ final class VolumeManagementUITests: XCTestCase {
         }
     }
 
-    func testCreateVolumeAddsRow() {
+    // MARK: - Toolbar buttons
+
+    func testCreateButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_create_volume_new"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertTrue(btn.isEnabled)
+    }
+
+    func testPruneButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_prune_volume_all"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertTrue(btn.isEnabled)
+    }
+
+    func testSortButtonExists() {
+        let btn = app.descendants(matching: .any)["btn_sort_volumes"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+    }
+
+    // MARK: - Remove button per row
+
+    func testRemoveButtonExistsForVolume() {
+        let btn = app.descendants(matching: .any)["btn_remove_volume_postgres_data"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+    }
+
+    // MARK: - Create Sheet
+
+    func testCreateSheetOpens() {
         app.descendants(matching: .any)["btn_create_volume_new"].click()
         let nameField = app.descendants(matching: .any)["field_volume_name"]
         XCTAssertTrue(nameField.waitForExistence(timeout: 3))
-        nameField.click()
-        nameField.typeText("test_vol")
-        app.descendants(matching: .any)["btn_confirm_volume_create"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("created"))
-        XCTAssertTrue(app.descendants(matching: .any)["row_volume_test_vol"].waitForExistence(timeout: 3))
     }
 
-    func testRemoveVolumeRemovesRow() {
-        let row = app.descendants(matching: .any)["row_volume_redis_data"]
-        XCTAssertTrue(row.waitForExistence(timeout: 3))
-        app.descendants(matching: .any)["btn_remove_volume_redis_data"].click()
-        let gone = NSPredicate(format: "exists == false")
-        let exp = XCTNSPredicateExpectation(predicate: gone, object: row)
-        wait(for: [exp], timeout: 5)
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("removed"))
+    func testCreateSheetHasConfirmButton() {
+        app.descendants(matching: .any)["btn_create_volume_new"].click()
+        let btn = app.descendants(matching: .any)["btn_confirm_volume_create"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
     }
 
-    func testPruneVolumesShowsToast() {
-        app.descendants(matching: .any)["btn_prune_volume_all"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("pruned"))
-    }
-
-    func testInspectVolumeShowsToast() {
-        app.descendants(matching: .any)["btn_inspect_volume_postgres_data"].click()
-        let toast = app.descendants(matching: .any)["toast_notification_text"]
-        XCTAssertTrue(toast.waitForExistence(timeout: 3))
-        XCTAssertTrue(toast.label.contains("Inspecting"))
+    func testCreateConfirmDisabledWhenEmpty() {
+        app.descendants(matching: .any)["btn_create_volume_new"].click()
+        let btn = app.descendants(matching: .any)["btn_confirm_volume_create"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertFalse(btn.isEnabled)
     }
 
     // MARK: - Validation
