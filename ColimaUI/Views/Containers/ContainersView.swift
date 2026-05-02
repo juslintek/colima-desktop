@@ -10,11 +10,18 @@ struct ContainersView: View {
     @State private var imageError: String?
     @State private var showImageBrowser = false
 
+    private var runningContainers: [MockContainer] {
+        filtered.filter { $0.state == "running" || $0.state == "paused" }
+    }
+
+    private var stoppedContainers: [MockContainer] {
+        filtered.filter { $0.state != "running" && $0.state != "paused" }
+    }
+
     var filtered: [MockContainer] {
         searchText.isEmpty ? appState.containers : appState.containers.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
-    /// Images matching what the user typed so far
     private var imageSuggestions: [MockImage] {
         guard !newContainerImage.isEmpty else { return appState.images }
         return appState.images.filter {
@@ -23,7 +30,6 @@ struct ContainersView: View {
         }
     }
 
-    /// True when the typed image matches a local image exactly
     private var imageExistsLocally: Bool {
         let input = newContainerImage.lowercased()
         return appState.images.contains {
@@ -38,35 +44,55 @@ struct ContainersView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            toolbar
             containerList
         }
         .navigationTitle("Containers")
-        .sheet(isPresented: $showCreateSheet) { createSheet }
-    }
-
-    // MARK: - Toolbar
-
-    private var toolbar: some View {
-        HStack {
-            TextField("Search containers…", text: $searchText)
-                .textFieldStyle(.roundedBorder).frame(maxWidth: 250)
-                .accessibilityIdentifier("field_containers_search")
-            Spacer()
-            Button { showCreateSheet = true } label: { Label("Create", systemImage: "plus") }
-                .accessibilityIdentifier("btn_create_container_new")
-            Button { appState.pruneContainers() } label: { Label("Prune", systemImage: "trash") }
-                .accessibilityIdentifier("btn_prune_container_all")
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                HStack(spacing: 8) {
+                    Text("\(runningContainers.count) running")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    TextField("Search…", text: $searchText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 140)
+                        .accessibilityIdentifier("field_containers_search")
+                    Button { showCreateSheet = true } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityIdentifier("btn_create_container_new")
+                    Button { appState.pruneContainers() } label: {
+                        Image(systemName: "trash")
+                    }
+                    .accessibilityIdentifier("btn_prune_container_all")
+                }
+            }
         }
-        .padding()
+        .sheet(isPresented: $showCreateSheet) { createSheet }
     }
 
     // MARK: - Container List
 
     private var containerList: some View {
-        List(filtered) { c in
-            ContainerRowView(container: c, appState: appState)
+        List(selection: $appState.selectedContainerName) {
+            if !runningContainers.isEmpty {
+                Section("Running") {
+                    ForEach(runningContainers) { c in
+                        ContainerRowView(container: c, appState: appState)
+                            .tag(c.name)
+                    }
+                }
+            }
+            if !stoppedContainers.isEmpty {
+                Section("Stopped") {
+                    ForEach(stoppedContainers) { c in
+                        ContainerRowView(container: c, appState: appState)
+                            .tag(c.name)
+                    }
+                }
+            }
         }
+        .listStyle(.inset)
         .accessibilityIdentifier("table_containers")
     }
 
@@ -76,7 +102,6 @@ struct ContainersView: View {
         VStack(spacing: 12) {
             Text("Create Container").font(.headline)
 
-            // Name field with validation
             VStack(alignment: .leading, spacing: 2) {
                 TextField("Container Name", text: $newContainerName)
                     .textFieldStyle(.roundedBorder)
@@ -90,7 +115,6 @@ struct ContainersView: View {
                 }
             }
 
-            // Image field with autocomplete + browse
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     TextField("Image (e.g. nginx:latest)", text: $newContainerImage)
@@ -100,7 +124,6 @@ struct ContainersView: View {
                         .accessibilityIdentifier("btn_browse_images")
                 }
 
-                // Existence indicator
                 if !newContainerImage.isEmpty {
                     if imageExistsLocally {
                         Label("Image available locally", systemImage: "checkmark.circle.fill")
@@ -113,7 +136,6 @@ struct ContainersView: View {
                     }
                 }
 
-                // Autocomplete suggestions (show top 5 matches)
                 if !newContainerImage.isEmpty && !imageSuggestions.isEmpty && !imageExistsLocally {
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Suggestions:").font(.caption2).foregroundStyle(.secondary)
@@ -132,10 +154,10 @@ struct ContainersView: View {
                 }
             }
 
-            // Buttons
             HStack {
                 Button("Cancel") { resetAndClose() }
                     .accessibilityIdentifier("btn_cancel_container_create")
+                Spacer()
                 Button("Create") {
                     appState.createContainer(name: newContainerName, image: newContainerImage)
                     resetAndClose()
@@ -171,7 +193,7 @@ struct ContainersView: View {
     }
 }
 
-// MARK: - Image Browser (standalone for type-checker)
+// MARK: - Image Browser
 
 struct ImageBrowserSheet: View {
     let appState: AppState
@@ -196,7 +218,6 @@ struct ImageBrowserSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Search bar
             HStack {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Search local images and Docker Hub…", text: $searchText)
@@ -212,22 +233,42 @@ struct ImageBrowserSheet: View {
 
             Divider()
 
-            // Results
             List {
-                // Local images section
                 if !filteredLocal.isEmpty {
                     Section("Local Images (\(filteredLocal.count))") {
                         ForEach(filteredLocal) { img in
-                            localImageRow(img)
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("\(img.repository):\(img.tag)").fontWeight(.medium)
+                                    Text("\(img.size) · \(img.created)").font(.caption).foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Button("Use") { onSelect("\(img.repository):\(img.tag)") }
+                                    .accessibilityIdentifier("btn_select_image_\(img.repository)")
+                            }
                         }
                     }
                     .accessibilityIdentifier("section_image_browser_local")
                 }
 
-                // Docker Hub section
                 Section("Docker Hub\(searchText.isEmpty ? " — Popular" : " — \"\(searchText)\"")") {
                     ForEach(filteredHub, id: \.name) { r in
-                        hubImageRow(r)
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 4) {
+                                    Text(r.name).fontWeight(.medium)
+                                    if r.official {
+                                        Text("OFFICIAL").font(.caption2).padding(.horizontal, 4)
+                                            .background(.blue.opacity(0.15)).cornerRadius(3)
+                                    }
+                                }
+                                Text(r.description).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                            }
+                            Spacer()
+                            Text("★ \(r.stars)").font(.caption).foregroundStyle(.secondary)
+                            Button("Pull & Use") { pullAndSelect(r.name) }
+                                .accessibilityIdentifier("btn_pull_select_hub_\(r.name)")
+                        }
                     }
                 }
                 .accessibilityIdentifier("section_image_browser_hub")
@@ -236,7 +277,6 @@ struct ImageBrowserSheet: View {
 
             Divider()
 
-            // Footer
             HStack {
                 if isPulling {
                     ProgressView().controlSize(.small)
@@ -252,137 +292,116 @@ struct ImageBrowserSheet: View {
         .accessibilityIdentifier("sheet_image_browser")
     }
 
-    private func localImageRow(_ img: MockImage) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text("\(img.repository):\(img.tag)").fontWeight(.medium)
-                Text("\(img.size) · \(img.created)").font(.caption).foregroundStyle(.secondary)
-            }
-            Spacer()
-            Label("Local", systemImage: "checkmark.circle.fill")
-                .font(.caption).foregroundStyle(.green)
-            Button("Use") {
-                onSelect("\(img.repository):\(img.tag)")
-            }
-            .accessibilityIdentifier("btn_select_image_\(img.repository)")
-        }
-    }
-
-    private func hubImageRow(_ r: (name: String, description: String, stars: Int, official: Bool)) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(r.name).fontWeight(.medium)
-                    if r.official {
-                        Text("OFFICIAL").font(.caption2).padding(.horizontal, 4)
-                            .background(.blue.opacity(0.15)).cornerRadius(3)
-                    }
-                }
-                Text(r.description).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
-            Spacer()
-            Text("★ \(r.stars)").font(.caption).foregroundStyle(.secondary)
-            Button("Pull & Use") {
-                pullAndSelect(r.name)
-            }
-            .accessibilityIdentifier("btn_pull_select_hub_\(r.name)")
-        }
-    }
-
     private func pullAndSelect(_ name: String) {
         isPulling = true
-        // Mock pull: add to local images, then select
         appState.pullImage(name: name)
         isPulling = false
         onSelect("\(name):latest")
     }
 }
 
-// MARK: - Container Row (extracted for type-checker)
+// MARK: - Container Row
 
 struct ContainerRowView: View {
     let container: MockContainer
     let appState: AppState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            mainRow
-            actionRow
-        }
-    }
-
-    private var mainRow: some View {
-        let c = container
-        return HStack(spacing: 8) {
+        HStack(spacing: 8) {
             Circle()
-                .fill(c.state == "running" ? Color.green : c.state == "paused" ? Color.yellow : Color.red)
+                .fill(container.state == "running" ? Color.green : container.state == "paused" ? Color.yellow : Color.red)
                 .frame(width: 8, height: 8)
-                .accessibilityIdentifier("status_indicator_\(c.name)")
-                .accessibilityValue(c.state)
-            Text(c.name).frame(minWidth: 100, alignment: .leading)
-                .accessibilityIdentifier("row_container_\(c.name)")
-            Text(c.image).foregroundStyle(.secondary).frame(minWidth: 100, alignment: .leading)
-            Text(c.status).foregroundStyle(.secondary).frame(minWidth: 120, alignment: .leading)
-            Spacer()
-            lifecycleButtons
-        }
-    }
+                .accessibilityIdentifier("status_indicator_\(container.name)")
+                .accessibilityValue(container.state)
 
-    private var lifecycleButtons: some View {
-        let c = container
-        return HStack(spacing: 4) {
-            Button("Start") { appState.startContainer(name: c.name) }
-                .accessibilityIdentifier("btn_start_container_\(c.name)")
-                .disabled(c.state == "running")
-            Button("Stop") { appState.stopContainer(name: c.name) }
-                .accessibilityIdentifier("btn_stop_container_\(c.name)")
-                .disabled(c.state == "exited")
-            Button("Kill") { appState.killContainer(name: c.name) }
-                .accessibilityIdentifier("btn_kill_container_\(c.name)")
-            Button("Pause") { appState.pauseContainer(name: c.name) }
-                .accessibilityIdentifier("btn_pause_container_\(c.name)")
-                .disabled(c.state != "running")
-            Button("Unpause") { appState.unpauseContainer(name: c.name) }
-                .accessibilityIdentifier("btn_unpause_container_\(c.name)")
-                .disabled(c.state != "paused")
-            Button("Remove") {
-                appState.requestConfirmation("Remove container '\(c.name)'?") {
-                    appState.removeContainer(name: c.name)
-                }
-            }.accessibilityIdentifier("btn_remove_container_\(c.name)")
-        }
-    }
-
-    private var actionRow: some View {
-        let c = container
-        return ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
-                Button("Restart") { appState.restartContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_restart_container_\(c.name)")
-                Button("Logs") { appState.logsContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_logs_container_\(c.name)")
-                Button("Inspect") { appState.inspectContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_inspect_container_\(c.name)")
-                Button("Exec") { appState.execContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_exec_container_\(c.name)")
-                Button("Top") { appState.topContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_top_container_\(c.name)")
-                Button("Stats") { appState.statsContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_stats_container_\(c.name)")
-                Button("Export") { appState.exportContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_export_container_\(c.name)")
-                Button("Changes") { appState.changesContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_changes_container_\(c.name)")
-                Button("Wait") { appState.waitContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_wait_container_\(c.name)")
-                Button("Attach") { appState.attachContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_attach_container_\(c.name)")
-                Button("Update") { appState.updateContainerResources(name: c.name) }
-                    .accessibilityIdentifier("btn_update_container_\(c.name)")
-                Button("Copy") { appState.copyContainer(name: c.name) }
-                    .accessibilityIdentifier("btn_copy_container_\(c.name)")
+            VStack(alignment: .leading, spacing: 1) {
+                Text(container.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .accessibilityIdentifier("row_container_\(container.name)")
+                Text(container.image)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            .font(.caption)
+
+            Spacer()
+
+            // Inline icon-only actions
+            if container.state == "running" {
+                Button { appState.stopContainer(name: container.name) } label: {
+                    Image(systemName: "stop.fill")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("btn_stop_container_\(container.name)")
+            } else {
+                Button { appState.startContainer(name: container.name) } label: {
+                    Image(systemName: "play.fill")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("btn_start_container_\(container.name)")
+            }
+
+            Button {
+                appState.requestConfirmation("Remove container '\(container.name)'?") {
+                    appState.removeContainer(name: container.name)
+                }
+            } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("btn_remove_container_\(container.name)")
+        }
+        .padding(.vertical, 2)
+        .contextMenu { containerContextMenu }
+    }
+
+    @ViewBuilder
+    private var containerContextMenu: some View {
+        let c = container
+        Button("Start") { appState.startContainer(name: c.name) }
+            .accessibilityIdentifier("btn_start_container_\(c.name)")
+            .disabled(c.state == "running")
+        Button("Stop") { appState.stopContainer(name: c.name) }
+            .disabled(c.state == "exited")
+        Button("Kill") { appState.killContainer(name: c.name) }
+            .accessibilityIdentifier("btn_kill_container_\(c.name)")
+        Button("Pause") { appState.pauseContainer(name: c.name) }
+            .accessibilityIdentifier("btn_pause_container_\(c.name)")
+            .disabled(c.state != "running")
+        Button("Unpause") { appState.unpauseContainer(name: c.name) }
+            .accessibilityIdentifier("btn_unpause_container_\(c.name)")
+            .disabled(c.state != "paused")
+        Divider()
+        Button("Restart") { appState.restartContainer(name: c.name) }
+            .accessibilityIdentifier("btn_restart_container_\(c.name)")
+        Button("Logs") { appState.logsContainer(name: c.name) }
+            .accessibilityIdentifier("btn_logs_container_\(c.name)")
+        Button("Inspect") { appState.inspectContainer(name: c.name) }
+            .accessibilityIdentifier("btn_inspect_container_\(c.name)")
+        Button("Exec") { appState.execContainer(name: c.name) }
+            .accessibilityIdentifier("btn_exec_container_\(c.name)")
+        Button("Top") { appState.topContainer(name: c.name) }
+            .accessibilityIdentifier("btn_top_container_\(c.name)")
+        Button("Stats") { appState.statsContainer(name: c.name) }
+            .accessibilityIdentifier("btn_stats_container_\(c.name)")
+        Button("Export") { appState.exportContainer(name: c.name) }
+            .accessibilityIdentifier("btn_export_container_\(c.name)")
+        Button("Changes") { appState.changesContainer(name: c.name) }
+            .accessibilityIdentifier("btn_changes_container_\(c.name)")
+        Button("Wait") { appState.waitContainer(name: c.name) }
+            .accessibilityIdentifier("btn_wait_container_\(c.name)")
+        Button("Attach") { appState.attachContainer(name: c.name) }
+            .accessibilityIdentifier("btn_attach_container_\(c.name)")
+        Button("Update") { appState.updateContainerResources(name: c.name) }
+            .accessibilityIdentifier("btn_update_container_\(c.name)")
+        Button("Copy") { appState.copyContainer(name: c.name) }
+            .accessibilityIdentifier("btn_copy_container_\(c.name)")
+        Divider()
+        Button("Remove", role: .destructive) {
+            appState.requestConfirmation("Remove container '\(c.name)'?") {
+                appState.removeContainer(name: c.name)
+            }
         }
     }
 }

@@ -5,10 +5,27 @@ struct SidebarView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            List(NavigationItem.allCases, selection: $appState.selectedTab) { item in
-                Label(item.label, systemImage: item.icon)
-                    .tag(item)
-                    .accessibilityIdentifier(item.accessibilityId)
+            List(selection: $appState.selectedTab) {
+                Section("Docker") {
+                    sidebarItem(.containers)
+                    sidebarItem(.images)
+                    sidebarItem(.volumes)
+                    sidebarItem(.networks)
+                }
+                Section("Kubernetes") {
+                    sidebarItem(.kubernetes)
+                }
+                Section("Colima") {
+                    sidebarItem(.profiles)
+                    sidebarItem(.configuration)
+                    sidebarItem(.ai)
+                    sidebarItem(.runtimeControls)
+                }
+                Section("General") {
+                    sidebarItem(.dashboard)
+                    sidebarItem(.monitoring)
+                    sidebarItem(.community)
+                }
             }
             .listStyle(.sidebar)
 
@@ -38,5 +55,11 @@ struct SidebarView: View {
                 }
             }
         }
+    }
+
+    private func sidebarItem(_ item: NavigationItem) -> some View {
+        Label(item.label, systemImage: item.icon)
+            .tag(item)
+            .accessibilityIdentifier(item.accessibilityId)
     }
 }

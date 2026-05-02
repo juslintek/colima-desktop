@@ -8,46 +8,100 @@ struct VolumesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                if showCreate {
-                    VStack(alignment: .leading, spacing: 2) {
-                        TextField("Volume name", text: $newVolumeName)
-                            .textFieldStyle(.roundedBorder).frame(maxWidth: 200)
-                            .accessibilityIdentifier("field_volume_name")
-                            .onChange(of: newVolumeName) { _ in validationError = appState.validateVolumeName(newVolumeName) }
-                        if let err = validationError {
-                            Text(err).font(.caption).foregroundStyle(.red)
-                                .accessibilityIdentifier("text_volume_validation_error")
-                        }
-                    }
-                    Button("Confirm") {
-                        guard appState.validateVolumeName(newVolumeName) == nil else { return }
-                        appState.createVolume(name: newVolumeName)
-                        newVolumeName = ""; showCreate = false; validationError = nil
-                    }
-                    .accessibilityIdentifier("btn_confirm_volume_create")
-                    .disabled(newVolumeName.isEmpty || validationError != nil)
-                }
-                Spacer()
-                Button("Create") { showCreate.toggle() }.accessibilityIdentifier("btn_create_volume_new")
-                Button("Prune") { appState.pruneVolumes() }.accessibilityIdentifier("btn_prune_volume_all")
-            }.padding()
-
-            List(appState.volumes) { vol in
-                HStack {
-                    Text(vol.name).frame(minWidth: 120, alignment: .leading)
-                        .accessibilityIdentifier("row_volume_\(vol.name)")
-                    Text(vol.driver).foregroundStyle(.secondary).frame(minWidth: 60, alignment: .leading)
-                    Text(vol.size).foregroundStyle(.secondary)
-                    Spacer()
-                    Button("Remove") { appState.removeVolume(name: vol.name) }
-                        .accessibilityIdentifier("btn_remove_volume_\(vol.name)")
-                    Button("Inspect") { appState.inspectVolume(name: vol.name) }
-                        .accessibilityIdentifier("btn_inspect_volume_\(vol.name)")
+            List {
+                ForEach(appState.volumes) { vol in
+                    volumeRow(vol)
                 }
             }
+            .listStyle(.inset)
             .accessibilityIdentifier("table_volumes")
         }
         .navigationTitle("Volumes")
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
+                HStack(spacing: 8) {
+                    Button { showCreate = true } label: {
+                        Image(systemName: "plus")
+                    }
+                    .accessibilityIdentifier("btn_create_volume_new")
+                    Button { appState.pruneVolumes() } label: {
+                        Image(systemName: "trash")
+                    }
+                    .accessibilityIdentifier("btn_prune_volume_all")
+                }
+            }
+        }
+        .sheet(isPresented: $showCreate) { createSheet }
+    }
+
+    private func volumeRow(_ vol: MockVolume) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "externaldrive")
+                .foregroundStyle(.secondary)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(vol.name)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .accessibilityIdentifier("row_volume_\(vol.name)")
+                Text("\(vol.driver) · \(vol.size)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            Button { appState.removeVolume(name: vol.name) } label: {
+                Image(systemName: "trash")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("btn_remove_volume_\(vol.name)")
+        }
+        .padding(.vertical, 2)
+        .contextMenu {
+            Button("Inspect") { appState.inspectVolume(name: vol.name) }
+                .accessibilityIdentifier("btn_inspect_volume_\(vol.name)")
+            Divider()
+            Button("Remove", role: .destructive) { appState.removeVolume(name: vol.name) }
+        }
+    }
+
+    // MARK: - Create Sheet
+
+    private var createSheet: some View {
+        VStack(spacing: 12) {
+            Text("Create Volume").font(.headline)
+
+            VStack(alignment: .leading, spacing: 2) {
+                TextField("Volume name", text: $newVolumeName)
+                    .textFieldStyle(.roundedBorder)
+                    .accessibilityIdentifier("field_volume_name")
+                    .onChange(of: newVolumeName) { _ in validationError = appState.validateVolumeName(newVolumeName) }
+                if let err = validationError {
+                    Text(err).font(.caption).foregroundStyle(.red)
+                        .accessibilityIdentifier("text_volume_validation_error")
+                }
+            }
+
+            HStack {
+                Button("Cancel") {
+                    newVolumeName = ""
+                    validationError = nil
+                    showCreate = false
+                }
+                Spacer()
+                Button("Create") {
+                    guard appState.validateVolumeName(newVolumeName) == nil else { return }
+                    appState.createVolume(name: newVolumeName)
+                    newVolumeName = ""
+                    validationError = nil
+                    showCreate = false
+                }
+                .accessibilityIdentifier("btn_confirm_volume_create")
+                .disabled(newVolumeName.isEmpty || validationError != nil)
+            }
+        }
+        .padding()
+        .frame(width: 350)
     }
 }

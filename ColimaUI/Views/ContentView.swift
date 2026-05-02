@@ -2,11 +2,14 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     var body: some View {
         ZStack {
-            NavigationSplitView {
+            NavigationSplitView(columnVisibility: $columnVisibility) {
                 SidebarView()
+            } content: {
+                listView
             } detail: {
                 detailView
             }
@@ -26,7 +29,7 @@ struct ContentView: View {
     }
 
     @ViewBuilder
-    private var detailView: some View {
+    private var listView: some View {
         switch appState.selectedTab {
         case .dashboard: DashboardView()
         case .containers: ContainersView()
@@ -40,6 +43,25 @@ struct ContentView: View {
         case .monitoring: MonitoringView()
         case .runtimeControls: RuntimeControlsView()
         case .community: CommunityView()
+        }
+    }
+
+    @ViewBuilder
+    private var detailView: some View {
+        switch appState.selectedTab {
+        case .containers:
+            if let name = appState.selectedContainerName,
+               let container = appState.containers.first(where: { $0.name == name }) {
+                ContainerDetailView(container: container)
+            } else {
+                Text("Select a container")
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+        default:
+            Text("Select an item")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

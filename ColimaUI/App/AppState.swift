@@ -21,6 +21,7 @@ class AppState: ObservableObject {
     @Published var k8sRunning: Bool = false
     @Published var memoryGovernorTier: Int = 0
     @Published var activeProfile: String = "default"
+    @Published var selectedContainerName: String?
 
     // MARK: - Sheet State
 
