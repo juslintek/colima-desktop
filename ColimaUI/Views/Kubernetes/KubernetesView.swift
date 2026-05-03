@@ -24,12 +24,10 @@ struct KubernetesView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            clusterControls
             namespaceBar
             tabPicker
             GroupBox { resourceContent }
                 .accessibilityIdentifier("table_k8s_resources")
-            legacyQuickActions
             Spacer()
         }
         .padding()
@@ -41,31 +39,7 @@ struct KubernetesView: View {
         } message: { Text("Delete \(deleteTarget)? This cannot be undone.") }
     }
 
-    // MARK: - Cluster Controls
-
-    private var clusterControls: some View {
-        GroupBox("Kubernetes Cluster") {
-            HStack {
-                Circle().fill(appState.k8sRunning ? .green : .gray).frame(width: 10, height: 10)
-                Text(appState.k8sRunning ? "Running" : "Not Running")
-                    .font(.headline)
-                    .accessibilityIdentifier("status_indicator_k8s")
-                    .accessibilityValue(appState.k8sRunning ? "running" : "stopped")
-                Spacer()
-                Text("k3s v1.28.3").foregroundStyle(.secondary)
-            }
-            HStack(spacing: 8) {
-                Button("Start K8s") { appState.enableKubernetes() }
-                    .accessibilityIdentifier("btn_start_kubernetes_cluster")
-                    .disabled(appState.k8sRunning)
-                Button("Stop K8s") { appState.disableKubernetes() }
-                    .accessibilityIdentifier("btn_stop_kubernetes_cluster")
-                    .disabled(!appState.k8sRunning)
-                Button("Reset K8s") { appState.resetKubernetes() }
-                    .accessibilityIdentifier("btn_reset_kubernetes_cluster")
-            }
-        }
-    }
+    // MARK: - Cluster Controls (moved to right column KubernetesInfoPanel)
 
     private var namespaceBar: some View {
         HStack {
@@ -228,6 +202,52 @@ struct KubernetesView: View {
             Button("Get All") { appState.showToast("All resources listed") }.accessibilityIdentifier("btn_getall_kubernetes_all")
             Button("Cluster Info") { appState.showToast("Cluster info displayed") }.accessibilityIdentifier("btn_clusterinfo_kubernetes_all")
         }.font(.caption)
+    }
+}
+
+// MARK: - Kubernetes Info Panel (right column)
+
+struct KubernetesInfoPanel: View {
+    @EnvironmentObject var appState: AppState
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            GroupBox("Kubernetes Cluster") {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Circle().fill(appState.k8sRunning ? .green : .gray).frame(width: 10, height: 10)
+                        Text(appState.k8sRunning ? "Running" : "Not Running")
+                            .font(.headline)
+                            .accessibilityIdentifier("status_indicator_k8s")
+                            .accessibilityValue(appState.k8sRunning ? "running" : "stopped")
+                        Spacer()
+                        Text("k3s v1.28.3").foregroundStyle(.secondary)
+                    }
+                    HStack(spacing: 8) {
+                        Button("Start") { appState.enableKubernetes() }
+                            .accessibilityIdentifier("btn_start_kubernetes_cluster")
+                            .disabled(appState.k8sRunning)
+                        Button("Stop") { appState.disableKubernetes() }
+                            .accessibilityIdentifier("btn_stop_kubernetes_cluster")
+                            .disabled(!appState.k8sRunning)
+                        Button("Reset") { appState.resetKubernetes() }
+                            .accessibilityIdentifier("btn_reset_kubernetes_cluster")
+                    }
+                }
+            }
+
+            GroupBox("Quick Actions") {
+                VStack(alignment: .leading, spacing: 6) {
+                    Button("Get Pods") { appState.showToast("Pods listed") }.accessibilityIdentifier("btn_getpods_kubernetes_all")
+                    Button("Get Services") { appState.showToast("Services listed") }.accessibilityIdentifier("btn_getservices_kubernetes_all")
+                    Button("Get All") { appState.showToast("All resources listed") }.accessibilityIdentifier("btn_getall_kubernetes_all")
+                    Button("Cluster Info") { appState.showToast("Cluster info displayed") }.accessibilityIdentifier("btn_clusterinfo_kubernetes_all")
+                }
+            }
+
+            Spacer()
+        }
+        .padding()
     }
 }
 

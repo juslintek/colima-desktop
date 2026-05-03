@@ -116,7 +116,7 @@ struct ContentView: View {
             if let podName = appState.selectedPodName {
                 PodDetailView(podName: podName)
             } else {
-                noSelection
+                KubernetesInfoPanel()
             }
         default:
             noSelection
