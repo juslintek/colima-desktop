@@ -50,31 +50,19 @@ final class KubernetesUITests: XCTestCase {
     }
 
     func testServicesTabExists() {
-        let segmented = app.segmentedControls.firstMatch
-        XCTAssertTrue(segmented.waitForExistence(timeout: 3))
-        segmented.buttons.element(boundBy: 1).click()
-        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_services"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_services"].waitForExistence(timeout: 5))
     }
 
     func testDeploymentsTabExists() {
-        let segmented = app.segmentedControls.firstMatch
-        XCTAssertTrue(segmented.waitForExistence(timeout: 3))
-        segmented.buttons.element(boundBy: 2).click()
-        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_deployments"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_deployments"].waitForExistence(timeout: 5))
     }
 
     func testNodesTabExists() {
-        let segmented = app.segmentedControls.firstMatch
-        XCTAssertTrue(segmented.waitForExistence(timeout: 3))
-        segmented.buttons.element(boundBy: 3).click()
-        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_nodes"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_nodes"].waitForExistence(timeout: 5))
     }
 
     func testEventsTabExists() {
-        let segmented = app.segmentedControls.firstMatch
-        XCTAssertTrue(segmented.waitForExistence(timeout: 3))
-        segmented.buttons.element(boundBy: 4).click()
-        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_events"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_events"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Resources Table

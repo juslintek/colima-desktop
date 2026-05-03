@@ -99,12 +99,9 @@ final class AppShellUITests: XCTestCase {
     }
 
     func testDashboardMockDataCounts() {
+        // Stat cards were removed in OrbStack redesign — verify version text instead
         app.descendants(matching: .any)["tab_dashboard"].click()
-        let stat = app.descendants(matching: .any)["stat_containers_count"]
-        XCTAssertTrue(stat.waitForExistence(timeout: 5))
-        // SwiftUI Text exposes content via value or label
-        let val = (stat.value as? String) ?? stat.label
-        XCTAssertEqual(val, "5")
+        XCTAssertTrue(app.descendants(matching: .any)["text_version_dashboard"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Sidebar widgets
