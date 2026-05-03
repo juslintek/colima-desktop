@@ -4,6 +4,13 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
+    private var needsDetailColumn: Bool {
+        switch appState.selectedTab {
+        case .containers, .images, .volumes, .networks, .kubernetes: return true
+        default: return false
+        }
+    }
+
     var body: some View {
         ZStack {
             NavigationSplitView(columnVisibility: $columnVisibility) {
@@ -11,9 +18,14 @@ struct ContentView: View {
             } content: {
                 listView
             } detail: {
-                detailView
+                if needsDetailColumn {
+                    detailView
+                }
             }
             .accessibilityIdentifier("main_split_view")
+        }
+        .onChange(of: appState.selectedTab) { _ in
+            columnVisibility = needsDetailColumn ? .all : .doubleColumn
         }
         .overlay(alignment: .bottom) {
             if appState.isToastVisible, let msg = appState.toastMessage {
