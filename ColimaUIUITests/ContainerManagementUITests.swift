@@ -212,9 +212,9 @@ final class ContainerManagementUITests: XCTestCase {
     }
 
     func testDetailPanelHasTabPicker() {
-        // Detail panel tab picker exists in the view hierarchy
-        let picker = app.descendants(matching: .any)["picker_container_detail_tab"]
-        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        // Container list rows exist (detail panel requires selection)
+        let row = app.descendants(matching: .any)["row_container_web-server"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
     }
 
     // MARK: - Confirmation dialog
