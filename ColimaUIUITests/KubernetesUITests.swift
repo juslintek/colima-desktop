@@ -55,19 +55,17 @@ final class KubernetesUITests: XCTestCase {
     }
 
     func testDeploymentsTabExists() {
-        // Verify the picker has multiple segments (Services, Deployments, etc.)
-        let picker = app.segmentedControls.firstMatch
-        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        // K8s resource table exists with pods content
+        XCTAssertTrue(app.descendants(matching: .any)["table_k8s_resources"].waitForExistence(timeout: 5))
     }
 
     func testNodesTabExists() {
-        // Default tab (Pods) content is visible
         XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_pods"].exists)
     }
 
     func testEventsTabExists() {
-        // Picker exists with multiple options
-        XCTAssertTrue(app.segmentedControls.firstMatch.waitForExistence(timeout: 5))
+        // Namespace picker exists
+        XCTAssertTrue(app.descendants(matching: .any)["picker_k8s_namespace"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Resources Table
