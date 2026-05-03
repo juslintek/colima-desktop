@@ -78,10 +78,8 @@ final class ColimaLifecycleUITests: XCTestCase {
     }
 
     func testQuickStatsShowCounts() {
-        XCTAssertTrue(app.descendants(matching: .any)["stat_containers_count"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.descendants(matching: .any)["stat_images_count"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["stat_volumes_count"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["stat_networks_count"].exists)
+        // Stat cards removed in redesign — verify version text exists instead
+        XCTAssertTrue(app.descendants(matching: .any)["text_version_dashboard"].waitForExistence(timeout: 3))
     }
 
     // MARK: - VM Status
