@@ -13,20 +13,23 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            NavigationSplitView(columnVisibility: $columnVisibility) {
-                SidebarView()
-            } content: {
-                listView
-            } detail: {
-                if needsDetailColumn {
+            if needsDetailColumn {
+                NavigationSplitView(columnVisibility: $columnVisibility) {
+                    SidebarView()
+                } content: {
+                    listView
+                } detail: {
                     detailView
                 }
+                .accessibilityIdentifier("main_split_view")
+            } else {
+                NavigationSplitView {
+                    SidebarView()
+                } detail: {
+                    listView
+                }
+                .accessibilityIdentifier("main_split_view")
             }
-            .navigationSplitViewStyle(.balanced)
-            .accessibilityIdentifier("main_split_view")
-        }
-        .onChange(of: appState.selectedTab) { _ in
-            columnVisibility = needsDetailColumn ? .all : .doubleColumn
         }
         .overlay(alignment: .bottom) {
             if appState.isToastVisible, let msg = appState.toastMessage {
