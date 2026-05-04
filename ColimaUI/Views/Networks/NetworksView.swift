@@ -1,31 +1,63 @@
 import SwiftUI
 
+enum NetworkSortOrder: String, CaseIterable {
+    case name = "Name"
+    case driver = "Driver"
+    case scope = "Scope"
+}
+
 struct NetworksView: View {
     @EnvironmentObject var appState: AppState
     @State private var newNetworkName = ""
     @State private var showCreate = false
     @State private var validationError: String?
+    @State private var sortOrder: NetworkSortOrder = .name
     @State private var sortAscending = true
 
     private var sorted: [MockNetwork] {
-        sortAscending ? appState.networks.sorted { $0.name < $1.name } : appState.networks.sorted { $0.name > $1.name }
+        appState.networks.sorted { a, b in
+            let result: Bool
+            switch sortOrder {
+            case .name: result = a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            case .driver: result = a.driver < b.driver
+            case .scope: result = a.scope < b.scope
+            }
+            return sortAscending ? result : !result
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            List(selection: $appState.selectedNetworkName) {
-                ForEach(sorted) { net in
-                    networkRow(net).tag(net.name).hoverHighlight()
+            if sorted.isEmpty {
+                emptyState
+            } else {
+                List(selection: $appState.selectedNetworkName) {
+                    ForEach(sorted) { net in
+                        networkRow(net).tag(net.name).hoverHighlight()
+                    }
                 }
+                .listStyle(.inset)
+                .accessibilityIdentifier("table_networks")
             }
-            .listStyle(.inset)
-            .accessibilityIdentifier("table_networks")
         }
         .navigationTitle("Networks")
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
-                    Button { sortAscending.toggle() } label: {
+                    Menu {
+                        ForEach(NetworkSortOrder.allCases, id: \.self) { order in
+                            Button {
+                                if sortOrder == order { sortAscending.toggle() } else { sortOrder = order; sortAscending = true }
+                            } label: {
+                                HStack {
+                                    Text(order.rawValue)
+                                    if sortOrder == order {
+                                        Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
                         Image(systemName: "arrow.up.arrow.down")
                     }
                     .accessibilityIdentifier("btn_sort_networks")
@@ -41,6 +73,22 @@ struct NetworksView: View {
             }
         }
         .sheet(isPresented: $showCreate) { createSheet }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "network")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            Text("No networks")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Button("Create Network") { showCreate = true }
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func networkRow(_ net: MockNetwork) -> some View {

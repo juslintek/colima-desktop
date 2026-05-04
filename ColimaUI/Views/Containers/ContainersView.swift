@@ -1,5 +1,11 @@
 import SwiftUI
 
+enum ContainerSortOrder: String, CaseIterable {
+    case name = "Name"
+    case status = "Status"
+    case created = "Created"
+}
+
 struct ContainersView: View {
     @EnvironmentObject var appState: AppState
     @State private var searchText = ""
@@ -9,16 +15,27 @@ struct ContainersView: View {
     @State private var nameError: String?
     @State private var imageError: String?
     @State private var showImageBrowser = false
+    @State private var sortOrder: ContainerSortOrder = .name
     @State private var sortAscending = true
 
+    private func sortedList(_ list: [MockContainer]) -> [MockContainer] {
+        list.sorted { a, b in
+            let result: Bool
+            switch sortOrder {
+            case .name: result = a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            case .status: result = a.state < b.state
+            case .created: result = a.created < b.created
+            }
+            return sortAscending ? result : !result
+        }
+    }
+
     private var runningContainers: [MockContainer] {
-        let r = filtered.filter { $0.state == "running" || $0.state == "paused" }
-        return sortAscending ? r.sorted { $0.name < $1.name } : r.sorted { $0.name > $1.name }
+        sortedList(filtered.filter { $0.state == "running" || $0.state == "paused" })
     }
 
     private var stoppedContainers: [MockContainer] {
-        let s = filtered.filter { $0.state != "running" && $0.state != "paused" }
-        return sortAscending ? s.sorted { $0.name < $1.name } : s.sorted { $0.name > $1.name }
+        sortedList(filtered.filter { $0.state != "running" && $0.state != "paused" })
     }
 
     var filtered: [MockContainer] {
@@ -47,19 +64,37 @@ struct ContainersView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            containerList
+            if filtered.isEmpty {
+                emptyState
+            } else {
+                containerList
+            }
         }
         .navigationTitle("Containers")
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
                     Text("\(runningContainers.count) running")
-                        .font(.caption)
+                        .font(.caption.weight(.medium))
+                        .foregroundColor(.white)
                         .padding(.horizontal, 8)
                         .padding(.vertical, 3)
-                        .background(Color.green.opacity(0.15))
+                        .background(Color.green)
                         .clipShape(Capsule())
-                    Button { sortAscending.toggle() } label: {
+                    Menu {
+                        ForEach(ContainerSortOrder.allCases, id: \.self) { order in
+                            Button {
+                                if sortOrder == order { sortAscending.toggle() } else { sortOrder = order; sortAscending = true }
+                            } label: {
+                                HStack {
+                                    Text(order.rawValue)
+                                    if sortOrder == order {
+                                        Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
                         Image(systemName: "arrow.up.arrow.down")
                     }
                     .accessibilityIdentifier("btn_sort_containers")
@@ -79,6 +114,22 @@ struct ContainersView: View {
             }
         }
         .sheet(isPresented: $showCreateSheet) { createSheet }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "shippingbox")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            Text("No containers running")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Button("Create Container") { showCreateSheet = true }
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Container List
@@ -313,6 +364,7 @@ struct ImageBrowserSheet: View {
 struct ContainerRowView: View {
     let container: MockContainer
     let appState: AppState
+    @State private var isHovered = false
 
     var body: some View {
         HStack(spacing: 8) {
@@ -335,31 +387,36 @@ struct ContainerRowView: View {
 
             Spacer()
 
-            if container.state == "running" {
-                Button { appState.stopContainer(name: container.name) } label: {
-                    Image(systemName: "stop.fill")
+            HStack(spacing: 4) {
+                if container.state == "running" {
+                    Button { appState.stopContainer(name: container.name) } label: {
+                        Image(systemName: "stop.fill")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("btn_stop_container_\(container.name)")
+                } else {
+                    Button { appState.startContainer(name: container.name) } label: {
+                        Image(systemName: "play.fill")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("btn_start_container_\(container.name)")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("btn_stop_container_\(container.name)")
-            } else {
-                Button { appState.startContainer(name: container.name) } label: {
-                    Image(systemName: "play.fill")
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("btn_start_container_\(container.name)")
-            }
 
-            Button {
-                appState.requestConfirmation("Remove container '\(container.name)'?") {
-                    appState.removeContainer(name: container.name)
+                Button {
+                    appState.requestConfirmation("Remove container '\(container.name)'?") {
+                        appState.removeContainer(name: container.name)
+                    }
+                } label: {
+                    Image(systemName: "trash")
                 }
-            } label: {
-                Image(systemName: "trash")
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("btn_remove_container_\(container.name)")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("btn_remove_container_\(container.name)")
+            .opacity(isHovered ? 1 : 0)
         }
         .padding(.vertical, 2)
+        .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
         .contextMenu { containerContextMenu }
     }
 

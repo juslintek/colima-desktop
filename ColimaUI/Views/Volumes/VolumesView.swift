@@ -1,31 +1,63 @@
 import SwiftUI
 
+enum VolumeSortOrder: String, CaseIterable {
+    case name = "Name"
+    case driver = "Driver"
+    case size = "Size"
+}
+
 struct VolumesView: View {
     @EnvironmentObject var appState: AppState
     @State private var newVolumeName = ""
     @State private var showCreate = false
     @State private var validationError: String?
+    @State private var sortOrder: VolumeSortOrder = .name
     @State private var sortAscending = true
 
     private var sorted: [MockVolume] {
-        sortAscending ? appState.volumes.sorted { $0.name < $1.name } : appState.volumes.sorted { $0.name > $1.name }
+        appState.volumes.sorted { a, b in
+            let result: Bool
+            switch sortOrder {
+            case .name: result = a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            case .driver: result = a.driver < b.driver
+            case .size: result = a.size < b.size
+            }
+            return sortAscending ? result : !result
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            List(selection: $appState.selectedVolumeName) {
-                ForEach(sorted) { vol in
-                    volumeRow(vol).tag(vol.name).hoverHighlight()
+            if sorted.isEmpty {
+                emptyState
+            } else {
+                List(selection: $appState.selectedVolumeName) {
+                    ForEach(sorted) { vol in
+                        volumeRow(vol).tag(vol.name).hoverHighlight()
+                    }
                 }
+                .listStyle(.inset)
+                .accessibilityIdentifier("table_volumes")
             }
-            .listStyle(.inset)
-            .accessibilityIdentifier("table_volumes")
         }
         .navigationTitle("Volumes")
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
-                    Button { sortAscending.toggle() } label: {
+                    Menu {
+                        ForEach(VolumeSortOrder.allCases, id: \.self) { order in
+                            Button {
+                                if sortOrder == order { sortAscending.toggle() } else { sortOrder = order; sortAscending = true }
+                            } label: {
+                                HStack {
+                                    Text(order.rawValue)
+                                    if sortOrder == order {
+                                        Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
                         Image(systemName: "arrow.up.arrow.down")
                     }
                     .accessibilityIdentifier("btn_sort_volumes")
@@ -41,6 +73,22 @@ struct VolumesView: View {
             }
         }
         .sheet(isPresented: $showCreate) { createSheet }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "externaldrive")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            Text("No volumes")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Button("Create Volume") { showCreate = true }
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func volumeRow(_ vol: MockVolume) -> some View {

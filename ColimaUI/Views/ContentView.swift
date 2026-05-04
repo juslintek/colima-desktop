@@ -136,9 +136,15 @@ struct ContentView: View {
     }
 
     private var noSelection: some View {
-        Text("No Selection")
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        VStack(spacing: 8) {
+            Image(systemName: "sidebar.right")
+                .font(.system(size: 36))
+                .foregroundStyle(.quaternary)
+            Text("No Selection")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder

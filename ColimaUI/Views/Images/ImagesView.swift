@@ -1,5 +1,11 @@
 import SwiftUI
 
+enum ImageSortOrder: String, CaseIterable {
+    case name = "Name"
+    case size = "Size"
+    case created = "Created"
+}
+
 struct ImagesView: View {
     @EnvironmentObject var appState: AppState
     @State private var searchText = ""
@@ -7,11 +13,24 @@ struct ImagesView: View {
     @State private var hubSearchTerm = ""
     @State private var importPath = ""
     @State private var showPullSheet = false
+    @State private var sortOrder: ImageSortOrder = .name
     @State private var sortAscending = true
+
+    private func sortedList(_ list: [MockImage]) -> [MockImage] {
+        list.sorted { a, b in
+            let result: Bool
+            switch sortOrder {
+            case .name: result = a.repository.localizedCaseInsensitiveCompare(b.repository) == .orderedAscending
+            case .size: result = a.size < b.size
+            case .created: result = a.created < b.created
+            }
+            return sortAscending ? result : !result
+        }
+    }
 
     var filtered: [MockImage] {
         let base = searchText.isEmpty ? appState.images : appState.images.filter { $0.repository.localizedCaseInsensitiveContains(searchText) }
-        return sortAscending ? base.sorted { $0.repository < $1.repository } : base.sorted { $0.repository > $1.repository }
+        return sortedList(base)
     }
 
     private var inUseImages: [MockImage] {
@@ -28,28 +47,45 @@ struct ImagesView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            List(selection: $appState.selectedImageId) {
-                if !inUseImages.isEmpty {
-                    Section("In Use") {
-                        ForEach(inUseImages) { img in
+            if filtered.isEmpty {
+                emptyState
+            } else {
+                List(selection: $appState.selectedImageId) {
+                    if !inUseImages.isEmpty {
+                        Section("In Use") {
+                            ForEach(inUseImages) { img in
+                                imageRow(img).tag(img.id).hoverHighlight()
+                            }
+                        }
+                    }
+                    Section(unusedImages.isEmpty ? "All Images" : "Unused") {
+                        ForEach(unusedImages) { img in
                             imageRow(img).tag(img.id).hoverHighlight()
                         }
                     }
                 }
-                Section(unusedImages.isEmpty ? "All Images" : "Unused") {
-                    ForEach(unusedImages) { img in
-                        imageRow(img).tag(img.id).hoverHighlight()
-                    }
-                }
+                .listStyle(.inset)
+                .accessibilityIdentifier("table_images")
             }
-            .listStyle(.inset)
-            .accessibilityIdentifier("table_images")
         }
         .navigationTitle("Images")
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
-                    Button { sortAscending.toggle() } label: {
+                    Menu {
+                        ForEach(ImageSortOrder.allCases, id: \.self) { order in
+                            Button {
+                                if sortOrder == order { sortAscending.toggle() } else { sortOrder = order; sortAscending = true }
+                            } label: {
+                                HStack {
+                                    Text(order.rawValue)
+                                    if sortOrder == order {
+                                        Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
                         Image(systemName: "arrow.up.arrow.down")
                     }
                     .accessibilityIdentifier("btn_sort_images")
@@ -69,6 +105,22 @@ struct ImagesView: View {
             }
         }
         .sheet(isPresented: $showPullSheet) { pullSheet }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "photo.on.rectangle")
+                .font(.system(size: 40))
+                .foregroundStyle(.secondary)
+            Text("No images")
+                .font(.title3)
+                .foregroundStyle(.secondary)
+            Button("Pull Image") { showPullSheet = true }
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     private func imageRow(_ img: MockImage) -> some View {
