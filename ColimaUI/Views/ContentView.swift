@@ -22,6 +22,7 @@ struct ContentView: View {
                     detailView
                 }
             }
+            .navigationSplitViewStyle(.balanced)
             .accessibilityIdentifier("main_split_view")
         }
         .onChange(of: appState.selectedTab) { _ in
@@ -115,8 +116,14 @@ struct ContentView: View {
         case .kubernetes:
             if let podName = appState.selectedPodName {
                 PodDetailView(podName: podName)
+            } else if let svc = appState.selectedK8sService {
+                K8sServiceDetailView(name: svc)
+            } else if let dep = appState.selectedK8sDeployment {
+                K8sDeploymentDetailView(name: dep)
+            } else if let node = appState.selectedK8sNode {
+                K8sNodeDetailView(name: node)
             } else {
-                KubernetesInfoPanel()
+                noSelection
             }
         default:
             noSelection

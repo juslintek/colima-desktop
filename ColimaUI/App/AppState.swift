@@ -27,6 +27,9 @@ class AppState: ObservableObject {
     @Published var selectedVolumeName: String?
     @Published var selectedNetworkName: String?
     @Published var selectedPodName: String?
+    @Published var selectedK8sService: String?
+    @Published var selectedK8sDeployment: String?
+    @Published var selectedK8sNode: String?
 
     // MARK: - Sheet State
 

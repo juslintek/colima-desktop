@@ -23,14 +23,19 @@ struct KubernetesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            namespaceBar
-            tabPicker
+        VStack(spacing: 0) {
+            // Top bar: cluster status + controls + namespace + search
+            k8sToolbar
+            Divider()
+            // Tab picker
+            tabPicker.padding(.horizontal).padding(.top, 8)
+            // Resource list
             GroupBox { resourceContent }
                 .accessibilityIdentifier("table_k8s_resources")
+                .padding(.horizontal)
+                .padding(.top, 4)
             Spacer()
         }
-        .padding()
         .navigationTitle("Kubernetes")
         .sheet(isPresented: $showScaleDialog) { scaleSheet }
         .alert("Delete Resource", isPresented: $showDeleteConfirm) {
@@ -39,29 +44,57 @@ struct KubernetesView: View {
         } message: { Text("Delete \(deleteTarget)? This cannot be undone.") }
     }
 
-    // MARK: - Cluster Controls (moved to right column KubernetesInfoPanel)
+    // MARK: - Top Bar
 
-    private var namespaceBar: some View {
-        HStack {
-            Picker("Namespace", selection: $selectedNamespace) {
+    private var k8sToolbar: some View {
+        HStack(spacing: 12) {
+            // Cluster status
+            HStack(spacing: 6) {
+                Circle().fill(appState.k8sRunning ? .green : .gray).frame(width: 8, height: 8)
+                Text(appState.k8sRunning ? "Running" : "Stopped")
+                    .font(.caption.weight(.medium))
+                    .accessibilityIdentifier("status_indicator_k8s")
+                    .accessibilityValue(appState.k8sRunning ? "running" : "stopped")
+            }
+
+            Divider().frame(height: 16)
+
+            // Namespace picker
+            Picker("", selection: $selectedNamespace) {
                 ForEach(namespaces, id: \.self) { Text($0).tag($0) }
             }
-            .frame(maxWidth: 200)
+            .frame(maxWidth: 140)
             .accessibilityIdentifier("picker_k8s_namespace")
 
             if selectedTab == 0 {
-                Toggle("Show System Namespace", isOn: $showSystemNamespace)
+                Toggle("System", isOn: $showSystemNamespace)
                     .toggleStyle(.checkbox)
                     .font(.caption)
                     .accessibilityIdentifier("toggle_k8s_system_namespace")
             }
 
             Spacer()
+
+            // Actions
             Button { appState.showToast("Resources refreshed") } label: {
-                Label("Refresh", systemImage: "arrow.clockwise")
+                Image(systemName: "arrow.clockwise")
             }
+            .buttonStyle(.borderless)
             .accessibilityIdentifier("btn_k8s_refresh")
+
+            HStack(spacing: 4) {
+                Button("Start") { appState.enableKubernetes() }
+                    .accessibilityIdentifier("btn_start_kubernetes_cluster")
+                    .disabled(appState.k8sRunning)
+                Button("Stop") { appState.disableKubernetes() }
+                    .accessibilityIdentifier("btn_stop_kubernetes_cluster")
+                    .disabled(!appState.k8sRunning)
+            }
+            .font(.caption)
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(.bar)
     }
 
     private var tabPicker: some View {
@@ -115,7 +148,9 @@ struct KubernetesView: View {
                     k8sCell(svc.ports); k8sCell(svc.age)
                 }
                 .padding(.vertical, 4)
+                .background(appState.selectedK8sService == svc.name ? Color.accentColor.opacity(0.1) : .clear)
                 .contentShape(Rectangle())
+                .onTapGesture { appState.selectedK8sService = svc.name }
                 .hoverHighlight()
             }
         }.accessibilityIdentifier("tab_k8s_services")
@@ -127,15 +162,15 @@ struct KubernetesView: View {
         VStack(alignment: .leading, spacing: 0) {
             k8sHeader(["NAME", "READY", "UP-TO-DATE", "AVAILABLE", "AGE"])
             ForEach(MockK8sData.deployments, id: \.name) { dep in
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 0) {
-                        k8sCell(dep.name); k8sCell("\(dep.ready)/\(dep.replicas)")
-                        k8sCell("\(dep.upToDate)"); k8sCell("\(dep.available)"); k8sCell(dep.age)
-                    }
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
-                    .hoverHighlight()
+                HStack(spacing: 0) {
+                    k8sCell(dep.name); k8sCell("\(dep.ready)/\(dep.replicas)")
+                    k8sCell("\(dep.upToDate)"); k8sCell("\(dep.available)"); k8sCell(dep.age)
                 }
+                .padding(.vertical, 4)
+                .background(appState.selectedK8sDeployment == dep.name ? Color.accentColor.opacity(0.1) : .clear)
+                .contentShape(Rectangle())
+                .onTapGesture { appState.selectedK8sDeployment = dep.name }
+                .hoverHighlight()
             }
         }.accessibilityIdentifier("tab_k8s_deployments")
     }
@@ -149,7 +184,12 @@ struct KubernetesView: View {
                 HStack(spacing: 0) {
                     k8sCell(node.name); k8sCell(node.status, color: .green)
                     k8sCell(node.roles); k8sCell(node.age); k8sCell(node.version)
-                }.padding(.vertical, 4)
+                }
+                .padding(.vertical, 4)
+                .background(appState.selectedK8sNode == node.name ? Color.accentColor.opacity(0.1) : .clear)
+                .contentShape(Rectangle())
+                .onTapGesture { appState.selectedK8sNode = node.name }
+                .hoverHighlight()
             }
         }.accessibilityIdentifier("tab_k8s_nodes")
     }
@@ -195,59 +235,97 @@ struct KubernetesView: View {
     }
 
     // Preserved for existing tests
-    private var legacyQuickActions: some View {
-        HStack(spacing: 8) {
-            Button("Get Pods") { appState.showToast("Pods listed") }.accessibilityIdentifier("btn_getpods_kubernetes_all")
-            Button("Get Services") { appState.showToast("Services listed") }.accessibilityIdentifier("btn_getservices_kubernetes_all")
-            Button("Get All") { appState.showToast("All resources listed") }.accessibilityIdentifier("btn_getall_kubernetes_all")
-            Button("Cluster Info") { appState.showToast("Cluster info displayed") }.accessibilityIdentifier("btn_clusterinfo_kubernetes_all")
-        }.font(.caption)
+}
+
+// MARK: - Service Detail View
+
+struct K8sServiceDetailView: View {
+    let name: String
+
+    var body: some View {
+        let svc = MockK8sData.services.first { $0.name == name }
+        VStack(alignment: .leading, spacing: 16) {
+            Text(name).font(.title3.weight(.semibold))
+            GroupBox("Info") {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                    GridRow { Text("Type").foregroundStyle(.secondary); Text(svc?.type ?? "ClusterIP") }
+                    GridRow { Text("Cluster IP").foregroundStyle(.secondary); Text(svc?.clusterIP ?? "10.96.0.1") }
+                    GridRow { Text("Ports").foregroundStyle(.secondary); Text(svc?.ports ?? "80/TCP") }
+                    GridRow { Text("Namespace").foregroundStyle(.secondary); Text("default") }
+                    GridRow { Text("Age").foregroundStyle(.secondary); Text(svc?.age ?? "5d") }
+                }
+            }
+            GroupBox("Actions") {
+                HStack(spacing: 8) {
+                    Button("Port Forward") {}
+                    Button("Edit") {}
+                    Button("Delete") {}
+                }
+            }
+            Spacer()
+        }.padding()
     }
 }
 
-// MARK: - Kubernetes Info Panel (right column)
+// MARK: - Deployment Detail View
 
-struct KubernetesInfoPanel: View {
-    @EnvironmentObject var appState: AppState
+struct K8sDeploymentDetailView: View {
+    let name: String
 
     var body: some View {
+        let dep = MockK8sData.deployments.first { $0.name == name }
         VStack(alignment: .leading, spacing: 16) {
-            GroupBox("Kubernetes Cluster") {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Circle().fill(appState.k8sRunning ? .green : .gray).frame(width: 10, height: 10)
-                        Text(appState.k8sRunning ? "Running" : "Not Running")
-                            .font(.headline)
-                            .accessibilityIdentifier("status_indicator_k8s")
-                            .accessibilityValue(appState.k8sRunning ? "running" : "stopped")
-                        Spacer()
-                        Text("k3s v1.28.3").foregroundStyle(.secondary)
-                    }
-                    HStack(spacing: 8) {
-                        Button("Start") { appState.enableKubernetes() }
-                            .accessibilityIdentifier("btn_start_kubernetes_cluster")
-                            .disabled(appState.k8sRunning)
-                        Button("Stop") { appState.disableKubernetes() }
-                            .accessibilityIdentifier("btn_stop_kubernetes_cluster")
-                            .disabled(!appState.k8sRunning)
-                        Button("Reset") { appState.resetKubernetes() }
-                            .accessibilityIdentifier("btn_reset_kubernetes_cluster")
-                    }
+            Text(name).font(.title3.weight(.semibold))
+            GroupBox("Info") {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                    GridRow { Text("Replicas").foregroundStyle(.secondary); Text("\(dep?.ready ?? 0)/\(dep?.replicas ?? 0)") }
+                    GridRow { Text("Up-to-date").foregroundStyle(.secondary); Text("\(dep?.upToDate ?? 0)") }
+                    GridRow { Text("Available").foregroundStyle(.secondary); Text("\(dep?.available ?? 0)") }
+                    GridRow { Text("Age").foregroundStyle(.secondary); Text(dep?.age ?? "5d") }
+                    GridRow { Text("Strategy").foregroundStyle(.secondary); Text("RollingUpdate") }
                 }
             }
-
-            GroupBox("Quick Actions") {
-                VStack(alignment: .leading, spacing: 6) {
-                    Button("Get Pods") { appState.showToast("Pods listed") }.accessibilityIdentifier("btn_getpods_kubernetes_all")
-                    Button("Get Services") { appState.showToast("Services listed") }.accessibilityIdentifier("btn_getservices_kubernetes_all")
-                    Button("Get All") { appState.showToast("All resources listed") }.accessibilityIdentifier("btn_getall_kubernetes_all")
-                    Button("Cluster Info") { appState.showToast("Cluster info displayed") }.accessibilityIdentifier("btn_clusterinfo_kubernetes_all")
+            GroupBox("Actions") {
+                HStack(spacing: 8) {
+                    Button("Scale") {}
+                    Button("Restart") {}
+                    Button("Edit") {}
+                    Button("Delete") {}
                 }
             }
-
             Spacer()
-        }
-        .padding()
+        }.padding()
+    }
+}
+
+// MARK: - Node Detail View
+
+struct K8sNodeDetailView: View {
+    let name: String
+
+    var body: some View {
+        let node = MockK8sData.nodes.first { $0.name == name }
+        VStack(alignment: .leading, spacing: 16) {
+            Text(name).font(.title3.weight(.semibold))
+            GroupBox("Info") {
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 8) {
+                    GridRow { Text("Status").foregroundStyle(.secondary); Text(node?.status ?? "Ready") }
+                    GridRow { Text("Roles").foregroundStyle(.secondary); Text(node?.roles ?? "control-plane") }
+                    GridRow { Text("Version").foregroundStyle(.secondary); Text(node?.version ?? "v1.28.3+k3s1") }
+                    GridRow { Text("Age").foregroundStyle(.secondary); Text(node?.age ?? "10d") }
+                    GridRow { Text("OS").foregroundStyle(.secondary); Text("linux/arm64") }
+                    GridRow { Text("Kernel").foregroundStyle(.secondary); Text("6.1.0") }
+                }
+            }
+            GroupBox("Actions") {
+                HStack(spacing: 8) {
+                    Button("Cordon") {}
+                    Button("Drain") {}
+                    Button("Describe") {}
+                }
+            }
+            Spacer()
+        }.padding()
     }
 }
 
