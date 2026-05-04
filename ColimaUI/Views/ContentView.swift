@@ -21,6 +21,7 @@ struct ContentView: View {
                 } detail: {
                     detailView
                 }
+                .toolbar(removing: .sidebarToggle)
                 .accessibilityIdentifier("main_split_view")
             } else {
                 NavigationSplitView {
@@ -28,6 +29,7 @@ struct ContentView: View {
                 } detail: {
                     listView
                 }
+                .toolbar(removing: .sidebarToggle)
                 .accessibilityIdentifier("main_split_view")
             }
         }
