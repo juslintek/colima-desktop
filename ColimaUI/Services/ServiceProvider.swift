@@ -75,6 +75,14 @@ protocol ServiceProvider {
     // Monitoring
     func processList(profile: String) async throws -> String
     func killProcess(profile: String, pid: Int) async throws
+
+    // Streaming
+    func streamEvents(handler: @escaping (DockerEvent) -> Void) -> Task<Void, Never>?
+    func streamLogs(containerId: String, handler: @escaping (String) -> Void) -> Task<Void, Never>?
+    func streamStats(containerId: String, handler: @escaping (ContainerStats) -> Void) -> Task<Void, Never>?
+
+    // Profile switching
+    func switchProfile(name: String) async throws
 }
 
 /// Real implementation using DaemonClient + DockerClient
@@ -353,6 +361,32 @@ class RealServiceProvider: ServiceProvider {
 
     func killProcess(profile: String, pid: Int) async throws {
         try await daemon.killProcess(profile: profile, pid: pid)
+    }
+
+    // MARK: - Streaming
+
+    func streamEvents(handler: @escaping (DockerEvent) -> Void) -> Task<Void, Never>? {
+        return Task {
+            await docker.streamEvents(handler: handler).value
+        }
+    }
+
+    func streamLogs(containerId: String, handler: @escaping (String) -> Void) -> Task<Void, Never>? {
+        return Task {
+            await docker.streamLogs(containerId: containerId, handler: handler).value
+        }
+    }
+
+    func streamStats(containerId: String, handler: @escaping (ContainerStats) -> Void) -> Task<Void, Never>? {
+        return Task {
+            await docker.streamStats(containerId: containerId, handler: handler).value
+        }
+    }
+
+    // MARK: - Profile Switching
+
+    func switchProfile(name: String) async throws {
+        try await daemon.switchProfile(name: name)
     }
 }
 

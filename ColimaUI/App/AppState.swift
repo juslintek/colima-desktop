@@ -52,6 +52,7 @@ class AppState: ObservableObject {
 
     private let useMocks: Bool
     private let services: ServiceProvider?
+    private var eventStreamTask: Task<Void, Never>?
 
     init(useMocks: Bool = false) {
         self.useMocks = useMocks
@@ -68,9 +69,47 @@ class AppState: ObservableObject {
                 guard let self else { return }
                 Task { @MainActor in
                     await self.refreshAll()
+                    self.startEventStream()
                 }
             }
         }
+    }
+
+    private func startEventStream() {
+        guard !useMocks, let svc = services else { return }
+        eventStreamTask?.cancel()
+        eventStreamTask = svc.streamEvents { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                await self.refreshContainers()
+            }
+        }
+    }
+
+    @MainActor func switchProfile(name: String) async {
+        guard !useMocks, let svc = services else { return }
+        isLoading = true
+        do {
+            try await svc.switchProfile(name: name)
+            activeProfile = name
+            eventStreamTask?.cancel()
+            await refreshAll()
+            startEventStream()
+            showToast("Switched to profile: \(name)")
+        } catch {
+            showError("Failed to switch profile: \(error.localizedDescription)")
+        }
+        isLoading = false
+    }
+
+    func startStreamingLogs(containerId: String, handler: @escaping (String) -> Void) -> Task<Void, Never>? {
+        guard !useMocks, let svc = services else { return nil }
+        return svc.streamLogs(containerId: containerId, handler: handler)
+    }
+
+    func startStreamingStats(containerId: String, handler: @escaping (ContainerStats) -> Void) -> Task<Void, Never>? {
+        guard !useMocks, let svc = services else { return nil }
+        return svc.streamStats(containerId: containerId, handler: handler)
     }
 
     @MainActor func refreshAll() async {

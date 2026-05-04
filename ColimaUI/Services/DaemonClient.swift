@@ -181,6 +181,11 @@ actor DaemonClient {
         _ = try await exec("colima", "ssh", "--profile", profile, "--", "kill", "-\(signal)", "\(pid)")
     }
 
+    func switchProfile(name: String) async throws {
+        _ = try await exec("colima", "stop")
+        _ = try await exec("colima", "start", "--profile", name)
+    }
+
     // MARK: - Process Execution
 
     private func exec(_ command: String, _ args: String...) async throws -> String {

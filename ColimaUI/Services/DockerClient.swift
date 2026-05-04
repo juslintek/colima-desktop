@@ -199,6 +199,188 @@ actor DockerClient {
         return result == "OK"
     }
 
+    // MARK: - Streaming
+
+    /// Stream Docker events for container actions. Returns a Task that can be cancelled.
+    func streamEvents(handler: @escaping (DockerEvent) -> Void) -> Task<Void, Never> {
+        let path = "/\(apiVersion)/events?filters=%7B%22type%22%3A%5B%22container%22%5D%7D"
+        return streamLines(path: path) { line in
+            guard let data = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let action = json["Action"] as? String,
+                  let actor = json["Actor"] as? [String: Any],
+                  let attrs = actor["Attributes"] as? [String: Any],
+                  let name = attrs["name"] as? String else { return }
+            handler(DockerEvent(action: action, containerName: name))
+        }
+    }
+
+    /// Stream container logs with multiplexed stream parsing.
+    func streamLogs(containerId: String, handler: @escaping (String) -> Void) -> Task<Void, Never> {
+        let path = "/\(apiVersion)/containers/\(containerId)/logs?follow=true&stdout=true&stderr=true&tail=100"
+        return streamRaw(path: path) { data in
+            var offset = 0
+            while offset + 8 <= data.count {
+                let sizeBytes = data[offset+4..<offset+8]
+                let size = Int(sizeBytes.withUnsafeBytes { $0.load(as: UInt32.self).bigEndian })
+                offset += 8
+                guard offset + size <= data.count else { break }
+                if let line = String(data: data[offset..<offset+size], encoding: .utf8) {
+                    handler(line)
+                }
+                offset += size
+            }
+        }
+    }
+
+    /// Stream container stats, calculating CPU%.
+    func streamStats(containerId: String, handler: @escaping (ContainerStats) -> Void) -> Task<Void, Never> {
+        let path = "/\(apiVersion)/containers/\(containerId)/stats?stream=true"
+        var prevCPU: UInt64 = 0
+        var prevSystem: UInt64 = 0
+        return streamLines(path: path) { line in
+            guard let data = line.data(using: .utf8),
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let cpuStats = json["cpu_stats"] as? [String: Any],
+                  let cpuUsage = cpuStats["cpu_usage"] as? [String: Any],
+                  let totalUsage = cpuUsage["total_usage"] as? UInt64,
+                  let systemUsage = cpuStats["system_cpu_usage"] as? UInt64,
+                  let memStats = json["memory_stats"] as? [String: Any],
+                  let memUsage = memStats["usage"] as? UInt64,
+                  let memLimit = memStats["limit"] as? UInt64 else { return }
+
+            let onlineCPUs = cpuStats["online_cpus"] as? Int ?? 1
+            var cpuPercent = 0.0
+            if prevSystem > 0 {
+                let cpuDelta = Double(totalUsage - prevCPU)
+                let sysDelta = Double(systemUsage - prevSystem)
+                if sysDelta > 0 {
+                    cpuPercent = (cpuDelta / sysDelta) * Double(onlineCPUs) * 100.0
+                }
+            }
+            prevCPU = totalUsage
+            prevSystem = systemUsage
+
+            var rx: UInt64 = 0
+            var tx: UInt64 = 0
+            if let networks = json["networks"] as? [String: Any] {
+                for (_, iface) in networks {
+                    if let ifaceDict = iface as? [String: Any] {
+                        rx += ifaceDict["rx_bytes"] as? UInt64 ?? 0
+                        tx += ifaceDict["tx_bytes"] as? UInt64 ?? 0
+                    }
+                }
+            }
+
+            handler(ContainerStats(cpuPercent: cpuPercent, memoryUsage: memUsage, memoryLimit: memLimit, networkRx: rx, networkTx: tx))
+        }
+    }
+
+    // MARK: - Stream Helpers
+
+    private func streamLines(path: String, handler: @escaping (String) -> Void) -> Task<Void, Never> {
+        let sock = self.socketPath
+        return Task.detached {
+            do {
+                let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+                guard fd >= 0 else { return }
+                defer { close(fd) }
+
+                var addr = sockaddr_un()
+                addr.sun_family = sa_family_t(AF_UNIX)
+                sock.withCString { ptr in
+                    withUnsafeMutablePointer(to: &addr.sun_path) { sunPath in
+                        sunPath.withMemoryRebound(to: CChar.self, capacity: 104) { dest in
+                            _ = strlcpy(dest, ptr, 104)
+                        }
+                    }
+                }
+                let connectResult = withUnsafePointer(to: &addr) { ptr in
+                    ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
+                        connect(fd, sockPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
+                    }
+                }
+                guard connectResult == 0 else { return }
+
+                let httpReq = "GET \(path) HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n"
+                httpReq.withCString { ptr in _ = write(fd, ptr, strlen(ptr)) }
+
+                // Skip HTTP headers
+                var headerBuf = Data()
+                var singleByte = [UInt8](repeating: 0, count: 1)
+                while true {
+                    let n = read(fd, &singleByte, 1)
+                    if n <= 0 || Task.isCancelled { return }
+                    headerBuf.append(singleByte[0])
+                    if headerBuf.count >= 4 && headerBuf.suffix(4) == Data([0x0D, 0x0A, 0x0D, 0x0A]) { break }
+                }
+
+                // Read lines
+                var lineBuf = ""
+                var buffer = [UInt8](repeating: 0, count: 4096)
+                while !Task.isCancelled {
+                    let n = read(fd, &buffer, buffer.count)
+                    if n <= 0 { break }
+                    let chunk = String(bytes: buffer[0..<n], encoding: .utf8) ?? ""
+                    lineBuf += chunk
+                    while let range = lineBuf.range(of: "\n") {
+                        let line = String(lineBuf[..<range.lowerBound])
+                        lineBuf = String(lineBuf[range.upperBound...])
+                        if !line.isEmpty { handler(line) }
+                    }
+                }
+            }
+        }
+    }
+
+    private func streamRaw(path: String, handler: @escaping (Data) -> Void) -> Task<Void, Never> {
+        let sock = self.socketPath
+        return Task.detached {
+            do {
+                let fd = socket(AF_UNIX, SOCK_STREAM, 0)
+                guard fd >= 0 else { return }
+                defer { close(fd) }
+
+                var addr = sockaddr_un()
+                addr.sun_family = sa_family_t(AF_UNIX)
+                sock.withCString { ptr in
+                    withUnsafeMutablePointer(to: &addr.sun_path) { sunPath in
+                        sunPath.withMemoryRebound(to: CChar.self, capacity: 104) { dest in
+                            _ = strlcpy(dest, ptr, 104)
+                        }
+                    }
+                }
+                let connectResult = withUnsafePointer(to: &addr) { ptr in
+                    ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockPtr in
+                        connect(fd, sockPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
+                    }
+                }
+                guard connectResult == 0 else { return }
+
+                let httpReq = "GET \(path) HTTP/1.1\r\nHost: localhost\r\nConnection: keep-alive\r\n\r\n"
+                httpReq.withCString { ptr in _ = write(fd, ptr, strlen(ptr)) }
+
+                // Skip HTTP headers
+                var headerBuf = Data()
+                var singleByte = [UInt8](repeating: 0, count: 1)
+                while true {
+                    let n = read(fd, &singleByte, 1)
+                    if n <= 0 || Task.isCancelled { return }
+                    headerBuf.append(singleByte[0])
+                    if headerBuf.count >= 4 && headerBuf.suffix(4) == Data([0x0D, 0x0A, 0x0D, 0x0A]) { break }
+                }
+
+                // Read raw data in chunks
+                var buffer = [UInt8](repeating: 0, count: 65536)
+                while !Task.isCancelled {
+                    let n = read(fd, &buffer, buffer.count)
+                    if n <= 0 { break }
+                    handler(Data(buffer[0..<n]))
+                }
+            }
+        }
+    }
+
     // MARK: - HTTP Transport (Unix Socket)
 
     private func request(_ method: String, _ path: String, body: Data? = nil) async throws -> (Data, HTTPURLResponse) {
