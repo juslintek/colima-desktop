@@ -116,19 +116,19 @@ struct DashboardTerminal: View {
     ]
 
     private var bgColor: Color {
-        colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.12) : Color(red: 0.96, green: 0.96, blue: 0.97)
+        colorScheme == .dark ? Color(red: 0.96, green: 0.96, blue: 0.97) : Color(red: 0.1, green: 0.1, blue: 0.12)
     }
     private var inputBg: Color {
-        colorScheme == .dark ? Color(red: 0.08, green: 0.08, blue: 0.1) : Color(red: 0.93, green: 0.93, blue: 0.94)
+        colorScheme == .dark ? Color(red: 0.93, green: 0.93, blue: 0.94) : Color(red: 0.08, green: 0.08, blue: 0.1)
     }
     private var promptColor: Color {
-        colorScheme == .dark ? Color(red: 0.4, green: 0.87, blue: 0.4) : Color(red: 0.1, green: 0.5, blue: 0.1)
+        colorScheme == .dark ? Color(red: 0.1, green: 0.5, blue: 0.1) : Color(red: 0.4, green: 0.87, blue: 0.4)
     }
     private var outputColor: Color {
-        colorScheme == .dark ? Color(red: 0.8, green: 0.8, blue: 0.8) : Color(red: 0.2, green: 0.2, blue: 0.25)
+        colorScheme == .dark ? Color(red: 0.2, green: 0.2, blue: 0.25) : Color(red: 0.8, green: 0.8, blue: 0.8)
     }
     private var borderColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
+        colorScheme == .dark ? Color.black.opacity(0.1) : Color.white.opacity(0.1)
     }
 
     var body: some View {
@@ -164,7 +164,7 @@ struct DashboardTerminal: View {
                 TextField("Enter command...", text: $command)
                     .textFieldStyle(.plain)
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(colorScheme == .dark ? .white : .black)
+                    .foregroundStyle(colorScheme == .dark ? .black : .white)
                     .onSubmit { executeCommand() }
                     .accessibilityIdentifier("field_dashboard_terminal")
             }
