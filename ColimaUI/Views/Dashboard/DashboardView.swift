@@ -130,9 +130,9 @@ struct DashboardTerminal: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(Array(history.enumerated()), id: \.offset) { _, entry in
                         Text("$ \(entry.cmd)")
-                            .foregroundStyle(.green)
+                            .foregroundStyle(Color(red: 0.4, green: 0.87, blue: 0.4)) // soft green
                         Text(entry.output)
-                            .foregroundStyle(.primary.opacity(0.8))
+                            .foregroundStyle(Color(red: 0.8, green: 0.8, blue: 0.8)) // light gray
                     }
                 }
                 .font(.system(.caption, design: .monospaced))
@@ -140,19 +140,20 @@ struct DashboardTerminal: View {
                 .padding(8)
             }
             .frame(minHeight: 120, maxHeight: 200)
-            .background(Color.black.opacity(0.85))
+            .background(Color(red: 0.1, green: 0.1, blue: 0.12)) // dark charcoal
 
             HStack(spacing: 4) {
-                Text("$").foregroundStyle(.green).font(.system(.caption, design: .monospaced))
+                Text("$").foregroundStyle(Color(red: 0.4, green: 0.87, blue: 0.4)).font(.system(.caption, design: .monospaced))
                 TextField("Enter command...", text: $command)
                     .textFieldStyle(.plain)
                     .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(Color.white)
                     .onSubmit { executeCommand() }
                     .accessibilityIdentifier("field_dashboard_terminal")
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(Color.black.opacity(0.9))
+            .background(Color(red: 0.08, green: 0.08, blue: 0.1)) // slightly darker input area
         }
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3)))

@@ -11,6 +11,12 @@ struct MockTerminalView: View {
         "$ "
     ]
 
+    private let bgColor = Color(red: 0.1, green: 0.1, blue: 0.12)
+    private let inputBg = Color(red: 0.08, green: 0.08, blue: 0.1)
+    private let promptColor = Color(red: 0.4, green: 0.87, blue: 0.4)
+    private let outputColor = Color(red: 0.8, green: 0.8, blue: 0.8)
+    private let cmdColor = Color(red: 0.55, green: 0.82, blue: 1.0)
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -18,21 +24,23 @@ struct MockTerminalView: View {
                     ForEach(Array(output.enumerated()), id: \.offset) { _, line in
                         Text(line)
                             .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(line.hasPrefix("$") ? promptColor : outputColor)
                             .textSelection(.enabled)
                     }
                 }
                 .padding(8)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .background(Color.black.opacity(0.9))
+            .background(bgColor)
 
             HStack(spacing: 4) {
                 Text("$")
                     .font(.system(.body, design: .monospaced))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(promptColor)
                 TextField("Enter command…", text: $command)
                     .textFieldStyle(.plain)
                     .font(.system(.body, design: .monospaced))
+                    .foregroundStyle(.white)
                     .onSubmit {
                         guard !command.isEmpty else { return }
                         output.append("$ \(command)")
@@ -41,8 +49,8 @@ struct MockTerminalView: View {
                     }
             }
             .padding(8)
-            .background(Color(nsColor: .textBackgroundColor))
+            .background(inputBg)
         }
-        .foregroundStyle(.green)
+        .clipShape(RoundedRectangle(cornerRadius: 4))
     }
 }
