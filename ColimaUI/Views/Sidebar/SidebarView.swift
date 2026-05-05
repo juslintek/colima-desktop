@@ -6,6 +6,7 @@ struct SidebarView: View {
     var body: some View {
         VStack(spacing: 0) {
             List(selection: $appState.selectedTab) {
+                sidebarItem(.dashboard)
                 Section("Docker") {
                     sidebarItem(.containers)
                     sidebarItem(.images)
@@ -22,7 +23,6 @@ struct SidebarView: View {
                     sidebarItem(.runtimeControls)
                 }
                 Section("General") {
-                    sidebarItem(.dashboard)
                     sidebarItem(.monitoring)
                     sidebarItem(.community)
                 }
