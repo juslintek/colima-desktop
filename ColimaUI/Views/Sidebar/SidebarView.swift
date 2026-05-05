@@ -55,17 +55,6 @@ struct SidebarView: View {
         }
         .navigationTitle("ColimaUI")
         .frame(minWidth: 180)
-        .toolbar {
-            ToolbarItem {
-                HStack(spacing: 6) {
-                    Circle()
-                        .fill(appState.vmRunning ? .green : .red)
-                        .frame(width: 8, height: 8)
-                    Text(appState.vmRunning ? "Running" : "Stopped")
-                        .font(.caption)
-                }
-            }
-        }
     }
 
     private func sidebarItem(_ item: NavigationItem) -> some View {
