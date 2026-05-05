@@ -38,6 +38,17 @@ struct ContainersView: View {
         sortedList(filtered.filter { $0.state != "running" && $0.state != "paused" })
     }
 
+    private var statusSubtitle: String {
+        let running = appState.containers.filter { $0.state == "running" }.count
+        let stopped = appState.containers.filter { $0.state == "exited" }.count
+        let paused = appState.containers.filter { $0.state == "paused" }.count
+        var parts: [String] = []
+        if running > 0 { parts.append("\(running) running") }
+        if stopped > 0 { parts.append("\(stopped) stopped") }
+        if paused > 0 { parts.append("\(paused) paused") }
+        return parts.joined(separator: " · ")
+    }
+
     var filtered: [MockContainer] {
         searchText.isEmpty ? appState.containers : appState.containers.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
@@ -71,16 +82,10 @@ struct ContainersView: View {
             }
         }
         .navigationTitle("Containers")
+        .navigationSubtitle(statusSubtitle)
         .toolbar {
             ToolbarItem(placement: .automatic) {
                 HStack(spacing: 8) {
-                    Text("\(runningContainers.count) running")
-                        .font(.caption.weight(.medium))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.green)
-                        .clipShape(Capsule())
                     Menu {
                         ForEach(ContainerSortOrder.allCases, id: \.self) { order in
                             Button {
