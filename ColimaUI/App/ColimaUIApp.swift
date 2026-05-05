@@ -15,5 +15,13 @@ struct ColimaUIApp: App {
             ContentView()
                 .environmentObject(appState)
         }
+
+        MenuBarExtra {
+            MenuBarView()
+                .environmentObject(appState)
+        } label: {
+            Label("\(appState.containers.filter { $0.state == "running" }.count)", systemImage: "cube")
+        }
+        .menuBarExtraStyle(.window)
     }
 }
