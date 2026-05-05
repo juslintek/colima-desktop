@@ -109,10 +109,27 @@ struct DashboardView: View {
 
 struct DashboardTerminal: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.colorScheme) private var colorScheme
     @State private var command = ""
     @State private var history: [(cmd: String, output: String)] = [
         ("colima status", "INFO[0000] colima is running using macOS Virtualization.Framework\nINFO[0000] arch: aarch64\nINFO[0000] runtime: docker\nINFO[0000] mountType: virtiofs\nINFO[0000] socket: unix:///Users/user/.colima/default/docker.sock"),
     ]
+
+    private var bgColor: Color {
+        colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.12) : Color(red: 0.96, green: 0.96, blue: 0.97)
+    }
+    private var inputBg: Color {
+        colorScheme == .dark ? Color(red: 0.08, green: 0.08, blue: 0.1) : Color(red: 0.93, green: 0.93, blue: 0.94)
+    }
+    private var promptColor: Color {
+        colorScheme == .dark ? Color(red: 0.4, green: 0.87, blue: 0.4) : Color(red: 0.1, green: 0.5, blue: 0.1)
+    }
+    private var outputColor: Color {
+        colorScheme == .dark ? Color(red: 0.8, green: 0.8, blue: 0.8) : Color(red: 0.2, green: 0.2, blue: 0.25)
+    }
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -130,9 +147,9 @@ struct DashboardTerminal: View {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(Array(history.enumerated()), id: \.offset) { _, entry in
                         Text("$ \(entry.cmd)")
-                            .foregroundStyle(Color(red: 0.4, green: 0.87, blue: 0.4)) // soft green
+                            .foregroundStyle(promptColor)
                         Text(entry.output)
-                            .foregroundStyle(Color(red: 0.8, green: 0.8, blue: 0.8)) // light gray
+                            .foregroundStyle(outputColor)
                     }
                 }
                 .font(.system(.caption, design: .monospaced))
@@ -140,23 +157,23 @@ struct DashboardTerminal: View {
                 .padding(8)
             }
             .frame(minHeight: 120, maxHeight: 200)
-            .background(Color(red: 0.1, green: 0.1, blue: 0.12)) // dark charcoal
+            .background(bgColor)
 
             HStack(spacing: 4) {
-                Text("$").foregroundStyle(Color(red: 0.4, green: 0.87, blue: 0.4)).font(.system(.caption, design: .monospaced))
+                Text("$").foregroundStyle(promptColor).font(.system(.caption, design: .monospaced))
                 TextField("Enter command...", text: $command)
                     .textFieldStyle(.plain)
                     .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(colorScheme == .dark ? .white : .black)
                     .onSubmit { executeCommand() }
                     .accessibilityIdentifier("field_dashboard_terminal")
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
-            .background(Color(red: 0.08, green: 0.08, blue: 0.1)) // slightly darker input area
+            .background(inputBg)
         }
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.3)))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(borderColor))
         .accessibilityIdentifier("panel_dashboard_terminal")
     }
 

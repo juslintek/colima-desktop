@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MockTerminalView: View {
     let name: String
+    @Environment(\.colorScheme) private var colorScheme
     @State private var command = ""
     @State private var output: [String] = [
         "$ whoami",
@@ -11,11 +12,24 @@ struct MockTerminalView: View {
         "$ "
     ]
 
-    private let bgColor = Color(red: 0.1, green: 0.1, blue: 0.12)
-    private let inputBg = Color(red: 0.08, green: 0.08, blue: 0.1)
-    private let promptColor = Color(red: 0.4, green: 0.87, blue: 0.4)
-    private let outputColor = Color(red: 0.8, green: 0.8, blue: 0.8)
-    private let cmdColor = Color(red: 0.55, green: 0.82, blue: 1.0)
+    private var bgColor: Color {
+        colorScheme == .dark ? Color(red: 0.1, green: 0.1, blue: 0.12) : Color(red: 0.96, green: 0.96, blue: 0.97)
+    }
+    private var inputBg: Color {
+        colorScheme == .dark ? Color(red: 0.08, green: 0.08, blue: 0.1) : Color(red: 0.93, green: 0.93, blue: 0.94)
+    }
+    private var promptColor: Color {
+        colorScheme == .dark ? Color(red: 0.4, green: 0.87, blue: 0.4) : Color(red: 0.1, green: 0.5, blue: 0.1)
+    }
+    private var outputColor: Color {
+        colorScheme == .dark ? Color(red: 0.8, green: 0.8, blue: 0.8) : Color(red: 0.2, green: 0.2, blue: 0.25)
+    }
+    private var inputTextColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+    private var borderColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.1) : Color.black.opacity(0.1)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,7 +54,7 @@ struct MockTerminalView: View {
                 TextField("Enter command…", text: $command)
                     .textFieldStyle(.plain)
                     .font(.system(.body, design: .monospaced))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(inputTextColor)
                     .onSubmit {
                         guard !command.isEmpty else { return }
                         output.append("$ \(command)")
@@ -51,6 +65,7 @@ struct MockTerminalView: View {
             .padding(8)
             .background(inputBg)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(borderColor))
     }
 }
