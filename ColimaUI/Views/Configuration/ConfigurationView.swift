@@ -43,6 +43,7 @@ struct ConfigurationView: View {
     @State private var networkMode = "shared"
     @State private var networkInterface = ""
     @State private var dnsServers = ""
+    @State private var dnsStatus = ""
     @State private var dnsHosts = "db.local=192.168.1.10"
     @State private var gateway = ""
     @State private var hostAddresses = false
@@ -392,6 +393,7 @@ struct ConfigurationView: View {
                                         TextField("1.1.1.1, 8.8.8.8", text: $dnsServers)
                                             .textFieldStyle(.roundedBorder)
                                             .accessibilityIdentifier("field_config_dns")
+                                            .onSubmit { validateDNS() }
                                         Menu("Presets") {
                                             Button("1.1.1.1 — Cloudflare (fastest, privacy-focused)") { setDNS("1.1.1.1, 1.0.0.1") }
                                             Button("8.8.8.8 — Google (most reliable, global)") { setDNS("8.8.8.8, 8.8.4.4") }
@@ -401,6 +403,11 @@ struct ConfigurationView: View {
                                             Divider()
                                             Button("System default (inherit from macOS)") { setDNS("") }
                                         }.font(.caption2)
+                                    }
+                                    if !dnsStatus.isEmpty {
+                                        Text(dnsStatus)
+                                            .font(.caption2)
+                                            .foregroundStyle(dnsStatus.hasPrefix("✓") ? .green : .orange)
                                     }
                                 }
                                 VStack(alignment: .leading) {
@@ -656,7 +663,27 @@ struct ConfigurationView: View {
         }
     }
 
-    private func setDNS(_ value: String) { dnsServers = value }
+    private func setDNS(_ value: String) { dnsServers = value; dnsStatus = value.isEmpty ? "" : "✓ Set" }
+
+    private func validateDNS() {
+        guard !dnsServers.isEmpty else { dnsStatus = ""; return }
+        let known = ["1.1.1.1", "1.0.0.1", "8.8.8.8", "8.8.4.4", "9.9.9.9", "149.112.112.112", "208.67.222.222", "208.67.220.220", "94.140.14.14", "94.140.15.15"]
+        let entries = dnsServers.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+        let invalid = entries.filter { entry in
+            let parts = entry.split(separator: ".").compactMap { Int($0) }
+            return parts.count != 4 || parts.contains(where: { $0 < 0 || $0 > 255 })
+        }
+        if !invalid.isEmpty {
+            dnsStatus = "⚠ Invalid IP: \(invalid.joined(separator: ", ")) — use Presets for known-good servers"
+        } else {
+            let unknown = entries.filter { !known.contains($0) }
+            if unknown.isEmpty {
+                dnsStatus = "✓ All servers verified"
+            } else {
+                dnsStatus = "⚠ \(unknown.joined(separator: ", ")) not recognized — may be unreachable. Consider using Presets."
+            }
+        }
+    }
 
     private func validatePort() {
         guard let port = Int(k8sPort), port > 0 else {
