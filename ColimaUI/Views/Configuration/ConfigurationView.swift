@@ -440,8 +440,18 @@ struct ConfigurationView: View {
                                     .foregroundStyle(gatewayStatus.hasPrefix("✓") ? .green : gatewayStatus.hasPrefix("⚠") ? .orange : .red)
                             }
                         }
-                        Toggle("Host Addresses", isOn: $hostAddresses).accessibilityIdentifier("toggle_config_hostaddresses")
-                        Toggle("Preferred Route", isOn: $preferredRoute).accessibilityIdentifier("toggle_config_preferredroute")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Host Addresses", isOn: $hostAddresses)
+                                .accessibilityIdentifier("toggle_config_hostaddresses")
+                            Text("Maps host.docker.internal and gateway.docker.internal inside the VM. Enable if your containers need to reach services running on your Mac (e.g. local APIs, databases). Safe to leave on.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Preferred Route", isOn: $preferredRoute)
+                                .accessibilityIdentifier("toggle_config_preferredroute")
+                            Text("Makes the VM's network the preferred route for container traffic. Enable if containers can't reach the internet. Disable if it conflicts with VPN or corporate network — may override your VPN routing.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
                     }
                 }
 
