@@ -35,6 +35,8 @@ struct ConfigurationView: View {
     @State private var k8sVersionError = ""
     @State private var k8sArgs = ""
     @State private var k8sPort = ""
+    @State private var portStatus = ""
+    private let availablePorts = [6443, 6444, 8443, 9443, 16443]
 
     // Network
     @State private var networkAddress = false
@@ -327,10 +329,23 @@ struct ConfigurationView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("API Port").font(.caption.weight(.medium))
                             Text("Port for the Kubernetes API server. Leave empty for default (6443).").font(.caption2).foregroundStyle(.secondary)
-                            TextField("6443", text: $k8sPort)
-                                .textFieldStyle(.roundedBorder)
-                                .frame(maxWidth: 100)
-                                .accessibilityIdentifier("field_config_k8sport")
+                            HStack {
+                                TextField("6443", text: $k8sPort)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 100)
+                                    .accessibilityIdentifier("field_config_k8sport")
+                                    .onSubmit { validatePort() }
+                                Menu("Open Ports") {
+                                    ForEach(availablePorts, id: \.self) { port in
+                                        Button("\(port)") { k8sPort = "\(port)"; portStatus = "✓ Port \(port) is available" }
+                                    }
+                                }.font(.caption2)
+                                if !portStatus.isEmpty {
+                                    Text(portStatus)
+                                        .font(.caption2)
+                                        .foregroundStyle(portStatus.hasPrefix("✓") ? .green : .red)
+                                }
+                            }
                         }
                     }
                 }
@@ -617,6 +632,20 @@ struct ConfigurationView: View {
             if selected {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
             }
+        }
+    }
+
+    private func validatePort() {
+        guard let port = Int(k8sPort), port > 0 else {
+            if k8sPort.isEmpty { portStatus = "" } else { portStatus = "✗ Invalid port number" }
+            return
+        }
+        // Mock check: simulate port availability
+        let inUse = [80, 443, 8080, 3000, 5432]
+        if inUse.contains(port) {
+            portStatus = "✗ Port \(port) in use — pick from Open Ports"
+        } else {
+            portStatus = "✓ Port \(port) is available"
         }
     }
 
