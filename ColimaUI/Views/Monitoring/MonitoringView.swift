@@ -186,6 +186,20 @@ struct MonitoringView: View {
         .padding(.leading, CGFloat(depth) * 20)
         .tag(node.id)
         .accessibilityIdentifier("row_activity_\(node.id)")
+        .contextMenu {
+            if node.id != "vm" && node.id != "containers" && node.id != "k8s" {
+                Button { appState.stopContainer(name: node.name) } label: {
+                    Label("Stop", systemImage: "stop.fill")
+                }
+                Button { appState.restartContainer(name: node.name) } label: {
+                    Label("Restart", systemImage: "arrow.clockwise")
+                }
+                Divider()
+                Button(role: .destructive) { appState.killContainer(name: node.name) } label: {
+                    Label("Kill", systemImage: "xmark.circle")
+                }
+            }
+        }
     }
 
     // MARK: - Sparkline Card
