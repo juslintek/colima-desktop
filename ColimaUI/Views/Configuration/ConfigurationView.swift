@@ -153,8 +153,15 @@ struct ConfigurationView: View {
                         .padding(8).background(Color.secondary.opacity(0.05))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
 
-                        Toggle("Nested Virtualization", isOn: $nestedVirt).withTooltip(ConfigTooltips.nestedVirt)
-                            .accessibilityIdentifier("toggle_config_nestedvirt")
+                        // Nested Virtualization
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Toggle("Nested Virtualization", isOn: $nestedVirt)
+                                    .accessibilityIdentifier("toggle_config_nestedvirt")
+                            }
+                            Text("Allows running VMs inside the Colima VM. Enable for Docker-in-Docker, Kubernetes-in-Docker, or testing VM tools. Requires vz VM type. Slight performance overhead.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
                         // Hostname
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Hostname").font(.caption.weight(.medium))
