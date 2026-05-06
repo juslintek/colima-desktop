@@ -273,11 +273,51 @@ struct RuntimeControlsView: View {
                     Button("Run") { appState.incusCommand(cmd: incusCmd) }
                         .accessibilityIdentifier("btn_run_incus")
                 }
-                HStack {
-                    Button("Switch Context") { appState.switchDockerContext(profile: appState.activeProfile) }
-                        .accessibilityIdentifier("btn_switch_dockercontext")
-                    Button("Update Runtime") { appState.updateRuntime() }
-                        .accessibilityIdentifier("btn_update_runtime")
+                // Docker Context
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Image(systemName: "arrow.triangle.swap").foregroundStyle(.blue)
+                            Text("Docker Context").font(.caption.weight(.medium))
+                            Spacer()
+                            Text("colima-\(appState.activeProfile)")
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                        }
+                        Text("Switches which Docker daemon your CLI connects to. Use when running multiple profiles or alongside Docker Desktop.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                        HStack {
+                            Picker("Context", selection: .constant("colima-\(appState.activeProfile)")) {
+                                Text("colima-\(appState.activeProfile)").tag("colima-\(appState.activeProfile)")
+                                Text("colima-dev").tag("colima-dev")
+                                Text("desktop-linux").tag("desktop-linux")
+                            }
+                            .frame(maxWidth: 180)
+                            .accessibilityIdentifier("picker_docker_context")
+                            Button("Apply") { appState.switchDockerContext(profile: appState.activeProfile) }
+                                .accessibilityIdentifier("btn_switch_dockercontext")
+                        }
+                    }
+                }
+
+                // Update Runtime
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Image(systemName: "arrow.down.circle").foregroundStyle(.orange)
+                            Text("Update Runtime").font(.caption.weight(.medium))
+                            Spacer()
+                            Text("Docker 29.2.1").font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Text("Updates Docker/containerd packages inside the VM without updating Colima itself. Equivalent to `colima update`.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                        HStack {
+                            Button("Check for Updates") { appState.showToast("Checking for runtime updates...") }
+                                .accessibilityIdentifier("btn_check_runtime_update")
+                            Button("Update Now") { appState.updateRuntime() }
+                                .accessibilityIdentifier("btn_update_runtime")
+                        }
+                    }
                 }
                 VStack(alignment: .leading, spacing: 4) {
                     HStack { Circle().fill(.green).frame(width: 8, height: 8); Text("docker — soft delete").font(.caption) }
