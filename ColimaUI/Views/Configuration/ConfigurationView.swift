@@ -187,8 +187,15 @@ struct ConfigurationView: View {
                                 }.font(.caption)
                             }
                         }
-                        Toggle("Binfmt", isOn: $binfmt).withTooltip(ConfigTooltips.binfmt)
-                            .accessibilityIdentifier("toggle_config_binfmt")
+                        // Binfmt
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Toggle("Binfmt", isOn: $binfmt)
+                                    .accessibilityIdentifier("toggle_config_binfmt")
+                            }
+                            Text("Registers QEMU emulators for cross-architecture execution. Required for multi-arch Docker builds (buildx) — e.g. building x86 images on ARM. Minimal overhead.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
                         Toggle("Foreground", isOn: $foreground).accessibilityIdentifier("toggle_config_foreground")
                         HStack {
                             Picker("Port Forwarder", selection: $portForwarder) {
