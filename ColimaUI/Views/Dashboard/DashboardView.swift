@@ -3,6 +3,49 @@ import SwiftUI
 struct DashboardView: View {
     @EnvironmentObject var appState: AppState
 
+    // Check & Update state
+    @State private var updateChecking = false
+    @State private var updateResult: (current: String, latest: String, changelog: String)?
+    @State private var autoUpdate = false
+
+    // Template editor state
+    @State private var templateExpanded = false
+    @State private var templateContent = """
+    # Default Colima configuration template
+    cpu: 4
+    memory: 8
+    disk: 100
+    runtime: docker
+    vmType: vz
+    rosetta: true
+    mountType: virtiofs
+    mounts:
+      - location: ~
+        writable: true
+      - location: /tmp/colima
+        writable: true
+    network:
+      address: true
+      dns:
+        - 1.1.1.1
+        - 8.8.8.8
+    """
+
+    // Prune state
+    @State private var pruneRunning = false
+    @State private var pruneItems: [(name: String, detail: String, status: PruneStatus)] = []
+
+    // Export state
+    @State private var activeExport: String?
+    @State private var exportPath: String?
+
+    // Migration state
+    @State private var migrationTarget: String?
+    @State private var migrationSteps: [String] = []
+    @State private var migrationStepIndex = 0
+
+    enum PruneStatus { case pending, clearing, done }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
@@ -74,60 +117,126 @@ struct DashboardView: View {
                 }
                 .font(.caption)
 
-                // Update Colima
+                // MARK: - Check & Update
                 GroupBox {
-                    HStack {
-                        Image(systemName: "arrow.down.app").foregroundStyle(.blue)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Update Colima").font(.caption.weight(.medium))
-                            Text("Updates Colima binary to latest version via Homebrew.").font(.caption2).foregroundStyle(.secondary)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "arrow.down.app").foregroundStyle(.blue)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Update Colima").font(.caption.weight(.medium))
+                                Text("Updates Colima binary to latest version via Homebrew.").font(.caption2).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            if updateChecking {
+                                ProgressView().controlSize(.small)
+                            } else if updateResult == nil {
+                                Button("Check & Update") { checkForUpdate() }
+                                    .controlSize(.small)
+                                    .accessibilityIdentifier("btn_update_vm_dashboard")
+                            }
                         }
-                        Spacer()
-                        Button("Check & Update") { appState.updateColima() }
-                            .controlSize(.small)
-                            .accessibilityIdentifier("btn_update_vm_dashboard")
+
+                        if let result = updateResult {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Current: v\(result.current) → Latest: v\(result.latest)")
+                                    .font(.caption.weight(.medium)).foregroundStyle(.blue)
+                                Text(result.changelog)
+                                    .font(.caption2).foregroundStyle(.secondary)
+                                    .padding(6).background(Color.secondary.opacity(0.05))
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                HStack {
+                                    Button("Update Now") { appState.updateColima() }
+                                        .controlSize(.small)
+                                    Toggle("Auto-update", isOn: $autoUpdate)
+                                        .controlSize(.small).toggleStyle(.checkbox)
+                                }
+                            }
+                        }
                     }
                 }
 
-                // Template
+                // MARK: - Edit Template
                 GroupBox {
-                    HStack {
-                        Image(systemName: "doc.text").foregroundStyle(.purple)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Configuration Template").font(.caption.weight(.medium))
-                            Text("Edit default settings for new Colima instances. Changes apply to future `colima start` calls.").font(.caption2).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button("Edit Template") { appState.generateTemplate() }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "doc.text").foregroundStyle(.purple)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Configuration Template").font(.caption.weight(.medium))
+                                Text("~/.colima/_templates/default.yaml").font(.caption2.monospaced()).foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Button(templateExpanded ? "Collapse" : "Edit Template") {
+                                templateExpanded.toggle()
+                            }
                             .controlSize(.small)
                             .accessibilityIdentifier("btn_template_vm_dashboard")
+                        }
+
+                        if templateExpanded {
+                            TextEditor(text: $templateContent)
+                                .font(.system(.caption, design: .monospaced))
+                                .frame(height: 180)
+                                .padding(4)
+                                .background(Color(nsColor: .textBackgroundColor))
+                                .clipShape(RoundedRectangle(cornerRadius: 4))
+                                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.2)))
+
+                            HStack {
+                                Button("Save") { appState.generateTemplate() }
+                                    .controlSize(.small)
+                                Button("Reset to Default") { resetTemplate() }
+                                    .controlSize(.small)
+                            }
+                        }
                     }
                 }
 
-                // Prune
+                // MARK: - Prune
                 GroupBox {
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
                             Image(systemName: "trash.circle").foregroundStyle(.orange)
                             Text("Prune").font(.caption.weight(.medium))
                             Spacer()
-                            Button("Prune Cache") { appState.pruneColima(all: false) }
-                                .controlSize(.small)
-                                .accessibilityIdentifier("btn_prune_vm_dashboard")
+                            if !pruneRunning && pruneItems.isEmpty {
+                                Button("Start Prune") { startPrune() }
+                                    .controlSize(.small)
+                                    .accessibilityIdentifier("btn_prune_vm_dashboard")
+                            } else if pruneRunning {
+                                ProgressView().controlSize(.small)
+                            }
                         }
-                        Text("Removes unused build cache, dangling images, and stopped containers. Frees disk space.").font(.caption2).foregroundStyle(.secondary)
-                        // Mock prune log
-                        Text("Last prune: Deleted 3 images, 2 containers, freed 1.2 GB")
-                            .font(.caption2.monospaced())
-                            .foregroundStyle(.secondary)
-                            .padding(6)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color.secondary.opacity(0.05))
+                        Text("Removes unused build cache, dangling images, and stopped containers.").font(.caption2).foregroundStyle(.secondary)
+
+                        if !pruneItems.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                ForEach(Array(pruneItems.enumerated()), id: \.offset) { _, item in
+                                    HStack(spacing: 6) {
+                                        switch item.status {
+                                        case .pending:
+                                            Image(systemName: "circle").foregroundStyle(.secondary).font(.caption2)
+                                        case .clearing:
+                                            ProgressView().controlSize(.mini)
+                                        case .done:
+                                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
+                                        }
+                                        Text(item.name).font(.caption2)
+                                        Text(item.detail).font(.caption2).foregroundStyle(.secondary)
+                                    }
+                                }
+                                if pruneItems.allSatisfy({ $0.status == .done }) {
+                                    Text("Total: 1.25 GB freed")
+                                        .font(.caption.weight(.medium)).foregroundStyle(.green)
+                                        .padding(.top, 4)
+                                }
+                            }
+                            .padding(6).background(Color.secondary.opacity(0.05))
                             .clipShape(RoundedRectangle(cornerRadius: 4))
+                        }
                     }
                 }
 
-                // Delete VM
+                // MARK: - Delete VM
                 GroupBox {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -154,22 +263,40 @@ struct DashboardView: View {
                         }
                         .font(.caption)
 
-                        // Migration/backup options
+                        // MARK: Export
                         DisclosureGroup("Backup & Migration") {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Button("Export all volumes as tar") { appState.showToast("Exporting volumes to ~/colima-backup/") }
-                                    .font(.caption)
-                                Button("Export docker-compose.yml") { appState.showToast("Compose file exported") }
-                                    .font(.caption)
-                                Button("Export container list (JSON)") { appState.showToast("Container list exported") }
-                                    .font(.caption)
+                            VStack(alignment: .leading, spacing: 8) {
+                                exportRow(id: "volumes", label: "Export all volumes as tar", path: "~/Desktop/colima-backup/volumes-2026-05-06.tar")
+                                exportRow(id: "compose", label: "Export docker-compose.yml", path: "~/Desktop/colima-backup/docker-compose.yml")
+                                exportRow(id: "containers", label: "Export container list (JSON)", path: "~/Desktop/colima-backup/containers-2026-05-06.json")
+
                                 Divider()
+
+                                // MARK: Migration
                                 Text("Migrate to:").font(.caption2).foregroundStyle(.secondary)
-                                HStack(spacing: 8) {
-                                    Button("Docker Desktop") { appState.showToast("Migration guide: docker context use desktop-linux") }
-                                    Button("Podman") { appState.showToast("Migration guide: podman machine init") }
-                                    Button("Another Profile") { appState.showToast("Use: colima start --profile <name>") }
-                                }.font(.caption)
+                                migrationRow(target: "Docker Desktop", installed: true)
+                                migrationRow(target: "Podman", installed: false)
+                                migrationRow(target: "Another Profile", installed: true)
+
+                                if let target = migrationTarget, !migrationSteps.isEmpty {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text("Migrating to \(target)...").font(.caption2.weight(.medium))
+                                        ForEach(0..<migrationSteps.count, id: \.self) { i in
+                                            HStack(spacing: 4) {
+                                                if i < migrationStepIndex {
+                                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
+                                                } else if i == migrationStepIndex {
+                                                    ProgressView().controlSize(.mini)
+                                                } else {
+                                                    Image(systemName: "circle").foregroundStyle(.secondary).font(.caption2)
+                                                }
+                                                Text(migrationSteps[i]).font(.caption2)
+                                            }
+                                        }
+                                    }
+                                    .padding(6).background(Color.secondary.opacity(0.05))
+                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                                }
                             }
                             .padding(.top, 4)
                         }
@@ -185,6 +312,116 @@ struct DashboardView: View {
             .padding()
         }
         .navigationTitle("Dashboard")
+    }
+
+    // MARK: - Helpers
+
+    private func checkForUpdate() {
+        updateChecking = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            updateChecking = false
+            updateResult = (current: "0.10.1", latest: "0.10.3", changelog: "Bug fixes, improved virtiofs performance")
+        }
+    }
+
+    private func resetTemplate() {
+        templateContent = """
+        # Default Colima configuration template
+        cpu: 4
+        memory: 8
+        disk: 100
+        runtime: docker
+        vmType: vz
+        rosetta: true
+        mountType: virtiofs
+        mounts:
+          - location: ~
+            writable: true
+        """
+    }
+
+    private func startPrune() {
+        pruneRunning = true
+        pruneItems = [
+            (name: "Dangling images (3)", detail: "— freed 450 MB", status: .pending),
+            (name: "Stopped containers (2)", detail: "— freed 120 MB", status: .pending),
+            (name: "Unused networks (1)", detail: "— freed 0 MB", status: .pending),
+            (name: "Build cache", detail: "— freed 680 MB", status: .pending),
+        ]
+        animatePruneItem(at: 0)
+    }
+
+    private func animatePruneItem(at index: Int) {
+        guard index < pruneItems.count else {
+            pruneRunning = false
+            appState.pruneColima(all: false)
+            return
+        }
+        pruneItems[index].status = .clearing
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            pruneItems[index].status = .done
+            animatePruneItem(at: index + 1)
+        }
+    }
+
+    @ViewBuilder
+    private func exportRow(id: String, label: String, path: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Button(label) {
+                activeExport = id
+                exportPath = path
+            }.font(.caption)
+
+            if activeExport == id, let p = exportPath {
+                HStack(spacing: 4) {
+                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
+                    Text("Saved to: \(p)").font(.caption2).foregroundStyle(.secondary)
+                    Button("Show in Finder") { /* mock */ }
+                        .font(.caption2).controlSize(.mini)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func migrationRow(target: String, installed: Bool) -> some View {
+        HStack(spacing: 6) {
+            if installed {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
+                Text(target).font(.caption)
+                Text("Installed").font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                Button("Migrate") { startMigration(target: target) }.font(.caption).controlSize(.mini)
+            } else {
+                Image(systemName: "xmark.circle").foregroundStyle(.red).font(.caption2)
+                Text(target).font(.caption)
+                Text("Not installed").font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                Button("Install via Homebrew") { appState.showToast("brew install \(target.lowercased())") }
+                    .font(.caption).controlSize(.mini)
+            }
+        }
+    }
+
+    private func startMigration(target: String) {
+        migrationTarget = target
+        migrationSteps = [
+            "Export volumes...",
+            "Export container configs...",
+            "Switch context...",
+            "Stop Colima VM...",
+            "Done! Suggest removal.",
+        ]
+        migrationStepIndex = 0
+        animateMigrationStep()
+    }
+
+    private func animateMigrationStep() {
+        guard migrationStepIndex < migrationSteps.count else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
+            migrationStepIndex += 1
+            animateMigrationStep()
+        }
     }
 }
 
