@@ -569,9 +569,18 @@ struct ConfigurationView: View {
                                 }
                             }
                         }
-                        Toggle("Forward Agent", isOn: $forwardAgent).withTooltip(ConfigTooltips.forwardAgent)
-                            .accessibilityIdentifier("toggle_config_forwardagent")
-                        Toggle("SSH Config", isOn: $sshConfig).accessibilityIdentifier("toggle_config_sshconfig")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Forward Agent", isOn: $forwardAgent)
+                                .accessibilityIdentifier("toggle_config_forwardagent")
+                            Text("Forwards your Mac's SSH keys into the VM. Enable if you git clone/push from inside containers using SSH. Disable if you don't use SSH keys or have security concerns — VM processes could use your keys.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("SSH Config", isOn: $sshConfig)
+                                .accessibilityIdentifier("toggle_config_sshconfig")
+                            Text("Adds the VM to your ~/.ssh/config so you can `ssh colima` directly. Enable for convenience. Disable if you manage SSH config manually or have conflicting host entries.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
                     }
                 }
 
