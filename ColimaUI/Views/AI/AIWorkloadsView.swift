@@ -174,12 +174,18 @@ struct AIWorkloadsView: View {
         }
     }
 
+    @State private var showSetupFlow = false
+
     private var legacyQuickActions: some View {
         GroupBox("Quick Actions") {
             HStack(spacing: 8) {
-                Button("Setup") { appState.showToast("AI setup complete") }.accessibilityIdentifier("btn_setup_ai_model")
+                Button("Setup") { showSetupFlow = true }.accessibilityIdentifier("btn_setup_ai_model")
                 Button("Browse Models") { appState.showToast("Opening model browser") }.accessibilityIdentifier("btn_browse_ai_registry")
                 Button("Create AI Profile") { appState.showToast("AI profile created") }.accessibilityIdentifier("btn_createprofile_ai_new")
+            }
+
+            if showSetupFlow {
+                AISetupProgressView(runner: runner) { showSetupFlow = false }
             }
         }
     }
