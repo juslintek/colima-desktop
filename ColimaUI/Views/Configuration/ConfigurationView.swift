@@ -46,6 +46,7 @@ struct ConfigurationView: View {
     @State private var dnsStatus = ""
     @State private var dnsHosts = "db.local=192.168.1.10"
     @State private var gateway = ""
+    @State private var gatewayStatus = ""
     @State private var hostAddresses = false
     @State private var preferredRoute = false
 
@@ -420,7 +421,25 @@ struct ConfigurationView: View {
                             }
                         }
 
-                        TextField("Gateway", text: $gateway).accessibilityIdentifier("field_config_gateway")
+                        // Gateway
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Gateway").font(.caption.weight(.medium))
+                            Text("IP address the VM uses to reach the internet. Leave empty for automatic.").font(.caption2).foregroundStyle(.secondary)
+                            HStack {
+                                TextField("e.g. 192.168.64.1", text: $gateway)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 160)
+                                    .accessibilityIdentifier("field_config_gateway")
+                                    .onSubmit { validateGateway() }
+                                Button("Use Default") { gateway = "192.168.64.1"; gatewayStatus = "✓ Default gateway (auto-detected)" }
+                                    .font(.caption2)
+                            }
+                            if !gatewayStatus.isEmpty {
+                                Text(gatewayStatus)
+                                    .font(.caption2)
+                                    .foregroundStyle(gatewayStatus.hasPrefix("✓") ? .green : gatewayStatus.hasPrefix("⚠") ? .orange : .red)
+                            }
+                        }
                         Toggle("Host Addresses", isOn: $hostAddresses).accessibilityIdentifier("toggle_config_hostaddresses")
                         Toggle("Preferred Route", isOn: $preferredRoute).accessibilityIdentifier("toggle_config_preferredroute")
                     }
@@ -660,6 +679,27 @@ struct ConfigurationView: View {
             if selected {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
             }
+        }
+    }
+
+    private func validateGateway() {
+        guard !gateway.isEmpty else { gatewayStatus = ""; return }
+        let parts = gateway.split(separator: ".").compactMap { Int($0) }
+        guard parts.count == 4, parts.allSatisfy({ $0 >= 0 && $0 <= 255 }) else {
+            gatewayStatus = "✗ Invalid IP format"
+            return
+        }
+        // Mock reachability check
+        let localSubnets = ["192.168", "10.0", "172.16"]
+        let prefix = parts.prefix(2).map(String.init).joined(separator: ".")
+        if localSubnets.contains(where: { prefix.hasPrefix($0.prefix(prefix.count)) }) {
+            if parts[3] == 1 {
+                gatewayStatus = "✓ Reachable — standard gateway for \(prefix).x.x subnet"
+            } else {
+                gatewayStatus = "⚠ Unusual gateway (.1 is typical). VM may lose internet if this host doesn't route traffic."
+            }
+        } else {
+            gatewayStatus = "✗ Not a local subnet — VM will likely have no internet. Use 192.168.64.1 or your router IP."
         }
     }
 
