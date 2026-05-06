@@ -155,8 +155,38 @@ struct ConfigurationView: View {
 
                         Toggle("Nested Virtualization", isOn: $nestedVirt).withTooltip(ConfigTooltips.nestedVirt)
                             .accessibilityIdentifier("toggle_config_nestedvirt")
-                        TextField("Hostname", text: $hostname).accessibilityIdentifier("field_config_hostname")
-                        TextField("Disk Image", text: $diskImage).accessibilityIdentifier("field_config_diskimage")
+                        // Hostname
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Hostname").font(.caption.weight(.medium))
+                            Text("Name for the VM on your network. Leave empty to use default (colima-\(appState.activeProfile)).").font(.caption2).foregroundStyle(.secondary)
+                            HStack {
+                                TextField("e.g. colima-dev", text: $hostname)
+                                    .textFieldStyle(.roundedBorder)
+                                    .accessibilityIdentifier("field_config_hostname")
+                                Menu("Suggestions") {
+                                    Button("colima-\(appState.activeProfile)") { hostname = "colima-\(appState.activeProfile)" }
+                                    Button("\(Host.current().localizedName ?? "mac")-colima") { hostname = "\(Host.current().localizedName ?? "mac")-colima" }
+                                    Button("dev-vm") { hostname = "dev-vm" }
+                                    Button("docker-host") { hostname = "docker-host" }
+                                }.font(.caption)
+                            }
+                        }
+
+                        // Disk Image
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Disk Image").font(.caption.weight(.medium))
+                            Text("Path to a custom qcow2/raw disk image. Leave empty to use Colima's default Ubuntu cloud image.").font(.caption2).foregroundStyle(.secondary)
+                            HStack {
+                                TextField("~/.colima/default/disk.qcow2", text: $diskImage)
+                                    .textFieldStyle(.roundedBorder)
+                                    .accessibilityIdentifier("field_config_diskimage")
+                                Menu("Presets") {
+                                    Button("Default (Ubuntu 24.04)") { diskImage = "" }
+                                    Button("~/.colima/\(appState.activeProfile)/disk.qcow2") { diskImage = "~/.colima/\(appState.activeProfile)/disk.qcow2" }
+                                    Button("Custom path...") { diskImage = "~/Downloads/" }
+                                }.font(.caption)
+                            }
+                        }
                         Toggle("Binfmt", isOn: $binfmt).withTooltip(ConfigTooltips.binfmt)
                             .accessibilityIdentifier("toggle_config_binfmt")
                         Toggle("Foreground", isOn: $foreground).accessibilityIdentifier("toggle_config_foreground")
