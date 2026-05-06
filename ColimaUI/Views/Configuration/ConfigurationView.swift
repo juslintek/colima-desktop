@@ -51,7 +51,7 @@ struct ConfigurationView: View {
     @State private var preferredRoute = false
 
     // Volume Mounts
-    @State private var mountType = "sshfs"
+    @State private var mountType = "virtiofs"
     @State private var mountInotify = true
     @State private var disableMounts = false
     @State private var mounts: [(location: String, writable: Bool)] = [
@@ -458,24 +458,44 @@ struct ConfigurationView: View {
                 // MARK: Volume Mounts
                 configCard(icon: "externaldrive", title: "Volume Mounts", description: "Share host directories with the VM") {
                     VStack(alignment: .leading, spacing: 8) {
-                        // Mount type comparison
+                        // Mount type cards
                         VStack(alignment: .leading, spacing: 4) {
-                            mountComparisonRow(type: "virtiofs", stars: 5, note: "Requires vz", selected: mountType == "virtiofs")
-                            mountComparisonRow(type: "9p", stars: 3, note: "Works with qemu", selected: mountType == "9p")
-                            mountComparisonRow(type: "sshfs", stars: 2, note: "Most compatible", selected: mountType == "sshfs")
+                            Text("Mount Type").font(.caption.weight(.medium))
+                            Text("How files are shared between your Mac and the VM. Cannot be changed after creation.").font(.caption2).foregroundStyle(.secondary)
+                            HStack(spacing: 8) {
+                                mountTypeCard(
+                                    type: "virtiofs", icon: "bolt.fill",
+                                    speed: "★★★★★", 
+                                    pros: "Fastest. Native Apple framework. Near-native I/O.",
+                                    cons: "Requires vz VM type and macOS 13+.",
+                                    recommended: vmType == "vz"
+                                )
+                                mountTypeCard(
+                                    type: "9p", icon: "folder.badge.gearshape",
+                                    speed: "★★★☆☆",
+                                    pros: "Good speed. Works with qemu. Stable.",
+                                    cons: "Slower than virtiofs. No inotify support.",
+                                    recommended: vmType == "qemu"
+                                )
+                                mountTypeCard(
+                                    type: "sshfs", icon: "network",
+                                    speed: "★★☆☆☆",
+                                    pros: "Works everywhere. Most compatible.",
+                                    cons: "Slowest. High latency for many small files.",
+                                    recommended: false
+                                )
+                            }
+                            .accessibilityIdentifier("field_config_mounttype")
                         }
-                        .padding(8).background(Color.secondary.opacity(0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                        HStack {
-                            Picker("Mount Type", selection: $mountType) {
-                                Text("sshfs").tag("sshfs"); Text("9p").tag("9p"); Text("virtiofs").tag("virtiofs")
-                            }.accessibilityIdentifier("field_config_mounttype")
-                            TooltipButton(info: ConfigTooltips.mountType)
-                            lockIcon(id: "lock_config_mounttype")
+                        // Inotify
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Inotify", isOn: $mountInotify)
+                                .accessibilityIdentifier("toggle_config_inotify")
+                            Text("Enables filesystem change notifications. Required for hot-reload (webpack, nodemon, vite). Slight CPU overhead from watching files.")
+                                .font(.caption2).foregroundStyle(.secondary)
                         }
-                        Toggle("Inotify", isOn: $mountInotify).withTooltip(ConfigTooltips.inotify)
-                            .accessibilityIdentifier("toggle_config_inotify")
+
                         Toggle("Disable Mounts", isOn: $disableMounts).accessibilityIdentifier("toggle_config_disablemounts")
 
                         ForEach(Array(mounts.enumerated()), id: \.offset) { i, m in
@@ -661,6 +681,28 @@ struct ConfigurationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(cpuType == type ? Color.accentColor : Color.clear, lineWidth: 1))
         .onTapGesture { cpuType = type }
+    }
+
+    private func mountTypeCard(type: String, icon: String, speed: String, pros: String, cons: String, recommended: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Image(systemName: icon).font(.caption)
+                Text(type).font(.caption.weight(.semibold))
+                if recommended {
+                    Text("Recommended").font(.system(size: 8)).padding(.horizontal, 4).padding(.vertical, 1)
+                        .background(Color.green.opacity(0.2)).clipShape(RoundedRectangle(cornerRadius: 3))
+                }
+            }
+            Text(speed).font(.caption2)
+            Text(pros).font(.system(size: 9)).foregroundStyle(.green)
+            Text(cons).font(.system(size: 9)).foregroundStyle(.orange)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(8)
+        .background(mountType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(mountType == type ? Color.accentColor : Color.clear, lineWidth: 1))
+        .onTapGesture { mountType = type }
     }
 
     @ViewBuilder
