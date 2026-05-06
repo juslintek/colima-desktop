@@ -496,7 +496,12 @@ struct ConfigurationView: View {
                                 .font(.caption2).foregroundStyle(.secondary)
                         }
 
-                        Toggle("Disable Mounts", isOn: $disableMounts).accessibilityIdentifier("toggle_config_disablemounts")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Disable Mounts", isOn: $disableMounts)
+                                .accessibilityIdentifier("toggle_config_disablemounts")
+                            Text("Completely disables file sharing between host and VM. Enable if containers are self-contained and don't need access to your local files. Improves VM startup time and reduces resource usage.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
 
                         ForEach(Array(mounts.enumerated()), id: \.offset) { i, m in
                             HStack {
