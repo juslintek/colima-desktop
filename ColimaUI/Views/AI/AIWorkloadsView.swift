@@ -8,6 +8,7 @@ struct AIWorkloadsView: View {
     @State private var selectedTab = 0
     @State private var vmType = "qemu"
     @State private var vmRAM = 8
+    @State private var pullingModel: String?
 
     private let tabNames = ["Downloaded", "Docker AI", "HuggingFace", "Ollama"]
 
@@ -118,15 +119,25 @@ struct AIWorkloadsView: View {
     private func registryTab(_ id: String, models: [(name: String, desc: String, size: String)]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(models, id: \.name) { m in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(m.name).fontWeight(.medium)
-                        Text(m.desc).font(.caption).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(m.name).fontWeight(.medium)
+                            Text(m.desc).font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Text(m.size).font(.caption).foregroundStyle(.secondary)
+                        if pullingModel == m.name {
+                            Button("Cancel") { pullingModel = nil }
+                                .font(.caption)
+                        } else {
+                            Button("Pull") { pullingModel = m.name }
+                                .font(.caption).accessibilityIdentifier("btn_ai_pull_\(m.name)")
+                        }
                     }
-                    Spacer()
-                    Text(m.size).font(.caption).foregroundStyle(.secondary)
-                    Button("Pull") { appState.showToast("Pulling \(m.name)") }
-                        .font(.caption).accessibilityIdentifier("btn_ai_pull_\(m.name)")
+                    if pullingModel == m.name {
+                        PullProgressView(name: m.name) { pullingModel = nil }
+                    }
                 }
                 .padding(.vertical, 4)
                 Divider()

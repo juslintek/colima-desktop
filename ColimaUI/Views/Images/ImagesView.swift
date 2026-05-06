@@ -13,6 +13,7 @@ struct ImagesView: View {
     @State private var hubSearchTerm = ""
     @State private var importPath = ""
     @State private var showPullSheet = false
+    @State private var activePull: String?
     @State private var sortOrder: ImageSortOrder = .name
     @State private var sortAscending = true
 
@@ -207,16 +208,21 @@ struct ImagesView: View {
             Divider()
 
             HStack {
-                Button("Cancel") { showPullSheet = false }
+                Button("Cancel") { showPullSheet = false; activePull = nil }
                 Spacer()
                 Button("Pull") {
                     guard !pullImageName.isEmpty else { return }
+                    activePull = pullImageName
                     appState.pullImage(name: pullImageName)
-                    pullImageName = ""
-                    showPullSheet = false
                 }
                 .accessibilityIdentifier("btn_pull_image_new")
-                .disabled(pullImageName.isEmpty)
+                .disabled(pullImageName.isEmpty || activePull != nil)
+            }
+
+            if let pulling = activePull {
+                PullProgressView(name: pulling) {
+                    activePull = nil
+                }
             }
         }
         .padding()
