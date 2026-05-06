@@ -57,6 +57,9 @@ struct ConfigurationView: View {
     @State private var mounts: [(location: String, writable: Bool)] = [
         ("~", true), ("/tmp/colima", true)
     ]
+    @State private var showAddMount = false
+    @State private var newMountPath = ""
+    @State private var newMountWritable = true
 
     // SSH
     @State private var sshPort = ""
@@ -505,9 +508,10 @@ struct ConfigurationView: View {
 
                         ForEach(Array(mounts.enumerated()), id: \.offset) { i, m in
                             HStack {
-                                Text(m.location)
+                                Image(systemName: m.writable ? "pencil.circle" : "lock.circle").foregroundStyle(m.writable ? .blue : .orange).font(.caption)
+                                Text(m.location).font(.caption.monospaced())
                                 Spacer()
-                                Text(m.writable ? "rw" : "ro").foregroundStyle(.secondary)
+                                Text(m.writable ? "read-write" : "read-only").font(.caption2).foregroundStyle(.secondary)
                                 Button(role: .destructive) {
                                     mounts.remove(at: i)
                                 } label: {
@@ -515,9 +519,12 @@ struct ConfigurationView: View {
                                 }.accessibilityIdentifier("btn_remove_mount_\(i)")
                             }
                         }
-                        Button("Add Mount") {
-                            mounts.append(("/new/path", true))
-                        }.accessibilityIdentifier("btn_add_mount")
+                        Button("Add Mount") { showAddMount = true }
+                            .accessibilityIdentifier("btn_add_mount")
+
+                        if showAddMount {
+                            addMountDialog
+                        }
                     }
                 }
 
@@ -735,6 +742,60 @@ struct ConfigurationView: View {
             Spacer()
             if selected {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
+            }
+        }
+    }
+
+    private var addMountDialog: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Add Mount Point").font(.caption.weight(.semibold))
+                    Spacer()
+                    Button { showAddMount = false } label: { Image(systemName: "xmark").font(.caption) }.buttonStyle(.borderless)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Host Path").font(.caption.weight(.medium))
+                    Text("Directory on your Mac to share with the VM. Containers can access files here.").font(.caption2).foregroundStyle(.secondary)
+                    HStack {
+                        TextField("/path/to/directory", text: $newMountPath)
+                            .textFieldStyle(.roundedBorder).font(.system(.caption, design: .monospaced))
+                        Menu("Common") {
+                            Button("~ (Home directory)") { newMountPath = "~" }
+                            Button("~/Projects") { newMountPath = "~/Projects" }
+                            Button("~/Developer") { newMountPath = "~/Developer" }
+                            Button("/tmp/colima") { newMountPath = "/tmp/colima" }
+                            Button("/var/data") { newMountPath = "/var/data" }
+                        }.font(.caption2)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Access Mode").font(.caption.weight(.medium))
+                    Picker("", selection: $newMountWritable) {
+                        Text("Read-Write").tag(true)
+                        Text("Read-Only").tag(false)
+                    }.pickerStyle(.segmented)
+                    Text(newMountWritable
+                        ? "Containers can read and modify files. Use for project source code, build outputs."
+                        : "Containers can only read files. Safer for config files, secrets, shared assets."
+                    ).font(.caption2).foregroundStyle(.secondary)
+                }
+
+                HStack {
+                    Button("Cancel") { showAddMount = false; newMountPath = "" }.font(.caption)
+                    Spacer()
+                    Button("Add") {
+                        guard !newMountPath.isEmpty else { return }
+                        mounts.append((newMountPath, newMountWritable))
+                        newMountPath = ""
+                        showAddMount = false
+                    }
+                    .font(.caption)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(newMountPath.isEmpty)
+                }
             }
         }
     }
