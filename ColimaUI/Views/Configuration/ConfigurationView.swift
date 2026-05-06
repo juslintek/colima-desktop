@@ -64,6 +64,7 @@ struct ConfigurationView: View {
     // SSH
     @State private var sshPort = ""
     @State private var sshPortStatus = ""
+    @State private var showSSHPortSuggestion = false
     @State private var forwardAgent = false
     @State private var sshConfig = true
 
@@ -552,6 +553,21 @@ struct ConfigurationView: View {
                                         .foregroundStyle(sshPortStatus.hasPrefix("✓") ? .green : .red)
                                 }
                             }
+                            if showSSHPortSuggestion {
+                                HStack(spacing: 6) {
+                                    Text("Pick an available port:").font(.caption2).foregroundStyle(.secondary)
+                                    ForEach([2222, 2200, 2201, 2223, 22022], id: \.self) { port in
+                                        Button("\(port)") {
+                                            sshPort = "\(port)"
+                                            sshPortStatus = "✓ Port \(port) is available"
+                                            showSSHPortSuggestion = false
+                                        }
+                                        .font(.caption2)
+                                        .buttonStyle(.bordered)
+                                        .controlSize(.mini)
+                                    }
+                                }
+                            }
                         }
                         Toggle("Forward Agent", isOn: $forwardAgent).withTooltip(ConfigTooltips.forwardAgent)
                             .accessibilityIdentifier("toggle_config_forwardagent")
@@ -769,16 +785,19 @@ struct ConfigurationView: View {
 
     private func validateSSHPort() {
         guard let port = Int(sshPort), port > 0 else {
-            if sshPort.isEmpty { sshPortStatus = "" } else { sshPortStatus = "✗ Invalid port" }
+            if sshPort.isEmpty { sshPortStatus = ""; showSSHPortSuggestion = false } else { sshPortStatus = "✗ Invalid port"; showSSHPortSuggestion = true }
             return
         }
         let reserved = [22, 80, 443, 3000, 5432, 8080]
         if port < 1024 {
-            sshPortStatus = "✗ Ports below 1024 require root — use 2222+"
+            sshPortStatus = "✗ Ports below 1024 require root"
+            showSSHPortSuggestion = true
         } else if reserved.contains(port) {
-            sshPortStatus = "✗ Port \(port) commonly in use"
+            sshPortStatus = "✗ Port \(port) is in use"
+            showSSHPortSuggestion = true
         } else {
             sshPortStatus = "✓ Port \(port) is available"
+            showSSHPortSuggestion = false
         }
     }
 
