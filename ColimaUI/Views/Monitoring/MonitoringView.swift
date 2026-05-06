@@ -104,6 +104,41 @@ struct MonitoringView: View {
     private var totalCPU: Double { processTree.reduce(0) { $0 + $1.cpu + $1.children.reduce(0) { $0 + $1.cpu } } }
     private var totalMem: Double { processTree.reduce(0) { $0 + $1.memory + $1.children.reduce(0) { $0 + $1.memory } } }
 
+    private var scopedCPU: Double {
+        guard let sel = selectedProcess else { return totalCPU }
+        if let node = processTree.first(where: { $0.id == sel }) {
+            return node.cpu + node.children.reduce(0) { $0 + $1.cpu }
+        }
+        for parent in processTree {
+            if let child = parent.children.first(where: { $0.id == sel }) {
+                return child.cpu
+            }
+        }
+        return totalCPU
+    }
+
+    private var scopedMem: Double {
+        guard let sel = selectedProcess else { return totalMem }
+        if let node = processTree.first(where: { $0.id == sel }) {
+            return node.memory + node.children.reduce(0) { $0 + $1.memory }
+        }
+        for parent in processTree {
+            if let child = parent.children.first(where: { $0.id == sel }) {
+                return child.memory
+            }
+        }
+        return totalMem
+    }
+
+    private var scopeLabel: String {
+        guard let sel = selectedProcess else { return "Total" }
+        for node in processTree {
+            if node.id == sel { return node.name }
+            if let child = node.children.first(where: { $0.id == sel }) { return child.name }
+        }
+        return "Total"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Tree view
@@ -133,12 +168,17 @@ struct MonitoringView: View {
 
             Divider()
 
-            // Sparkline footer
-            HStack(spacing: 12) {
-                sparklineCard(title: "Total CPU", value: String(format: "%.1f%%", totalCPU), data: cpuHistory, color: .blue, maxVal: 100)
-                sparklineCard(title: "Memory", value: formatMB(totalMem), data: memHistory, color: .green, maxVal: 8192)
-                sparklineCard(title: "Network", value: "0 KB/s", data: netHistory, color: .orange, maxVal: 1024)
-                sparklineCard(title: "Disk", value: "0 KB/s", data: diskHistory, color: .purple, maxVal: 1024)
+            // Sparkline footer — scoped to selection
+            VStack(spacing: 4) {
+                if selectedProcess != nil {
+                    Text(scopeLabel).font(.caption2.weight(.medium)).foregroundStyle(.secondary)
+                }
+                HStack(spacing: 12) {
+                    sparklineCard(title: "CPU", value: String(format: "%.1f%%", scopedCPU), data: cpuHistory, color: .blue, maxVal: 100)
+                    sparklineCard(title: "Memory", value: formatMB(scopedMem), data: memHistory, color: .green, maxVal: 8192)
+                    sparklineCard(title: "Network", value: "0 KB/s", data: netHistory, color: .orange, maxVal: 1024)
+                    sparklineCard(title: "Disk", value: "0 KB/s", data: diskHistory, color: .purple, maxVal: 1024)
+                }
             }
             .padding(12)
             .background(.bar)
