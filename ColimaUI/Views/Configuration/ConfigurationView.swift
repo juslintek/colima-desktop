@@ -371,8 +371,12 @@ struct ConfigurationView: View {
                         .padding(8).background(Color.secondary.opacity(0.05))
                         .clipShape(RoundedRectangle(cornerRadius: 4))
 
-                        Toggle("Network Address", isOn: $networkAddress).withTooltip(ConfigTooltips.networkAddress)
-                            .accessibilityIdentifier("toggle_config_networkaddress")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Toggle("Network Address", isOn: $networkAddress)
+                                .accessibilityIdentifier("toggle_config_networkaddress")
+                            Text("Assigns a reachable IP address to the VM on your local network. Enables access from other devices on your LAN (e.g. testing from phone). Requires sudo on first use.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                        }
                         Picker("Network Mode", selection: $networkMode) {
                             Text("shared").tag("shared"); Text("bridged").tag("bridged")
                         }.accessibilityIdentifier("field_config_networkmode")
