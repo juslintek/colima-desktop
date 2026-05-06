@@ -31,6 +31,8 @@ struct ConfigurationView: View {
     // Kubernetes
     @State private var k8sEnabled = false
     @State private var k8sVersion = ""
+    @State private var k8sCustomVersion = ""
+    @State private var k8sVersionError = ""
     @State private var k8sArgs = ""
     @State private var k8sPort = ""
 
@@ -265,18 +267,71 @@ struct ConfigurationView: View {
 
                 // MARK: Kubernetes
                 configCard(icon: "helm", title: "Kubernetes", description: "Enable k3s cluster inside the VM") {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 10) {
                         Toggle("Enabled", isOn: $k8sEnabled).withTooltip(ConfigTooltips.kubernetes)
                             .accessibilityIdentifier("toggle_config_k8s")
-                        TextField("Version", text: $k8sVersion).accessibilityIdentifier("field_config_k8sversion")
-                        VStack(alignment: .leading) {
-                            Text("k3s Args (comma-separated)").font(.caption)
-                            TextEditor(text: $k8sArgs)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(height: 50)
-                                .accessibilityIdentifier("field_config_k3sargs")
+
+                        // Version picker
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Version").font(.caption.weight(.medium))
+                            Text("Select a k3s release or enter a custom version.").font(.caption2).foregroundStyle(.secondary)
+                            HStack {
+                                Picker("", selection: $k8sVersion) {
+                                    Text("Latest").tag("")
+                                    Text("v1.31.4+k3s1").tag("v1.31.4+k3s1")
+                                    Text("v1.30.8+k3s1").tag("v1.30.8+k3s1")
+                                    Text("v1.29.12+k3s1").tag("v1.29.12+k3s1")
+                                    Text("v1.28.15+k3s1").tag("v1.28.15+k3s1")
+                                    Text("v1.27.16+k3s1").tag("v1.27.16+k3s1")
+                                    Text("Custom...").tag("custom")
+                                }
+                                .frame(maxWidth: 200)
+                                .accessibilityIdentifier("field_config_k8sversion")
+                                if k8sVersion == "custom" {
+                                    TextField("e.g. v1.30.0+k3s1", text: $k8sCustomVersion)
+                                        .textFieldStyle(.roundedBorder)
+                                        .frame(maxWidth: 160)
+                                        .onSubmit { validateK8sVersion() }
+                                    if !k8sVersionError.isEmpty {
+                                        Text(k8sVersionError).font(.caption2).foregroundStyle(.red)
+                                    }
+                                }
+                            }
                         }
-                        TextField("API Port", text: $k8sPort).accessibilityIdentifier("field_config_k8sport")
+
+                        // k3s Args with autocomplete
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("k3s Server Args").font(.caption.weight(.medium))
+                            Text("Additional flags passed to k3s server on startup.").font(.caption2).foregroundStyle(.secondary)
+                            HStack {
+                                TextField("e.g. --disable=traefik", text: $k8sArgs)
+                                    .textFieldStyle(.roundedBorder)
+                                    .font(.system(.caption, design: .monospaced))
+                                    .accessibilityIdentifier("field_config_k3sargs")
+                                Menu("+ Add") {
+                                    Button("--disable=traefik — Disable built-in Traefik ingress") { appendArg("--disable=traefik") }
+                                    Button("--disable=servicelb — Disable built-in load balancer") { appendArg("--disable=servicelb") }
+                                    Button("--disable=metrics-server — Disable metrics collection") { appendArg("--disable=metrics-server") }
+                                    Button("--flannel-backend=none — Disable Flannel CNI (use custom)") { appendArg("--flannel-backend=none") }
+                                    Button("--cluster-cidr=10.42.0.0/16 — Pod network CIDR range") { appendArg("--cluster-cidr=10.42.0.0/16") }
+                                    Button("--service-cidr=10.43.0.0/16 — Service network CIDR range") { appendArg("--service-cidr=10.43.0.0/16") }
+                                    Button("--write-kubeconfig-mode=644 — Make kubeconfig world-readable") { appendArg("--write-kubeconfig-mode=644") }
+                                    Button("--tls-san=my.domain.com — Add TLS SAN for external access") { appendArg("--tls-san=my.domain.com") }
+                                    Button("--kube-apiserver-arg=... — Pass args to kube-apiserver") { appendArg("--kube-apiserver-arg=") }
+                                    Button("--node-label=role=worker — Label this node") { appendArg("--node-label=role=worker") }
+                                }.font(.caption2)
+                            }
+                        }
+
+                        // API Port
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("API Port").font(.caption.weight(.medium))
+                            Text("Port for the Kubernetes API server. Leave empty for default (6443).").font(.caption2).foregroundStyle(.secondary)
+                            TextField("6443", text: $k8sPort)
+                                .textFieldStyle(.roundedBorder)
+                                .frame(maxWidth: 100)
+                                .accessibilityIdentifier("field_config_k8sport")
+                        }
                     }
                 }
 
@@ -562,6 +617,25 @@ struct ConfigurationView: View {
             if selected {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
             }
+        }
+    }
+
+    private func validateK8sVersion() {
+        let v = k8sCustomVersion
+        if v.isEmpty { k8sVersionError = ""; return }
+        let pattern = #"^v\d+\.\d+\.\d+\+k3s\d+$"#
+        if v.range(of: pattern, options: .regularExpression) != nil {
+            k8sVersionError = "✓ Valid format"
+        } else {
+            k8sVersionError = "Expected format: v1.30.0+k3s1"
+        }
+    }
+
+    private func appendArg(_ arg: String) {
+        if k8sArgs.isEmpty {
+            k8sArgs = arg
+        } else {
+            k8sArgs += ",\(arg)"
         }
     }
 
