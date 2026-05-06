@@ -60,11 +60,13 @@ struct MenuBarView: View {
             // Actions
             HStack(spacing: 12) {
                 Button("Open ColimaUI") {
+                    NSApp.setActivationPolicy(.regular)
                     NSApp.activate(ignoringOtherApps: true)
-                    if let window = NSApp.windows.first(where: { $0.canBecomeMain }) {
+                    // Show all windows
+                    for window in NSApp.windows where window.canBecomeMain || window.title.contains("Colima") {
+                        window.setIsVisible(true)
+                        window.deminiaturize(nil)
                         window.makeKeyAndOrderFront(nil)
-                    } else {
-                        NSApp.sendAction(Selector(("newWindowForTab:")), to: nil, from: nil)
                     }
                 }
                 .buttonStyle(.borderedProminent)
