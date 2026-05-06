@@ -8,6 +8,8 @@ struct RuntimeControlsView: View {
     @State private var commandInput = ""
     @State private var commandOutput = ""
     @State private var commandHistory: [String] = []
+    @State private var historyExpanded = false
+    @State private var historyLimit = 20
 
     private let dockerQuickCmds = ["ps", "images", "volume ls", "network ls", "system df", "info"]
     private let nerdctlQuickCmds = ["ps", "images", "compose ps"]
@@ -120,14 +122,38 @@ struct RuntimeControlsView: View {
                 .accessibilityIdentifier("text_command_output")
 
                 if !commandHistory.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 6) {
-                            Text("History:").font(.caption2).foregroundStyle(.secondary)
-                            ForEach(commandHistory.suffix(10), id: \.self) { cmd in
-                                Button(cmd) { commandInput = cmd; runPaletteCommand() }.font(.caption2)
+                    DisclosureGroup("History (\(commandHistory.suffix(historyLimit).count))", isExpanded: $historyExpanded) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            ForEach(Array(commandHistory.suffix(historyLimit).reversed().enumerated()), id: \.offset) { _, cmd in
+                                Button {
+                                    commandInput = cmd
+                                    runPaletteCommand()
+                                } label: {
+                                    Text(cmd)
+                                        .font(.system(.caption, design: .monospaced))
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
+                        .padding(.vertical, 4)
+
+                        HStack {
+                            Spacer()
+                            Picker("Keep", selection: $historyLimit) {
+                                Text("10").tag(10)
+                                Text("20").tag(20)
+                                Text("50").tag(50)
+                            }
+                            .frame(width: 120)
+                            .font(.caption2)
+                            Button("Clear") { commandHistory.removeAll() }
+                                .font(.caption2)
+                        }
                     }
+                    .font(.caption)
                 }
             }
         }
@@ -155,7 +181,12 @@ struct RuntimeControlsView: View {
         let tool = parts.first ?? "docker"
         let args = parts.dropFirst().joined(separator: " ")
         commandOutput = "$ \(cmd)\n\n\(MockDetailData.commandOutput(tool: tool, args: args))"
-        if !commandHistory.contains(cmd) { commandHistory.append(cmd) }
+        if !commandHistory.contains(cmd) {
+            commandHistory.append(cmd)
+            if commandHistory.count > historyLimit {
+                commandHistory.removeFirst(commandHistory.count - historyLimit)
+            }
+        }
         commandInput = ""
     }
 
