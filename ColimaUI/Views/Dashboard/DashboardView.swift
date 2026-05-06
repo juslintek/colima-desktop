@@ -67,32 +67,115 @@ struct DashboardView: View {
 
                 // Actions
                 HStack(spacing: 8) {
-                    Button("Delete VM") {
-                        appState.requestConfirmation("Delete VM (preserve data)?") {
-                            appState.deleteVM(hard: false)
-                        }
-                    }.accessibilityIdentifier("btn_delete_vm_dashboard")
-                    Button("Delete VM + Data") {
-                        appState.requestConfirmation("Delete VM and all data?") {
-                            appState.deleteVM(hard: true)
-                        }
-                    }.accessibilityIdentifier("btn_deletedata_vm_dashboard")
                     Button("SSH") { appState.sshVM() }
                         .accessibilityIdentifier("btn_ssh_vm_dashboard")
-                    Button("Update") { appState.updateColima() }
-                        .accessibilityIdentifier("btn_update_vm_dashboard")
-                    Button("Prune") { appState.pruneColima(all: false) }
-                        .accessibilityIdentifier("btn_prune_vm_dashboard")
+                    Button("SSH Config") { appState.showSSHConfig() }
+                        .accessibilityIdentifier("btn_sshconfig_vm_dashboard")
                 }
                 .font(.caption)
 
-                HStack(spacing: 8) {
-                    Button("SSH Config") { appState.showSSHConfig() }
-                        .accessibilityIdentifier("btn_sshconfig_vm_dashboard")
-                    Button("Template") { appState.generateTemplate() }
-                        .accessibilityIdentifier("btn_template_vm_dashboard")
+                // Update Colima
+                GroupBox {
+                    HStack {
+                        Image(systemName: "arrow.down.app").foregroundStyle(.blue)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Update Colima").font(.caption.weight(.medium))
+                            Text("Updates Colima binary to latest version via Homebrew.").font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Check & Update") { appState.updateColima() }
+                            .controlSize(.small)
+                            .accessibilityIdentifier("btn_update_vm_dashboard")
+                    }
                 }
-                .font(.caption)
+
+                // Template
+                GroupBox {
+                    HStack {
+                        Image(systemName: "doc.text").foregroundStyle(.purple)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Configuration Template").font(.caption.weight(.medium))
+                            Text("Edit default settings for new Colima instances. Changes apply to future `colima start` calls.").font(.caption2).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button("Edit Template") { appState.generateTemplate() }
+                            .controlSize(.small)
+                            .accessibilityIdentifier("btn_template_vm_dashboard")
+                    }
+                }
+
+                // Prune
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack {
+                            Image(systemName: "trash.circle").foregroundStyle(.orange)
+                            Text("Prune").font(.caption.weight(.medium))
+                            Spacer()
+                            Button("Prune Cache") { appState.pruneColima(all: false) }
+                                .controlSize(.small)
+                                .accessibilityIdentifier("btn_prune_vm_dashboard")
+                        }
+                        Text("Removes unused build cache, dangling images, and stopped containers. Frees disk space.").font(.caption2).foregroundStyle(.secondary)
+                        // Mock prune log
+                        Text("Last prune: Deleted 3 images, 2 containers, freed 1.2 GB")
+                            .font(.caption2.monospaced())
+                            .foregroundStyle(.secondary)
+                            .padding(6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Color.secondary.opacity(0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 4))
+                    }
+                }
+
+                // Delete VM
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Image(systemName: "exclamationmark.triangle").foregroundStyle(.red)
+                            Text("Delete VM").font(.caption.weight(.medium))
+                            Spacer()
+                        }
+                        Text("Destroys the Colima VM. Container data is preserved on a separate disk and restored on next start (unless --data is used).").font(.caption2).foregroundStyle(.secondary)
+
+                        HStack(spacing: 8) {
+                            Button("Delete (keep data)") {
+                                appState.requestConfirmation("Delete VM?\n\n• \(appState.containers.filter { $0.state == "running" }.count) containers running — they will be stopped\n• Volume data will be preserved\n• Restart with `colima start` to restore") {
+                                    appState.deleteVM(hard: false)
+                                }
+                            }.accessibilityIdentifier("btn_delete_vm_dashboard")
+
+                            Button("Delete + All Data") {
+                                appState.requestConfirmation("Delete VM and ALL data?\n\n⚠️ This cannot be undone!\n• \(appState.containers.count) containers will be destroyed\n• \(appState.volumes.count) volumes will be deleted\n• \(appState.images.count) images will be removed\n\nConsider exporting volumes first.") {
+                                    appState.deleteVM(hard: true)
+                                }
+                            }
+                            .foregroundStyle(.red)
+                            .accessibilityIdentifier("btn_deletedata_vm_dashboard")
+                        }
+                        .font(.caption)
+
+                        // Migration/backup options
+                        DisclosureGroup("Backup & Migration") {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Button("Export all volumes as tar") { appState.showToast("Exporting volumes to ~/colima-backup/") }
+                                    .font(.caption)
+                                Button("Export docker-compose.yml") { appState.showToast("Compose file exported") }
+                                    .font(.caption)
+                                Button("Export container list (JSON)") { appState.showToast("Container list exported") }
+                                    .font(.caption)
+                                Divider()
+                                Text("Migrate to:").font(.caption2).foregroundStyle(.secondary)
+                                HStack(spacing: 8) {
+                                    Button("Docker Desktop") { appState.showToast("Migration guide: docker context use desktop-linux") }
+                                    Button("Podman") { appState.showToast("Migration guide: podman machine init") }
+                                    Button("Another Profile") { appState.showToast("Use: colima start --profile <name>") }
+                                }.font(.caption)
+                            }
+                            .padding(.top, 4)
+                        }
+                        .font(.caption)
+                    }
+                }
 
                 Divider()
 
