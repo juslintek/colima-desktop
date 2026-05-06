@@ -12,7 +12,7 @@ struct ConfigurationView: View {
     // VM Settings
     @State private var arch = "host"
     @State private var vmType = "qemu"
-    @State private var cpuType = ""
+    @State private var cpuType = "host"
     @State private var rosetta = false
     @State private var nestedVirt = false
     @State private var hostname = ""
@@ -129,7 +129,16 @@ struct ConfigurationView: View {
                             lockIcon(id: "lock_config_vmtype")
                         }
 
-                        TextField("CPU Type", text: $cpuType).accessibilityIdentifier("field_config_cputype")
+                        // CPU Type cards
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("CPU Type").font(.caption.weight(.medium))
+                            HStack(spacing: 8) {
+                                cpuTypeCard(type: "host", icon: "cpu", desc: "Host native — uses your Mac's actual CPU type")
+                                cpuTypeCard(type: "cortex-a72", icon: "bolt", desc: "Cortex-A72 — generic ARM, max compatibility")
+                                cpuTypeCard(type: "max", icon: "flame", desc: "Max — all CPU features enabled, fastest")
+                            }
+                        }
+                        .accessibilityIdentifier("field_config_cputype")
 
                         // Rosetta toggle card
                         HStack {
@@ -441,6 +450,20 @@ struct ConfigurationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(vmType == type ? Color.accentColor : Color.clear, lineWidth: 1))
         .onTapGesture { vmType = type }
+    }
+
+    private func cpuTypeCard(type: String, icon: String, desc: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon).font(.title3)
+            Text(type).font(.caption.weight(.medium))
+            Text(desc).font(.system(size: 9)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(8)
+        .background(cpuType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(cpuType == type ? Color.accentColor : Color.clear, lineWidth: 1))
+        .onTapGesture { cpuType = type }
     }
 
     @ViewBuilder
