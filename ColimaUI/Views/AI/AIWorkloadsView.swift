@@ -175,18 +175,153 @@ struct AIWorkloadsView: View {
     }
 
     @State private var showSetupFlow = false
+    @State private var showModelBrowser = false
 
     private var legacyQuickActions: some View {
         GroupBox("Quick Actions") {
             HStack(spacing: 8) {
                 Button("Setup") { showSetupFlow = true }.accessibilityIdentifier("btn_setup_ai_model")
-                Button("Browse Models") { appState.showToast("Opening model browser") }.accessibilityIdentifier("btn_browse_ai_registry")
+                Button("Browse Models") { showModelBrowser = true }.accessibilityIdentifier("btn_browse_ai_registry")
                 Button("Create AI Profile") { appState.showToast("AI profile created") }.accessibilityIdentifier("btn_createprofile_ai_new")
             }
 
             if showSetupFlow {
                 AISetupProgressView(runner: runner) { showSetupFlow = false }
             }
+
+            if showModelBrowser {
+                ModelBrowserView { showModelBrowser = false }
+            }
         }
+    }
+}
+
+// MARK: - Model Browser
+
+struct ModelBrowserView: View {
+    let onClose: () -> Void
+    @State private var selectedRegistry = "Docker AI"
+    @State private var searchText = ""
+    @State private var pullingModel: String?
+
+    private let registries = ["Docker AI", "HuggingFace", "Ollama"]
+
+    private var models: [(name: String, desc: String, size: String, downloads: String, stars: Int, capabilities: [String])] {
+        switch selectedRegistry {
+        case "Docker AI":
+            return [
+                ("ai/gemma3", "Google's Gemma 3 — fast, efficient", "2.5 GB", "1.2M", 4850, ["Text Generation", "Chat"]),
+                ("ai/llama3.2", "Meta's Llama 3.2 — versatile", "4.7 GB", "890K", 5200, ["Text Generation", "Code"]),
+                ("ai/phi-4", "Microsoft Phi-4 — compact powerhouse", "2.3 GB", "650K", 3900, ["Text Generation", "Reasoning"]),
+                ("ai/smollm2", "HuggingFace SmolLM2 — tiny & fast", "1.1 GB", "420K", 2100, ["Text Generation"]),
+                ("ai/mistral", "Mistral 7B — balanced performance", "4.1 GB", "780K", 4600, ["Text Generation", "Code"]),
+                ("ai/qwen2.5", "Alibaba Qwen 2.5 — multilingual", "4.5 GB", "560K", 3400, ["Text Generation", "Multilingual"]),
+                ("ai/deepseek-r1", "DeepSeek R1 — reasoning focused", "8.2 GB", "340K", 4100, ["Reasoning", "Math"]),
+                ("ai/codellama", "Meta Code Llama — code specialist", "3.8 GB", "920K", 4300, ["Code Generation", "Completion"]),
+                ("ai/nomic-embed", "Nomic Embed — text embeddings", "0.5 GB", "280K", 1800, ["Embeddings"]),
+                ("ai/whisper", "OpenAI Whisper — speech to text", "1.5 GB", "1.5M", 5100, ["Speech Recognition"]),
+            ]
+        case "HuggingFace":
+            return [
+                ("microsoft/Phi-3-mini-4k-instruct-gguf", "Phi-3 Mini GGUF", "2.4 GB", "3.2M", 8900, ["Text Generation"]),
+                ("TheBloke/Llama-2-7B-GGUF", "Llama 2 7B quantized", "4.0 GB", "2.8M", 7200, ["Text Generation"]),
+                ("sentence-transformers/all-MiniLM-L6-v2", "Sentence embeddings", "0.1 GB", "5.1M", 6800, ["Embeddings"]),
+                ("openai/whisper-large-v3", "Whisper Large V3", "3.1 GB", "1.9M", 5400, ["Speech"]),
+                ("stabilityai/stable-diffusion-xl", "SDXL image generation", "6.9 GB", "4.2M", 9100, ["Image Generation"]),
+            ]
+        default: // Ollama
+            return [
+                ("gemma3", "Google Gemma 3", "2.5 GB", "1.8M", 5600, ["Text Generation", "Chat"]),
+                ("llama3.2", "Meta Llama 3.2", "4.7 GB", "2.1M", 6200, ["Text Generation", "Code"]),
+                ("mistral", "Mistral 7B", "4.1 GB", "1.4M", 5100, ["Text Generation"]),
+                ("codellama", "Code Llama", "3.8 GB", "980K", 4500, ["Code Generation"]),
+                ("phi4", "Microsoft Phi-4", "2.3 GB", "720K", 3800, ["Reasoning"]),
+            ]
+        }
+    }
+
+    private var filteredModels: [(name: String, desc: String, size: String, downloads: String, stars: Int, capabilities: [String])] {
+        guard !searchText.isEmpty else { return Array(models.prefix(10)) }
+        return models.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.desc.localizedCaseInsensitiveContains(searchText) ||
+            $0.capabilities.joined().localizedCaseInsensitiveContains(searchText)
+        }.prefix(10).map { $0 }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Model Browser").font(.caption.weight(.semibold))
+                Spacer()
+                Button { onClose() } label: { Image(systemName: "xmark").font(.caption) }
+                    .buttonStyle(.borderless)
+            }
+
+            // Registry picker
+            Picker("Registry", selection: $selectedRegistry) {
+                ForEach(registries, id: \.self) { Text($0).tag($0) }
+            }
+            .pickerStyle(.segmented)
+
+            // Search
+            TextField("Search models...", text: $searchText)
+                .textFieldStyle(.roundedBorder)
+                .font(.caption)
+
+            // Model list
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(filteredModels, id: \.name) { model in
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(model.name).font(.caption.weight(.medium)).lineLimit(1)
+                                Text(model.desc).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                                HStack(spacing: 6) {
+                                    ForEach(model.capabilities, id: \.self) { cap in
+                                        Text(cap)
+                                            .font(.system(size: 9))
+                                            .padding(.horizontal, 4)
+                                            .padding(.vertical, 1)
+                                            .background(Color.accentColor.opacity(0.1))
+                                            .clipShape(RoundedRectangle(cornerRadius: 3))
+                                    }
+                                }
+                            }
+                            Spacer()
+                            VStack(alignment: .trailing, spacing: 2) {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow)
+                                    Text("\(model.stars)").font(.caption2)
+                                }
+                                HStack(spacing: 3) {
+                                    Image(systemName: "arrow.down.circle").font(.system(size: 8)).foregroundStyle(.secondary)
+                                    Text(model.downloads).font(.caption2)
+                                }
+                                Text(model.size).font(.caption2).foregroundStyle(.secondary)
+                            }
+                            if pullingModel == model.name {
+                                ProgressView().controlSize(.small)
+                            } else {
+                                Button("Pull") { pullingModel = model.name }
+                                    .font(.caption2)
+                                    .controlSize(.small)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                        Divider()
+                    }
+                }
+            }
+            .frame(maxHeight: 250)
+
+            if let pulling = pullingModel {
+                PullProgressView(name: pulling) { pullingModel = nil }
+            }
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.1)))
     }
 }
