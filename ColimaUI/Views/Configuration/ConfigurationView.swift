@@ -72,6 +72,7 @@ struct ConfigurationView: View {
     @State private var provisions: [(mode: String, script: String)] = [
         ("system", "apt-get update")
     ]
+    @State private var provisionValidation = ""
 
     // Environment
     @State private var envVars: [(key: String, value: String)] = [
@@ -585,30 +586,70 @@ struct ConfigurationView: View {
                 }
 
                 // MARK: Provisioning
-                configCard(icon: "wrench.and.screwdriver", title: "Provisioning", description: "Scripts to run on VM startup") {
-                    VStack(alignment: .leading, spacing: 8) {
+                configCard(icon: "wrench.and.screwdriver", title: "Provisioning", description: "Shell scripts executed inside the VM on every start") {
+                    VStack(alignment: .leading, spacing: 10) {
                         ForEach(Array(provisions.enumerated()), id: \.offset) { i, _ in
-                            VStack(alignment: .leading) {
-                                HStack {
-                                    Picker("Mode", selection: Binding(
-                                        get: { provisions[i].mode },
-                                        set: { provisions[i].mode = $0 }
-                                    )) {
-                                        Text("system").tag("system"); Text("user").tag("user")
-                                    }.frame(width: 150)
-                                    Spacer()
-                                    Button(role: .destructive) {
-                                        provisions.remove(at: i)
-                                    } label: {
-                                        Image(systemName: "minus.circle")
-                                    }.accessibilityIdentifier("btn_remove_provision_\(i)")
+                            GroupBox {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("Script \(i + 1)").font(.caption.weight(.medium))
+                                        Spacer()
+                                        Button(role: .destructive) {
+                                            provisions.remove(at: i)
+                                        } label: {
+                                            Image(systemName: "trash").font(.caption)
+                                        }
+                                        .buttonStyle(.borderless)
+                                        .accessibilityIdentifier("btn_remove_provision_\(i)")
+                                    }
+
+                                    // Mode cards
+                                    Text("Execution Mode").font(.caption2.weight(.medium))
+                                    HStack(spacing: 8) {
+                                        provisionModeCard(index: i, mode: "system", icon: "lock.shield", desc: "Runs as root. Use for installing packages, configuring services, modifying system files.")
+                                        provisionModeCard(index: i, mode: "user", icon: "person", desc: "Runs as current user. Use for dotfiles, user configs, non-privileged setup.")
+                                    }
+
+                                    // Script editor
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("Shell Script").font(.caption2.weight(.medium))
+                                        Text("Bash commands executed on each VM start. Use for installing tools, configuring services, or setting up the environment.")
+                                            .font(.caption2).foregroundStyle(.secondary)
+                                        TextEditor(text: Binding(
+                                            get: { provisions[i].script },
+                                            set: { provisions[i].script = $0 }
+                                        ))
+                                        .font(.system(.caption, design: .monospaced))
+                                        .frame(height: 60)
+                                        .scrollContentBackground(.hidden)
+                                        .background(Color.secondary.opacity(0.05))
+                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.2)))
+
+                                        HStack {
+                                            Button("Validate") {
+                                                let script = provisions[i].script
+                                                if script.isEmpty {
+                                                    provisionValidation = "⚠ Empty script — add commands or remove this entry"
+                                                } else if script.contains("rm -rf /") {
+                                                    provisionValidation = "✗ Dangerous command detected"
+                                                } else {
+                                                    provisionValidation = "✓ Script looks valid"
+                                                }
+                                            }.font(.caption2)
+                                            Menu("Examples") {
+                                                Button("apt-get update && apt-get install -y curl") { provisions[i].script = "apt-get update && apt-get install -y curl" }
+                                                Button("curl -fsSL https://get.docker.com | sh") { provisions[i].script = "curl -fsSL https://get.docker.com | sh" }
+                                                Button("echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc") { provisions[i].script = "echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.bashrc" }
+                                            }.font(.caption2)
+                                            Spacer()
+                                            if !provisionValidation.isEmpty {
+                                                Text(provisionValidation).font(.caption2)
+                                                    .foregroundStyle(provisionValidation.hasPrefix("✓") ? .green : .orange)
+                                            }
+                                        }
+                                    }
                                 }
-                                TextEditor(text: Binding(
-                                    get: { provisions[i].script },
-                                    set: { provisions[i].script = $0 }
-                                ))
-                                .font(.system(.body, design: .monospaced))
-                                .frame(height: 40)
                             }
                         }
                         Button("Add Provision Script") {
@@ -790,6 +831,22 @@ struct ConfigurationView: View {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
             }
         }
+    }
+
+    private func provisionModeCard(index: Int, mode: String, icon: String, desc: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Image(systemName: icon).font(.caption)
+                Text(mode).font(.caption.weight(.medium))
+            }
+            Text(desc).font(.system(size: 9)).foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(6)
+        .background(provisions[index].mode == mode ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 5))
+        .overlay(RoundedRectangle(cornerRadius: 5).stroke(provisions[index].mode == mode ? Color.accentColor : .clear, lineWidth: 1))
+        .onTapGesture { provisions[index].mode = mode }
     }
 
     private func validateSSHPort() {
