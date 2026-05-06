@@ -63,6 +63,7 @@ struct ConfigurationView: View {
 
     // SSH
     @State private var sshPort = ""
+    @State private var sshPortStatus = ""
     @State private var forwardAgent = false
     @State private var sshConfig = true
 
@@ -531,7 +532,27 @@ struct ConfigurationView: View {
                 // MARK: SSH
                 configCard(icon: "terminal", title: "SSH", description: "SSH access to the VM") {
                     VStack(alignment: .leading, spacing: 8) {
-                        TextField("SSH Port", text: $sshPort).accessibilityIdentifier("field_config_sshport")
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("SSH Port").font(.caption.weight(.medium))
+                            Text("Port for SSH access to the VM. Leave empty for auto-assign.").font(.caption2).foregroundStyle(.secondary)
+                            HStack {
+                                TextField("e.g. 2222", text: $sshPort)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(maxWidth: 100)
+                                    .accessibilityIdentifier("field_config_sshport")
+                                    .onSubmit { validateSSHPort() }
+                                Menu("Open Ports") {
+                                    ForEach([2222, 2200, 2201, 2223, 22022], id: \.self) { port in
+                                        Button("\(port)") { sshPort = "\(port)"; sshPortStatus = "✓ Port \(port) is available" }
+                                    }
+                                }.font(.caption2)
+                                if !sshPortStatus.isEmpty {
+                                    Text(sshPortStatus)
+                                        .font(.caption2)
+                                        .foregroundStyle(sshPortStatus.hasPrefix("✓") ? .green : .red)
+                                }
+                            }
+                        }
                         Toggle("Forward Agent", isOn: $forwardAgent).withTooltip(ConfigTooltips.forwardAgent)
                             .accessibilityIdentifier("toggle_config_forwardagent")
                         Toggle("SSH Config", isOn: $sshConfig).accessibilityIdentifier("toggle_config_sshconfig")
@@ -743,6 +764,21 @@ struct ConfigurationView: View {
             if selected {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
             }
+        }
+    }
+
+    private func validateSSHPort() {
+        guard let port = Int(sshPort), port > 0 else {
+            if sshPort.isEmpty { sshPortStatus = "" } else { sshPortStatus = "✗ Invalid port" }
+            return
+        }
+        let reserved = [22, 80, 443, 3000, 5432, 8080]
+        if port < 1024 {
+            sshPortStatus = "✗ Ports below 1024 require root — use 2222+"
+        } else if reserved.contains(port) {
+            sshPortStatus = "✗ Port \(port) commonly in use"
+        } else {
+            sshPortStatus = "✓ Port \(port) is available"
         }
     }
 
