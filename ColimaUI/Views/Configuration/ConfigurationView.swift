@@ -385,7 +385,24 @@ struct ConfigurationView: View {
                         // DNS group
                         GroupBox("DNS Settings") {
                             VStack(alignment: .leading, spacing: 6) {
-                                TextField("DNS Servers", text: $dnsServers).accessibilityIdentifier("field_config_dns")
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("DNS Servers").font(.caption.weight(.medium))
+                                    Text("Comma-separated. Used by containers for name resolution.").font(.caption2).foregroundStyle(.secondary)
+                                    HStack {
+                                        TextField("1.1.1.1, 8.8.8.8", text: $dnsServers)
+                                            .textFieldStyle(.roundedBorder)
+                                            .accessibilityIdentifier("field_config_dns")
+                                        Menu("Presets") {
+                                            Button("1.1.1.1 — Cloudflare (fastest, privacy-focused)") { setDNS("1.1.1.1, 1.0.0.1") }
+                                            Button("8.8.8.8 — Google (most reliable, global)") { setDNS("8.8.8.8, 8.8.4.4") }
+                                            Button("9.9.9.9 — Quad9 (security-focused, blocks malware)") { setDNS("9.9.9.9, 149.112.112.112") }
+                                            Button("208.67.222.222 — OpenDNS (parental controls, filtering)") { setDNS("208.67.222.222, 208.67.220.220") }
+                                            Button("94.140.14.14 — AdGuard (ad-blocking built-in)") { setDNS("94.140.14.14, 94.140.15.15") }
+                                            Divider()
+                                            Button("System default (inherit from macOS)") { setDNS("") }
+                                        }.font(.caption2)
+                                    }
+                                }
                                 VStack(alignment: .leading) {
                                     Text("DNS Hosts (key=value per line)").font(.caption2)
                                     TextEditor(text: $dnsHosts)
@@ -638,6 +655,8 @@ struct ConfigurationView: View {
             }
         }
     }
+
+    private func setDNS(_ value: String) { dnsServers = value }
 
     private func validatePort() {
         guard let port = Int(k8sPort), port > 0 else {
