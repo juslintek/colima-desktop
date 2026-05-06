@@ -26,6 +26,7 @@ struct ConfigurationView: View {
     @State private var autoActivate = true
     @State private var modelRunner = "docker"
     @State private var dockerJSON = "{\n  \"log-driver\": \"json-file\"\n}"
+    @State private var jsonError = ""
 
     // Kubernetes
     @State private var k8sEnabled = false
@@ -227,12 +228,37 @@ struct ConfigurationView: View {
                         Picker("Model Runner", selection: $modelRunner) {
                             Text("docker").tag("docker"); Text("ramalama").tag("ramalama")
                         }.accessibilityIdentifier("field_config_modelrunner")
-                        VStack(alignment: .leading) {
-                            Text("Docker Daemon Config (JSON)").font(.caption)
-                            TextEditor(text: $dockerJSON)
-                                .font(.system(.body, design: .monospaced))
-                                .frame(height: 80)
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack {
+                                Text("Docker Daemon Config (JSON)").font(.caption.weight(.medium))
+                                Spacer()
+                                Menu("+ Add Key") {
+                                    Button("log-driver — Logging driver (json-file, syslog, none)") { insertKey("\"log-driver\": \"json-file\"") }
+                                    Button("log-opts — Logging options (max-size, max-file)") { insertKey("\"log-opts\": {\"max-size\": \"10m\", \"max-file\": \"3\"}") }
+                                    Button("storage-driver — Storage backend (overlay2, btrfs)") { insertKey("\"storage-driver\": \"overlay2\"") }
+                                    Button("insecure-registries — Allow HTTP registries") { insertKey("\"insecure-registries\": [\"myregistry:5000\"]") }
+                                    Button("registry-mirrors — Mirror for Docker Hub pulls") { insertKey("\"registry-mirrors\": [\"https://mirror.example.com\"]") }
+                                    Button("dns — Custom DNS servers for containers") { insertKey("\"dns\": [\"8.8.8.8\", \"1.1.1.1\"]") }
+                                    Button("bip — Bridge IP for docker0 network") { insertKey("\"bip\": \"172.17.0.1/16\"") }
+                                    Button("default-address-pools — Subnet allocation") { insertKey("\"default-address-pools\": [{\"base\": \"172.80.0.0/16\", \"size\": 24}]") }
+                                    Button("experimental — Enable experimental features") { insertKey("\"experimental\": true") }
+                                    Button("features — Feature flags (buildkit, etc)") { insertKey("\"features\": {\"buildkit\": true}") }
+                                }
+                                .font(.caption2)
+                            }
+                            Text("Configures the Docker daemon inside the VM. Applied to /etc/docker/daemon.json on restart.")
+                                .font(.caption2).foregroundStyle(.secondary)
+                            DockerJSONEditor(text: $dockerJSON)
+                                .frame(height: 120)
                                 .accessibilityIdentifier("field_config_dockerjson")
+                            HStack {
+                                Button("Format") { formatJSON() }.font(.caption2)
+                                Button("Validate") { validateJSON() }.font(.caption2)
+                                Spacer()
+                                if !jsonError.isEmpty {
+                                    Text(jsonError).font(.caption2).foregroundStyle(.red)
+                                }
+                            }
                         }
                     }
                 }
@@ -537,5 +563,58 @@ struct ConfigurationView: View {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
             }
         }
+    }
+
+    private func insertKey(_ key: String) {
+        if dockerJSON.hasSuffix("}") {
+            let trimmed = dockerJSON.dropLast().trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasSuffix("{") {
+                dockerJSON = "{\n  \(key)\n}"
+            } else {
+                dockerJSON = "\(trimmed),\n  \(key)\n}"
+            }
+        }
+    }
+
+    private func formatJSON() {
+        guard let data = dockerJSON.data(using: .utf8),
+              let obj = try? JSONSerialization.jsonObject(with: data),
+              let pretty = try? JSONSerialization.data(withJSONObject: obj, options: [.prettyPrinted, .sortedKeys]),
+              let str = String(data: pretty, encoding: .utf8) else {
+            jsonError = "Invalid JSON"
+            return
+        }
+        dockerJSON = str
+        jsonError = ""
+    }
+
+    private func validateJSON() {
+        guard let data = dockerJSON.data(using: .utf8) else { jsonError = "Invalid encoding"; return }
+        do {
+            _ = try JSONSerialization.jsonObject(with: data)
+            jsonError = "✓ Valid"
+        } catch {
+            jsonError = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Docker JSON Editor with syntax coloring
+
+struct DockerJSONEditor: View {
+    @Binding var text: String
+    @Environment(\.colorScheme) private var colorScheme
+
+    private var bgColor: Color {
+        colorScheme == .dark ? Color(red: 0.12, green: 0.12, blue: 0.14) : Color(red: 0.97, green: 0.97, blue: 0.98)
+    }
+
+    var body: some View {
+        TextEditor(text: $text)
+            .font(.system(.caption, design: .monospaced))
+            .scrollContentBackground(.hidden)
+            .background(bgColor)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.secondary.opacity(0.2)))
     }
 }
