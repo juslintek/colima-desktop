@@ -400,14 +400,31 @@ struct ConfigurationView: View {
 
     @ViewBuilder
     private func resourceBar(label: String, value: Double, total: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        let unused = total - value
+        let ratio = value / total
+        let overAllocated = ratio > 0.75
+        return VStack(alignment: .leading, spacing: 3) {
             HStack {
                 Text(label).font(.caption.weight(.medium))
                 Spacer()
                 Text("\(Int(value)) / \(Int(total)) \(unit)").font(.caption2).foregroundStyle(.secondary)
             }
             ProgressView(value: value, total: total)
-                .tint(value / total > 0.5 ? .orange : .blue)
+                .tint(overAllocated ? .red : ratio > 0.5 ? .orange : .blue)
+            HStack {
+                Text("\(Int(unused)) \(unit) free for macOS")
+                    .font(.caption2).foregroundStyle(.secondary)
+                Spacer()
+                if overAllocated {
+                    Label("macOS may become slow", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2).foregroundStyle(.orange)
+                }
+            }
+            if value > total * 0.9 {
+                Text("⚠️ Over-allocating leaves almost nothing for macOS and other apps. System will swap to disk, causing severe slowdowns.")
+                    .font(.caption2).foregroundStyle(.red)
+                    .padding(.top, 2)
+            }
         }
     }
 

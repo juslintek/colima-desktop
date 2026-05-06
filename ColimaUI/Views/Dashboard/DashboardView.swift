@@ -11,25 +11,28 @@ struct DashboardView: View {
     // Template editor state
     @State private var templateExpanded = false
     @State private var templateContent = """
-    # Default Colima configuration template
-    cpu: 4
-    memory: 8
-    disk: 100
-    runtime: docker
-    vmType: vz
-    rosetta: true
-    mountType: virtiofs
-    mounts:
-      - location: ~
-        writable: true
-      - location: /tmp/colima
-        writable: true
-    network:
-      address: true
-      dns:
-        - 1.1.1.1
-        - 8.8.8.8
-    """
+# Default Colima configuration template
+cpu: 4
+memory: 8
+disk: 100
+runtime: docker
+vmType: vz
+rosetta: true
+mountType: virtiofs
+mounts:
+  - location: ~
+    writable: true
+  - location: /tmp/colima
+    writable: true
+network:
+  address: true
+  dns:
+    - 1.1.1.1
+    - 8.8.8.8
+kubernetes:
+  enabled: false
+  version: ""
+"""
 
     // Prune state
     @State private var pruneRunning = false
