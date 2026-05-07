@@ -78,6 +78,10 @@ struct ConfigurationView: View {
     @State private var envVars: [(key: String, value: String)] = [
         ("DOCKER_BUILDKIT", "1")
     ]
+    @State private var showAddEnv = false
+    @State private var newEnvKey = ""
+    @State private var newEnvValue = ""
+    @State private var newEnvBulk = ""
 
     private let hostCPUs: Double = 12
     private let hostMemory: Double = 32
@@ -659,11 +663,13 @@ struct ConfigurationView: View {
                 }
 
                 // MARK: Environment
-                configCard(icon: "list.bullet.rectangle", title: "Environment", description: "Environment variables passed to the VM") {
+                configCard(icon: "list.bullet.rectangle", title: "Environment", description: "Environment variables passed to the VM on startup") {
                     VStack(alignment: .leading, spacing: 8) {
                         ForEach(Array(envVars.enumerated()), id: \.offset) { i, ev in
                             HStack {
-                                Text("\(ev.key)=\(ev.value)")
+                                Text(ev.key).font(.caption.monospaced().weight(.medium))
+                                Text("=").foregroundStyle(.secondary)
+                                Text(ev.value).font(.caption.monospaced())
                                 Spacer()
                                 Button(role: .destructive) {
                                     envVars.remove(at: i)
@@ -672,9 +678,12 @@ struct ConfigurationView: View {
                                 }.accessibilityIdentifier("btn_remove_env_\(i)")
                             }
                         }
-                        Button("Add Environment Variable") {
-                            envVars.append(("KEY", "value"))
-                        }.accessibilityIdentifier("btn_add_env")
+                        Button("Add Environment Variable") { showAddEnv = true }
+                            .accessibilityIdentifier("btn_add_env")
+
+                        if showAddEnv {
+                            addEnvDialog
+                        }
                     }
                 }
 
@@ -831,6 +840,91 @@ struct ConfigurationView: View {
                 Image(systemName: "checkmark").font(.caption2).foregroundStyle(.blue)
             }
         }
+    }
+
+    private var addEnvDialog: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text("Add Environment Variable").font(.caption.weight(.semibold))
+                    Spacer()
+                    Button { showAddEnv = false } label: { Image(systemName: "xmark").font(.caption) }.buttonStyle(.borderless)
+                }
+
+                // Presets
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Common Variables").font(.caption2.weight(.medium))
+                    HStack(spacing: 6) {
+                        Menu("Docker") {
+                            Button("DOCKER_BUILDKIT=1 — Enable BuildKit builder") { addEnvPair("DOCKER_BUILDKIT", "1") }
+                            Button("DOCKER_CLI_EXPERIMENTAL=enabled — Experimental CLI features") { addEnvPair("DOCKER_CLI_EXPERIMENTAL", "enabled") }
+                            Button("DOCKER_DEFAULT_PLATFORM=linux/amd64 — Default platform") { addEnvPair("DOCKER_DEFAULT_PLATFORM", "linux/amd64") }
+                            Button("COMPOSE_DOCKER_CLI_BUILD=1 — Compose uses BuildKit") { addEnvPair("COMPOSE_DOCKER_CLI_BUILD", "1") }
+                        }.font(.caption2)
+                        Menu("Colima") {
+                            Button("COLIMA_LOG_LEVEL=debug — Verbose logging") { addEnvPair("COLIMA_LOG_LEVEL", "debug") }
+                            Button("COLIMA_HOME=~/.colima — Config directory") { addEnvPair("COLIMA_HOME", "~/.colima") }
+                        }.font(.caption2)
+                        Menu("System") {
+                            Button("HTTP_PROXY — HTTP proxy for containers") { newEnvKey = "HTTP_PROXY"; newEnvValue = "http://proxy:8080" }
+                            Button("HTTPS_PROXY — HTTPS proxy") { newEnvKey = "HTTPS_PROXY"; newEnvValue = "http://proxy:8080" }
+                            Button("NO_PROXY — Bypass proxy for these hosts") { newEnvKey = "NO_PROXY"; newEnvValue = "localhost,127.0.0.1" }
+                            Button("TZ — Timezone") { newEnvKey = "TZ"; newEnvValue = "Europe/Vilnius" }
+                        }.font(.caption2)
+                    }
+                }
+
+                Divider()
+
+                // Single entry
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Custom Variable").font(.caption2.weight(.medium))
+                    HStack {
+                        TextField("KEY", text: $newEnvKey)
+                            .textFieldStyle(.roundedBorder).frame(maxWidth: 150)
+                            .font(.system(.caption, design: .monospaced))
+                        Text("=").foregroundStyle(.secondary)
+                        TextField("value", text: $newEnvValue)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.system(.caption, design: .monospaced))
+                        Button("Add") {
+                            guard !newEnvKey.isEmpty else { return }
+                            addEnvPair(newEnvKey, newEnvValue)
+                            newEnvKey = ""; newEnvValue = ""
+                        }
+                        .font(.caption2).disabled(newEnvKey.isEmpty)
+                    }
+                }
+
+                Divider()
+
+                // Bulk entry
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Bulk Add (one KEY=value per line)").font(.caption2.weight(.medium))
+                    TextEditor(text: $newEnvBulk)
+                        .font(.system(.caption, design: .monospaced))
+                        .frame(height: 50)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.secondary.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                        .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.2)))
+                    Button("Add All") {
+                        for line in newEnvBulk.split(separator: "\n") {
+                            let parts = line.split(separator: "=", maxSplits: 1)
+                            if parts.count == 2 {
+                                envVars.append((String(parts[0]), String(parts[1])))
+                            }
+                        }
+                        newEnvBulk = ""
+                        showAddEnv = false
+                    }.font(.caption2).disabled(newEnvBulk.isEmpty)
+                }
+            }
+        }
+    }
+
+    private func addEnvPair(_ key: String, _ value: String) {
+        envVars.append((key, value))
     }
 
     private func provisionModeCard(index: Int, mode: String, icon: String, desc: String) -> some View {
