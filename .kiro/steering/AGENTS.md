@@ -68,3 +68,21 @@ tart stop test-vm && tart delete test-vm
 - Build must compile with 0 errors before any commit
 - Commit messages: conventional commits format
 - All views must have accessibilityIdentifier for testing
+
+## HARD RULES — DO NOT VIOLATE
+
+### Tart VM Management
+- **NEVER delete a cloned Tart VM image** — only `tart stop` then `tart run` to restart
+- **NEVER re-clone** unless the VM is corrupted — use `tart stop` + `tart run` to restart existing
+- **NEVER re-pull** the OCI base image — it's already cached locally
+
+### Long-Running Processes
+- **NEVER run long processes in foreground** — they block the chat session
+- **ALWAYS background** with `&` and track via PID/log file:
+  ```bash
+  command > /tmp/task.log 2>&1 &
+  echo $! > /tmp/task.pid
+  ```
+- **ALWAYS return immediately** after launching — check status separately
+- This applies to: `tart run`, `tart clone`, `xcodebuild test`, any download, any build >30s
+- Use subagents for tasks that need monitoring loops
