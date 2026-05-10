@@ -3,7 +3,7 @@ import SwiftUI
 enum NavigationItem: String, CaseIterable, Identifiable {
     case dashboard, containers, images, volumes, networks
     case configuration, profiles, kubernetes, ai, monitoring
-    case runtimeControls, community
+    case machines, runtimeControls, community
 
     var id: String { rawValue }
 
@@ -19,6 +19,7 @@ enum NavigationItem: String, CaseIterable, Identifiable {
         case .kubernetes: return "Kubernetes"
         case .ai: return "AI Workloads"
         case .monitoring: return "Monitoring"
+        case .machines: return "Machines"
         case .runtimeControls: return "Runtime Controls"
         case .community: return "Community"
         }
@@ -36,6 +37,7 @@ enum NavigationItem: String, CaseIterable, Identifiable {
         case .kubernetes: return "helm"
         case .ai: return "brain"
         case .monitoring: return "chart.bar"
+        case .machines: return "desktopcomputer"
         case .runtimeControls: return "gearshape.2"
         case .community: return "bubble.left.and.bubble.right"
         }
@@ -44,6 +46,7 @@ enum NavigationItem: String, CaseIterable, Identifiable {
     var accessibilityId: String {
         switch self {
         case .runtimeControls: return "tab_runtimecontrols"
+        case .machines: return "tab_machines"
         default: return "tab_\(rawValue)"
         }
     }

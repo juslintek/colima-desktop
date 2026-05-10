@@ -6,7 +6,7 @@ struct ContentView: View {
 
     private var needsDetailColumn: Bool {
         switch appState.selectedTab {
-        case .containers, .images, .volumes, .networks, .kubernetes: return true
+        case .containers, .images, .volumes, .networks, .kubernetes, .machines: return true
         default: return false
         }
     }
@@ -81,6 +81,7 @@ struct ContentView: View {
         case .profiles: ProfilesView()
         case .kubernetes: KubernetesView()
         case .ai: AIWorkloadsView()
+        case .machines: MachinesView()
         case .monitoring: MonitoringView()
         case .runtimeControls: RuntimeControlsView()
         case .community: CommunityView()
@@ -130,6 +131,8 @@ struct ContentView: View {
             } else {
                 noSelection
             }
+        case .machines:
+            noSelection
         default:
             noSelection
         }

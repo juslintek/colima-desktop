@@ -16,6 +16,9 @@ struct SidebarView: View {
                 Section("Kubernetes") {
                     sidebarItem(.kubernetes)
                 }
+                Section("Linux") {
+                    sidebarItem(.machines)
+                }
                 Section("Colima") {
                     sidebarItem(.profiles)
                     sidebarItem(.configuration)
