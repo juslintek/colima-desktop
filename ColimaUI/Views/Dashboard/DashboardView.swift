@@ -111,6 +111,10 @@ kubernetes:
 
                 Divider()
 
+                ResourceAdvisor()
+
+                Divider()
+
                 // Actions
                 HStack(spacing: 8) {
                     Button("SSH") { appState.sshVM() }

@@ -132,7 +132,11 @@ struct ContentView: View {
                 noSelection
             }
         case .machines:
-            noSelection
+            if let id = appState.selectedMachine, let vm = mockVMs.first(where: { $0.id == id }) {
+                MachineDetailView(vm: vm)
+            } else {
+                noSelection
+            }
         default:
             noSelection
         }

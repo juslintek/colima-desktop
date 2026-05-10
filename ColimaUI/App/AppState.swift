@@ -30,6 +30,7 @@ class AppState: ObservableObject {
     @Published var selectedK8sService: String?
     @Published var selectedK8sDeployment: String?
     @Published var selectedK8sNode: String?
+    @Published var selectedMachine: String?
 
     // MARK: - Sheet State
 

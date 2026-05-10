@@ -23,7 +23,7 @@ struct MockVM: Identifiable {
     }
 }
 
-private let mockVMs: [MockVM] = [
+let mockVMs: [MockVM] = [
     MockVM(id: "1", name: "dev-ubuntu", os: .linux, status: "running", cpus: 4, memory: 8, disk: 50, arch: "aarch64"),
     MockVM(id: "2", name: "build-fedora", os: .linux, status: "stopped", cpus: 2, memory: 4, disk: 30, arch: "aarch64"),
     MockVM(id: "3", name: "macos-ci", os: .macos, status: "running", cpus: 4, memory: 16, disk: 80, arch: "aarch64"),
@@ -34,7 +34,6 @@ private let mockVMs: [MockVM] = [
 
 struct MachinesView: View {
     @EnvironmentObject var appState: AppState
-    @State private var selectedVM: String?
     @State private var showCreateSheet = false
     @State private var searchText = ""
 
@@ -58,7 +57,7 @@ struct MachinesView: View {
             .padding(8)
 
             // VM List
-            List(selection: $selectedVM) {
+            List(selection: $appState.selectedMachine) {
                 ForEach(filtered) { vm in
                     vmRow(vm)
                         .tag(vm.id)
