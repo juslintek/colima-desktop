@@ -52,8 +52,10 @@ final class ColimaLifecycleUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["btn_sshconfig_vm_dashboard"].waitForExistence(timeout: 3))
     }
 
-    func testUpdateButtonExists() {
-        XCTAssertTrue(app.descendants(matching: .any)["btn_update_vm_dashboard"].waitForExistence(timeout: 3))
+    func testUpdateButtonExistsAndEnabled() {
+        let btn = app.descendants(matching: .any)["btn_update_vm_dashboard"]
+        XCTAssertTrue(btn.waitForExistence(timeout: 3))
+        XCTAssertTrue(btn.isEnabled)
     }
 
     func testPruneButtonExists() {
@@ -80,6 +82,16 @@ final class ColimaLifecycleUITests: XCTestCase {
     func testQuickStatsShowCounts() {
         // Stat cards removed in redesign — verify version text exists instead
         XCTAssertTrue(app.descendants(matching: .any)["text_version_dashboard"].waitForExistence(timeout: 3))
+    }
+
+    // MARK: - Terminal Panel
+
+    func testTerminalPanelExists() {
+        XCTAssertTrue(app.descendants(matching: .any)["panel_dashboard_terminal"].waitForExistence(timeout: 5))
+    }
+
+    func testTerminalFieldExists() {
+        XCTAssertTrue(app.descendants(matching: .any)["field_dashboard_terminal"].waitForExistence(timeout: 5))
     }
 
     // MARK: - VM Status

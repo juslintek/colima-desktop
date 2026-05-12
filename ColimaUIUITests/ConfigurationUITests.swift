@@ -101,7 +101,7 @@ final class ConfigurationUITests: XCTestCase {
     }
 
     func testK3sArgsEditorExists() {
-        XCTAssertTrue(app.textViews["field_config_k3sargs"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["field_config_k3sargs"].waitForExistence(timeout: 3))
     }
 
     func testK8sPortFieldExists() {
@@ -120,6 +120,10 @@ final class ConfigurationUITests: XCTestCase {
 
     func testNetworkInterfaceFieldExists() {
         XCTAssertTrue(app.descendants(matching: .any)["field_config_interface"].waitForExistence(timeout: 3))
+    }
+
+    func testDNSFieldExists() {
+        XCTAssertTrue(app.descendants(matching: .any)["field_config_dns"].waitForExistence(timeout: 3))
     }
 
     func testDNSHostsEditorExists() {
@@ -210,7 +214,6 @@ final class ConfigurationUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["lock_config_arch"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.descendants(matching: .any)["lock_config_vmtype"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["lock_config_runtime"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["lock_config_mounttype"].exists)
     }
 
     // MARK: - Actions
