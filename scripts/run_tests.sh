@@ -35,11 +35,11 @@ echo "=== Granting TCC permissions ==="
 sqlite3 ~/Library/Application\ Support/com.apple.TCC/TCC.db \
   "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, csreq, policy_id, indirect_object_identifier_type, indirect_object_identifier, indirect_object_code_identity, flags, last_modified, pid, pid_version, boot_uuid, last_reminded) VALUES ('kTCCServiceAccessibility', 'com.apple.dt.Xcode', 0, 2, 0, 1, NULL, NULL, 0, 'UNUSED', NULL, 0, $(date +%s), NULL, NULL, 'UNUSED', 0);"
 sqlite3 ~/Library/Application\ Support/com.apple.TCC/TCC.db \
-  "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, csreq, policy_id, indirect_object_identifier_type, indirect_object_identifier, indirect_object_code_identity, flags, last_modified, pid, pid_version, boot_uuid, last_reminded) VALUES ('kTCCServiceAccessibility', 'com.colima.ColimaUI', 0, 2, 0, 1, NULL, NULL, 0, 'UNUSED', NULL, 0, $(date +%s), NULL, NULL, 'UNUSED', 0);"
+  "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, csreq, policy_id, indirect_object_identifier_type, indirect_object_identifier, indirect_object_code_identity, flags, last_modified, pid, pid_version, boot_uuid, last_reminded) VALUES ('kTCCServiceAccessibility', 'com.colima.desktop', 0, 2, 0, 1, NULL, NULL, 0, 'UNUSED', NULL, 0, $(date +%s), NULL, NULL, 'UNUSED', 0);"
 
 echo "=== Running tests ==="
-xcodebuild test -scheme ColimaUI -destination 'platform=macOS' \
-  -only-testing:ColimaUIUITests \
+xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' \
+  -only-testing:ColimaDesktopUITests \
   -resultBundlePath /project/TestResults.xcresult 2>&1 | tee /project/test_output.txt
 
 PASSED=$(grep -c 'passed' /project/test_output.txt || echo 0)

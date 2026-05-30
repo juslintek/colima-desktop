@@ -1,4 +1,4 @@
-name: ColimaUI Tests
+name: Colima Desktop Tests
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 jobs:
   test:
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v4
@@ -21,26 +21,29 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
-      - name: Grant TCC permissions for UI testing
-        run: |
-          # CI runners have SIP disabled — can write to system TCC.db
-          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
-            "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, csreq, policy_id, indirect_object_identifier_type, indirect_object_identifier, indirect_object_code_identity, flags, last_modified, pid, pid_version, boot_uuid, last_reminded) VALUES ('kTCCServiceAccessibility', 'com.apple.dt.Xcode', 0, 2, 0, 1, NULL, NULL, 0, 'UNUSED', NULL, 0, $(date +%s), NULL, NULL, 'UNUSED', 0);"
-          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
-            "INSERT OR REPLACE INTO access (service, client, client_type, auth_value, auth_reason, auth_version, csreq, policy_id, indirect_object_identifier_type, indirect_object_identifier, indirect_object_code_identity, flags, last_modified, pid, pid_version, boot_uuid, last_reminded) VALUES ('kTCCServiceAccessibility', 'com.colima.ColimaUI', 0, 2, 0, 1, NULL, NULL, 0, 'UNUSED', NULL, 0, $(date +%s), NULL, NULL, 'UNUSED', 0);"
+      - name: Resolve SPM packages
+        run: xcodebuild -resolvePackageDependencies -scheme ColimaDesktop -derivedDataPath build/DerivedData
 
       - name: Build
-        run: xcodebuild build-for-testing -scheme ColimaUI -destination 'platform=macOS' -quiet
+        run: xcodebuild build-for-testing -scheme ColimaDesktop -destination 'platform=macOS' -derivedDataPath build/DerivedData -quiet
 
-      - name: Run UI Tests
+      - name: Unit Tests
         run: |
-          xcodebuild test -scheme ColimaUI -destination 'platform=macOS' \
-            -only-testing:ColimaUIUITests \
-            -resultBundlePath TestResults.xcresult
+          xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            -only-testing:ColimaDesktopUnitTests \
+            -resultBundlePath TestResults-Unit.xcresult
+
+      - name: Integration Tests
+        run: |
+          xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' \
+            -derivedDataPath build/DerivedData \
+            -only-testing:ColimaDesktopIntegrationTests \
+            -resultBundlePath TestResults-Integration.xcresult
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: TestResults.xcresult
+          path: TestResults-*.xcresult

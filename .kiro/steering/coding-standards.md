@@ -1,4 +1,4 @@
-# ColimaUI Coding Standards
+# Colima Desktop Coding Standards
 
 ## Swift
 - SwiftUI views: max 200 lines per file, extract subviews
@@ -12,7 +12,7 @@
 - Views: `ContainersView.swift`, `ContainerDetailView.swift`
 - Models: `MockData.swift`, `MockContainer`, `MockImage`
 - IDs: `tab_containers`, `btn_start_vm_dashboard`, `field_config_cpus`
-- Shared components: `ColimaUI/Views/Shared/`
+- Shared components: `Sources/Views/Shared/`
 
 ## Testing
 - XCUITest pattern: `app.descendants(matching: .any)["id"].waitForExistence(timeout: 5)`

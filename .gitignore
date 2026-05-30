@@ -5,7 +5,7 @@ DerivedData/
 *.xcworkspace/xcuserdata/
 
 # Generated
-ColimaUI.xcodeproj/
+ColimaDesktop.xcodeproj/
 
 # Vendor (cloned repos - large)
 vendor/colima/

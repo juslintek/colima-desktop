@@ -1,66 +1,71 @@
-.PHONY: all build daemon app test test-vm test-local clean
+.PHONY: all build daemon app test test-unit test-integration test-snapshots test-smoke test-vm test-local clean
 
 DAEMON_BIN = build/colima-daemon
-APP_BUNDLE = build/ColimaUI.app
+APP_BUNDLE = build/Colima\ Desktop.app
 TART_IMAGE = ghcr.io/cirruslabs/macos-sequoia-base:latest
 VM_NAME = colima-test-$(shell date +%s)
+SCHEME = ColimaDesktop
+DEST = 'platform=macOS'
+DD = -derivedDataPath build/DerivedData
 
 all: build
 
-# Build everything
 build: daemon app
 
-# Build Go daemon
 daemon:
 	cd daemon && go build -o ../$(DAEMON_BIN) ./cmd
 
-# Build Swift app
 app:
 	xcodegen generate
-	xcodebuild build -scheme ColimaUI -destination 'platform=macOS' \
-		-derivedDataPath build/DerivedData -quiet
+	xcodebuild build -scheme $(SCHEME) -destination $(DEST) $(DD) -quiet
 
-# Run tests in isolated Tart VM (no desktop interference)
-test: test-vm
+# === Fast test pyramid (no VM needed) ===
 
-test-vm:
-	@echo "=== Running tests in isolated Tart VM ==="
-	tart clone $(TART_IMAGE) $(VM_NAME)
-	tart run $(VM_NAME) --dir=.:/project "/project/scripts/run_tests.sh" || true
-	@echo "=== Cleaning up VM ==="
-	tart delete $(VM_NAME)
+test: test-unit test-integration
 
-# Run tests locally (requires Colima running + TCC permissions)
-test-local:
-	xcodegen generate
-	xcodebuild test -scheme ColimaUI -destination 'platform=macOS' \
-		-only-testing:ColimaUIUITests
-
-# Run unit tests only (no GUI needed)
 test-unit:
 	xcodegen generate
-	xcodebuild test -scheme ColimaUI -destination 'platform=macOS' \
-		-only-testing:ColimaUITests
+	xcodebuild test -scheme $(SCHEME) -destination $(DEST) $(DD) \
+		-only-testing:ColimaDesktopUnitTests -quiet
 
-# Generate proto (requires protoc + plugins)
+test-integration:
+	xcodegen generate
+	xcodebuild test -scheme $(SCHEME) -destination $(DEST) $(DD) \
+		-only-testing:ColimaDesktopIntegrationTests -quiet
+
+test-snapshots:
+	xcodegen generate
+	xcodebuild test -scheme $(SCHEME) -destination $(DEST) $(DD) \
+		-only-testing:ColimaDesktopSnapshotTests -quiet
+
+# === Slow E2E smoke tests (Tart VM only) ===
+
+test-smoke: test-vm
+
+test-vm:
+	./scripts/run_vm_tests.sh ColimaDesktopUITests
+
+test-local:
+	xcodegen generate
+	xcodebuild test -scheme $(SCHEME) -destination $(DEST) \
+		-only-testing:ColimaDesktopUITests
+
+# === Utilities ===
+
 proto:
 	protoc --go_out=daemon --go-grpc_out=daemon proto/colima_ui.proto
 
-# Clean
 clean:
-	rm -rf build/ ColimaUI.xcodeproj TestResults.xcresult
+	rm -rf build/ ColimaDesktop.xcodeproj TestResults.xcresult
 	cd daemon && go clean
 
-# Install
 install: build
 	cp -R $(APP_BUNDLE) /Applications/
 	cp $(DAEMON_BIN) /usr/local/bin/
 
-# Run app
 run: build
 	open $(APP_BUNDLE)
 
-# Pull Tart base image (one-time setup)
 setup-tart:
 	brew install cirruslabs/cli/tart
 	tart pull $(TART_IMAGE)

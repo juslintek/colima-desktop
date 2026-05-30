@@ -10,7 +10,7 @@ import (
 	"github.com/abiosoft/colima/config"
 	"github.com/abiosoft/colima/config/configmanager"
 	"github.com/abiosoft/colima/environment/vm/lima/limautil"
-	pb "github.com/colima-ui/daemon/proto"
+	pb "github.com/colima-desktop/daemon/proto"
 	"google.golang.org/grpc"
 )
 

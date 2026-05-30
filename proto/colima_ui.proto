@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package colimaui;
 
-option go_package = "github.com/colima-ui/daemon/proto";
+option go_package = "github.com/colima-desktop/daemon/proto";
 
 // ColimaService wraps the Colima CLI operations via gRPC.
 service ColimaService {

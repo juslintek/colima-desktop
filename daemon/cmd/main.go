@@ -8,11 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/colima-ui/daemon/internal/server"
+	"github.com/colima-desktop/daemon/internal/server"
 	"google.golang.org/grpc"
 )
 
-const defaultSocket = "/tmp/colima-ui.sock"
+const defaultSocket = "/tmp/colima-desktop.sock"
 
 func main() {
 	socketPath := flag.String("socket", defaultSocket, "Unix socket path")
@@ -37,7 +37,7 @@ func main() {
 		grpcServer.GracefulStop()
 	}()
 
-	log.Printf("colima-ui daemon listening on %s", *socketPath)
+	log.Printf("colima-desktop daemon listening on %s", *socketPath)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

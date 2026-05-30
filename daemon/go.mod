@@ -1,4 +1,4 @@
-module github.com/colima-ui/daemon
+module github.com/colima-desktop/daemon
 
 go 1.24.0
 

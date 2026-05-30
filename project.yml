@@ -1,55 +1,104 @@
-name: ColimaUI
+############################################################
+# To rename the app, change only these 3 values:
+############################################################
+name: ColimaDesktop  # Xcode project file name
+
 options:
   bundleIdPrefix: com.colima
   deploymentTarget:
-    macOS: "13.0"
+    macOS: "14.0"
   xcodeVersion: "15.0"
   minimumXcodeGenVersion: "2.30"
+  createIntermediateGroups: true
+
+packages:
+  ViewInspector:
+    url: https://github.com/nalexn/ViewInspector
+    from: "0.10.0"
+  SnapshotTesting:
+    url: https://github.com/pointfreeco/swift-snapshot-testing
+    from: "1.17.0"
 
 settings:
   base:
     SWIFT_VERSION: "5.9"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
 
+targetTemplates:
+  UnitTestBundle:
+    type: bundle.unit-test
+    platform: macOS
+    dependencies:
+      - target: ColimaDesktop
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Colima Desktop.app/Contents/MacOS/Colima Desktop"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+
 targets:
-  ColimaUI:
+  # ─── Main App ───────────────────────────────────────────
+  ColimaDesktop:
     type: application
     platform: macOS
     sources:
-      - ColimaUI
+      - Sources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.colima.ColimaUI
-        INFOPLIST_KEY_CFBundleDisplayName: ColimaUI
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop
+        INFOPLIST_KEY_CFBundleDisplayName: "Colima Desktop"
         INFOPLIST_KEY_LSApplicationIsAgent: NO
         GENERATE_INFOPLIST_FILE: true
-        PRODUCT_NAME: ColimaUI
+        PRODUCT_NAME: "Colima Desktop"
+        PRODUCT_MODULE_NAME: ColimaDesktop
         SWIFT_EMIT_LOC_STRINGS: true
         ENABLE_PREVIEWS: true
 
-  ColimaUITests:
-    type: bundle.unit-test
-    platform: macOS
+  # ─── Unit Tests (Swift Testing) ─────────────────────────
+  ColimaDesktopUnitTests:
+    templates:
+      - UnitTestBundle
     sources:
-      - ColimaUITests
-    dependencies:
-      - target: ColimaUI
+      - Tests/Unit
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.colima.ColimaUITests
-        GENERATE_INFOPLIST_FILE: true
-        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/ColimaUI.app/Contents/MacOS/ColimaUI"
-        BUNDLE_LOADER: "$(TEST_HOST)"
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop.unit-tests
 
-  ColimaUIUITests:
+  # ─── Integration Tests (ViewInspector) ──────────────────
+  ColimaDesktopIntegrationTests:
+    templates:
+      - UnitTestBundle
+    sources:
+      - Tests/Integration
+    dependencies:
+      - package: ViewInspector
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop.integration-tests
+
+  # ─── Snapshot Tests ─────────────────────────────────────
+  ColimaDesktopSnapshotTests:
+    templates:
+      - UnitTestBundle
+    sources:
+      - Tests/Snapshot
+    dependencies:
+      - package: SnapshotTesting
+        product: SnapshotTesting
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop.snapshot-tests
+
+  # ─── UI Tests (XCUITest — run in VM only) ───────────────
+  ColimaDesktopUITests:
     type: bundle.ui-testing
     platform: macOS
     sources:
-      - ColimaUIUITests
+      - Tests/UI
     dependencies:
-      - target: ColimaUI
+      - target: ColimaDesktop
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.colima.ColimaUIUITests
+        PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop.ui-tests
         GENERATE_INFOPLIST_FILE: true
-        TEST_TARGET_NAME: ColimaUI
+        TEST_TARGET_NAME: ColimaDesktop
