@@ -36,60 +36,49 @@ All Docker operations work against live socket at `~/.colima/default/docker.sock
 ### 6. Colima Skill (Complete)
 - `~/.kiro/skills/colima/SKILL.md` — 371 lines, verified against source code
 
+### 7. Configuration View (Complete)
+- Reads/writes `~/.colima/<profile>/colima.yaml` directly (NEVER uses `colima template`)
+- `ColimaConfig` struct with full YAML parsing/serialization
+- Loads real config on `.onAppear`, populates all `@State` vars
+- Save writes YAML + restarts VM to apply changes
+- Reset to defaults supported
+
+### 8. Runtime Controls (Complete)
+- Command palette executes real commands via `Process()`
+- Quick commands (docker, nerdctl, incus) run against live system
+- Command history preserved
+
+### 9. Monitoring View (Complete)
+- Container stats loaded from real Docker API (`/containers/{id}/stats`)
+- CPU/memory sparklines populated from live data
+- Process tree shows real container resource usage
+
+### 10. Sheet Views (Complete)
+- StatsSheetView: real stats + top from Docker API
+- ChangesSheetView: real container filesystem changes
+- HistorySheetView: real image layer history
+- SearchSheetView: real Docker Hub search
+- CommandRunnerView: real command execution
+- MockLogsView/MockTerminalView: real execution
+
+### 11. Kubernetes View (Complete)
+- Loads pods/services/deployments/nodes/events via `kubectl get -o json`
+- Detail views load individual resources
+- Only active when k8s is enabled
+
 ---
 
 ## What's LEFT TO DO ❌
 
-### Priority 1: Configuration View (Critical)
-**File:** `Sources/Views/Configuration/ConfigurationView.swift` (65KB, 700+ lines)
+### Priority 1: Configuration View — ✅ DONE
 
-**Problem:** All settings are local `@State` with hardcoded defaults. Never reads from `~/.colima/default/colima.yaml`. Save/Load/Reset buttons call stub methods in AppState.
+### Priority 2: Runtime Controls — ✅ DONE
 
-**Fix needed:**
-1. Add `readConfig(profile:)` and `writeConfig(profile:, config:)` to ServiceProvider/DaemonClient
-   - Read: `cat ~/.colima/<profile>/colima.yaml` → parse YAML → return struct
-   - Write: serialize struct → write to `~/.colima/<profile>/colima.yaml`
-   - **NEVER use `colima template` or `colima start --edit`** — they open editors
-2. Add `@Published var colimaConfig: ColimaConfig?` to AppState
-3. ConfigurationView `.onAppear` loads real config, populates all `@State` vars
-4. "Save Configuration" writes back to YAML, then `colima stop && colima start` to apply
-5. "Reset to Defaults" reads the template file and applies it
-6. Mark immutable fields as disabled when VM exists (arch, runtime, vmType, mountType)
+### Priority 3: Monitoring View — ✅ DONE
 
-### Priority 2: Runtime Controls (Medium)
-**File:** `Sources/Views/RuntimeControls/RuntimeControlsView.swift`
+### Priority 4: Sheet Views — ✅ DONE
 
-**Problem:** Command output is faked via `MockDetailData.commandOutput(tool:args:)`
-
-**Fix:** Execute real commands via `Process()` and capture output. Add `executeCommand(tool:args:)` to ServiceProvider that runs the command and returns stdout.
-
-### Priority 3: Monitoring View (Medium)
-**File:** `Sources/Views/Monitoring/MonitoringView.swift`
-
-**Problem:** Stats come from `MockDetailData.containerStats(name:)` — hardcoded values.
-
-**Fix:** Use `services.containerStats(id:)` which already works via Docker API. The view needs to call AppState methods that return real data.
-
-### Priority 4: Sheet Views (Medium)
-**Files:** `Sources/Views/Components/` — StatsSheetView, ChangesSheetView, HistorySheetView, SearchSheetView
-
-**Problem:** All use `MockDetailData.*` for their content.
-
-**Fix:** These sheets are opened by AppState methods that already fetch real data (inspectContainer, containerLogs, etc.) and set `sheetContent`. The sheet views just need to use `appState.sheetContent` instead of calling MockDetailData directly. Some (Stats, History) need AppState methods that fetch and set the data.
-
-### Priority 5: Kubernetes View (Low — requires k8s enabled)
-**File:** `Sources/Views/Kubernetes/KubernetesView.swift`
-
-**Problem:** All pods, services, deployments, nodes, events from `MockK8sData`.
-
-**Fix:** Add kubectl integration to ServiceProvider:
-- `kubectl get pods -o json`
-- `kubectl get services -o json`
-- `kubectl get deployments -o json`
-- `kubectl get nodes -o json`
-- `kubectl get events -o json`
-
-Parse JSON and populate AppState. Only works when `kubernetes.enabled = true`.
+### Priority 5: Kubernetes View — ✅ DONE
 
 ### Priority 6: AI Workloads View (Low — requires krunkit)
 **File:** `Sources/Views/AI/AIWorkloadsView.swift`
