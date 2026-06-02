@@ -433,7 +433,7 @@ struct ContainerRowView: View {
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("btn_remove_container_\(container.name)")
             }
-            .opacity(isHovered ? 1 : 0)
+            .opacity(isHovered || appState.isUITesting ? 1 : 0)
         }
         .padding(.vertical, 2)
         .contentShape(Rectangle())

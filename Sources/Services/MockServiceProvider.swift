@@ -18,7 +18,17 @@ class MockServiceProvider: ServiceProvider {
     func restartVM(profile: String) async throws { vmRunning = true }
     func deleteVM(profile: String, data: Bool) async throws { vmRunning = false }
     func vmStatus(profile: String) async throws -> VMStatusInfo {
-        VMStatusInfo(running: vmRunning, profile: profile, version: "0.10.1")
+        VMStatusInfo(
+            running: vmRunning,
+            profile: profile,
+            arch: "aarch64",
+            runtime: "docker",
+            mountType: "virtiofs",
+            cpu: 4,
+            memory: 8 * 1024 * 1024 * 1024,
+            disk: 100 * 1024 * 1024 * 1024,
+            version: "0.10.1"
+        )
     }
     func vmVersion() async throws -> String { "0.10.1" }
     func updateVM() async throws {}
@@ -166,7 +176,14 @@ class MockServiceProvider: ServiceProvider {
     // MARK: - Configuration
 
     func readConfig(profile: String) async throws -> ColimaConfig {
-        ColimaConfig()
+        var config = ColimaConfig()
+        config.mounts = [
+            ColimaConfig.Mount(location: "~", writable: true),
+            ColimaConfig.Mount(location: "/tmp/colima", writable: true)
+        ]
+        config.provision = [ColimaConfig.Provision(mode: "system", script: "apt-get update")]
+        config.env = ["DOCKER_BUILDKIT": "1"]
+        return config
     }
 
     func writeConfig(profile: String, config: ColimaConfig) async throws {}

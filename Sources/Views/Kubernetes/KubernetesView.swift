@@ -25,6 +25,7 @@ struct KubernetesView: View {
         VStack(spacing: 0) {
             // Top bar: cluster status + controls + namespace + search
             k8sToolbar
+            k8sQuickActions
             Divider()
             // Tab picker
             tabPicker.padding(.horizontal).padding(.top, 8)
@@ -76,7 +77,7 @@ struct KubernetesView: View {
             Spacer()
 
             // Actions
-            Button { appState.showToast("Resources refreshed") } label: {
+            Button { loadK8sResources(); appState.showToast("Resources refreshed") } label: {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(.borderless)
@@ -89,12 +90,42 @@ struct KubernetesView: View {
                 Button("Stop") { appState.disableKubernetes() }
                     .accessibilityIdentifier("btn_stop_kubernetes_cluster")
                     .disabled(!appState.k8sRunning)
+                Button("Reset") {
+                    appState.requestConfirmation("Reset the Kubernetes cluster? This tears down and recreates it.") {
+                        appState.resetKubernetes()
+                    }
+                }
+                .accessibilityIdentifier("btn_reset_kubernetes_cluster")
             }
             .font(.caption)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(.bar)
+    }
+
+    // MARK: - Quick Actions
+
+    private var k8sQuickActions: some View {
+        HStack(spacing: 6) {
+            Button("Get Pods") { runKubectl("get pods -A") }
+                .accessibilityIdentifier("btn_getpods_kubernetes_all")
+            Button("Get Services") { runKubectl("get services -A") }
+                .accessibilityIdentifier("btn_getservices_kubernetes_all")
+            Button("Get All") { runKubectl("get all -A") }
+                .accessibilityIdentifier("btn_getall_kubernetes_all")
+            Button("Cluster Info") { runKubectl("cluster-info") }
+                .accessibilityIdentifier("btn_clusterinfo_kubernetes_all")
+            Spacer()
+        }
+        .font(.caption)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 4)
+    }
+
+    private func runKubectl(_ command: String) {
+        appState.sheetTool = "kubectl"
+        appState.activeSheet = .commandRunner
     }
 
     private var tabPicker: some View {

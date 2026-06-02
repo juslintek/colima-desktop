@@ -869,6 +869,10 @@ struct ConfigurationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(vmType == type ? Color.accentColor : Color.clear, lineWidth: 1))
         .onTapGesture { vmType = type }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("card_vmtype_\(type)")
+        .accessibilityValue(vmType == type ? "selected" : "unselected")
+        .accessibilityAddTraits(.isButton)
     }
 
     private func cpuTypeCard(type: String, icon: String, desc: String) -> some View {
@@ -883,6 +887,10 @@ struct ConfigurationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(cpuType == type ? Color.accentColor : Color.clear, lineWidth: 1))
         .onTapGesture { cpuType = type }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("card_cputype_\(type)")
+        .accessibilityValue(cpuType == type ? "selected" : "unselected")
+        .accessibilityAddTraits(.isButton)
     }
 
     private func mountTypeCard(type: String, icon: String, speed: String, pros: String, cons: String, recommended: Bool) -> some View {
@@ -905,6 +913,10 @@ struct ConfigurationView: View {
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(mountType == type ? Color.accentColor : Color.clear, lineWidth: 1))
         .onTapGesture { mountType = type }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("card_mounttype_\(type)")
+        .accessibilityValue(mountType == type ? "selected" : "unselected")
+        .accessibilityAddTraits(.isButton)
     }
 
     @ViewBuilder

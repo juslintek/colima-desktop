@@ -13,6 +13,8 @@ class AppState: ObservableObject {
     @Published var confirmationMessage: String = ""
     @Published var colimaVersion: String = "0.10.1"
 
+    let isUITesting = CommandLine.arguments.contains("--ui-testing")
+
     // VM Resources (populated from colima status --json)
     @Published var vmCPU: Int = 0
     @Published var vmMemory: Int64 = 0
