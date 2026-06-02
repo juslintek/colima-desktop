@@ -79,30 +79,46 @@ final class KubernetesLifecycleUITests: XCTestCase {
 
     // MARK: - Resource Tabs
 
+    /// Segmented Picker segments are exposed differently across macOS versions;
+    /// try segmentedControl buttons, then radio buttons, then plain buttons.
+    private func tapResourceTab(_ label: String) {
+        let seg = app.segmentedControls.firstMatch
+        let candidates: [XCUIElement] = [
+            seg.buttons[label], seg.radioButtons[label],
+            app.radioButtons[label], app.buttons[label]
+        ]
+        for c in candidates where c.exists {
+            c.click()
+            return
+        }
+        // Last resort: tap by coordinate within the segmented control
+        seg.buttons[label].click()
+    }
+
     func testSwitchToServicesTab() {
-        app.buttons["Services"].click()
+        tapResourceTab("Services")
         XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_services"].waitForExistence(timeout: 5))
     }
 
     func testSwitchToDeploymentsTab() {
-        app.buttons["Deployments"].click()
+        tapResourceTab("Deployments")
         XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_deployments"].waitForExistence(timeout: 5))
     }
 
     func testSwitchToNodesTab() {
-        app.buttons["Nodes"].click()
+        tapResourceTab("Nodes")
         XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_nodes"].waitForExistence(timeout: 5))
     }
 
     func testSwitchToEventsTab() {
-        app.buttons["Events"].click()
+        tapResourceTab("Events")
         XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_events"].waitForExistence(timeout: 5))
     }
 
     func testSwitchBackToPodsTab() {
-        app.buttons["Services"].click()
+        tapResourceTab("Services")
         XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_services"].waitForExistence(timeout: 5))
-        app.buttons["Pods"].click()
+        tapResourceTab("Pods")
         XCTAssertTrue(app.descendants(matching: .any)["tab_k8s_pods"].waitForExistence(timeout: 5))
     }
 

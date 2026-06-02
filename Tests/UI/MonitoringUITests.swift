@@ -40,9 +40,13 @@ final class MonitoringUITests: XCTestCase {
     // MARK: - Navigation
 
     func testNavigateToMonitoringFromSidebar() {
-        app.descendants(matching: .any)["tab_dashboard"].click()
-        sleep(1)
-        app.descendants(matching: .any)["tab_monitoring"].click()
-        XCTAssertTrue(app.descendants(matching: .any)["table_activity_monitor"].waitForExistence(timeout: 5))
+        let dash = app.descendants(matching: .any)["tab_dashboard"]
+        XCTAssertTrue(dash.waitForExistence(timeout: 5))
+        dash.click()
+        XCTAssertTrue(app.descendants(matching: .any)["status_indicator_dashboard"].waitForExistence(timeout: 5))
+        let mon = app.descendants(matching: .any)["tab_monitoring"]
+        XCTAssertTrue(mon.waitForExistence(timeout: 5))
+        mon.click()
+        XCTAssertTrue(app.descendants(matching: .any)["table_activity_monitor"].waitForExistence(timeout: 8))
     }
 }

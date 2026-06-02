@@ -91,7 +91,13 @@ final class ColimaLifecycleUITests: XCTestCase {
     }
 
     func testTerminalFieldExists() {
-        XCTAssertTrue(app.descendants(matching: .any)["field_dashboard_terminal"].waitForExistence(timeout: 5))
+        let field = app.descendants(matching: .any)["field_dashboard_terminal"]
+        if !field.waitForExistence(timeout: 3) {
+            // Terminal is at the bottom of the dashboard ScrollView — scroll it into view
+            let scroll = app.scrollViews.firstMatch
+            if scroll.exists { scroll.scroll(byDeltaX: 0, deltaY: -800) }
+        }
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
     }
 
     // MARK: - VM Status

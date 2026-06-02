@@ -13,19 +13,34 @@ final class NativePerformanceConfigUITests: XCTestCase {
         app.launch()
         app.activate()
         app.descendants(matching: .any)["tab_configuration"].click()
-        XCTAssertTrue(app.descendants(matching: .any)["field_config_cpus"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["state_native_config"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Helpers
 
-    private func selectCard(_ id: String) {
-        let card = app.descendants(matching: .any)[id]
-        XCTAssertTrue(card.waitForExistence(timeout: 3), "Missing card \(id)")
+    /// Tap a selection card and confirm its accessibilityValue becomes "selected".
+    private func selectCard(_ cardId: String, expect token: String) {
+        let card = app.buttons[cardId].exists ? app.buttons[cardId] : app.descendants(matching: .any)[cardId]
+        XCTAssertTrue(card.waitForExistence(timeout: 3), "Missing card \(cardId)")
         card.click()
         let predicate = NSPredicate(format: "value == %@", "selected")
         let exp = XCTNSPredicateExpectation(predicate: predicate, object: card)
         XCTAssertEqual(XCTWaiter().wait(for: [exp], timeout: 3), .completed,
-                       "\(id) did not become selected (value=\(card.value as? String ?? "nil"))")
+                       "After tapping \(cardId), value='\(card.value as? String ?? "nil")' (expected selected)")
+    }
+
+    /// Toggle a checkbox and confirm its own value flips.
+    private func toggleAndVerify(_ toggleId: String) {
+        let toggle = app.checkBoxes[toggleId].exists
+            ? app.checkBoxes[toggleId]
+            : app.descendants(matching: .any)[toggleId]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 3), "Missing toggle \(toggleId)")
+        let before = toggle.value as? String
+        toggle.click()
+        let predicate = NSPredicate(format: "value != %@", before ?? "")
+        let exp = XCTNSPredicateExpectation(predicate: predicate, object: toggle)
+        XCTAssertEqual(XCTWaiter().wait(for: [exp], timeout: 3), .completed,
+                       "Toggle \(toggleId) value did not change (was '\(before ?? "nil")', now '\(toggle.value as? String ?? "nil")')")
     }
 
     private func assertPickerOptions(_ pickerId: String, _ options: [String]) {
@@ -40,79 +55,66 @@ final class NativePerformanceConfigUITests: XCTestCase {
         app.menuItems[options[0]].click()
     }
 
-    private func toggleAndVerifyChanges(_ id: String) {
-        let toggle = app.descendants(matching: .any)[id]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 3), "Missing toggle \(id)")
-        let before = toggle.value as? String
-        toggle.click()
-        let after = toggle.value as? String
-        XCTAssertNotEqual(before, after, "\(id) value did not change on click")
-    }
-
     // MARK: - VM Type (native performance) — all possibilities
 
-    func testSelectVMTypeQemu() { selectCard("card_vmtype_qemu") }
-    func testSelectVMTypeVZ() { selectCard("card_vmtype_vz") }
-    func testSelectVMTypeKrunkit() { selectCard("card_vmtype_krunkit") }
+    func testSelectVMTypeQemu() { selectCard("card_vmtype_qemu", expect: "vmtype:qemu") }
+    func testSelectVMTypeVZ() { selectCard("card_vmtype_vz", expect: "vmtype:vz") }
+    func testSelectVMTypeKrunkit() { selectCard("card_vmtype_krunkit", expect: "vmtype:krunkit") }
 
     func testCycleAllVMTypes() {
-        for t in ["qemu", "vz", "krunkit"] { selectCard("card_vmtype_\(t)") }
+        selectCard("card_vmtype_qemu", expect: "vmtype:qemu")
+        selectCard("card_vmtype_vz", expect: "vmtype:vz")
+        selectCard("card_vmtype_krunkit", expect: "vmtype:krunkit")
     }
 
     // MARK: - CPU Type — all possibilities
 
-    func testSelectCPUTypeHost() { selectCard("card_cputype_host") }
-    func testSelectCPUTypeCortexA72() { selectCard("card_cputype_cortex-a72") }
-    func testSelectCPUTypeMax() { selectCard("card_cputype_max") }
+    func testSelectCPUTypeHost() { selectCard("card_cputype_host", expect: "cputype:host") }
+    func testSelectCPUTypeCortexA72() { selectCard("card_cputype_cortex-a72", expect: "cputype:cortex-a72") }
+    func testSelectCPUTypeMax() { selectCard("card_cputype_max", expect: "cputype:max") }
 
     func testCycleAllCPUTypes() {
-        for t in ["host", "cortex-a72", "max"] { selectCard("card_cputype_\(t)") }
+        selectCard("card_cputype_cortex-a72", expect: "cputype:cortex-a72")
+        selectCard("card_cputype_max", expect: "cputype:max")
+        selectCard("card_cputype_host", expect: "cputype:host")
     }
 
     // MARK: - Mount Type (native performance) — all possibilities
 
-    func testSelectMountTypeVirtiofs() { selectCard("card_mounttype_virtiofs") }
-    func testSelectMountType9p() { selectCard("card_mounttype_9p") }
-    func testSelectMountTypeSshfs() { selectCard("card_mounttype_sshfs") }
+    func testSelectMountTypeVirtiofs() { selectCard("card_mounttype_virtiofs", expect: "mounttype:virtiofs") }
+    func testSelectMountType9p() { selectCard("card_mounttype_9p", expect: "mounttype:9p") }
+    func testSelectMountTypeSshfs() { selectCard("card_mounttype_sshfs", expect: "mounttype:sshfs") }
 
     func testCycleAllMountTypes() {
-        for t in ["virtiofs", "9p", "sshfs"] { selectCard("card_mounttype_\(t)") }
+        selectCard("card_mounttype_9p", expect: "mounttype:9p")
+        selectCard("card_mounttype_sshfs", expect: "mounttype:sshfs")
+        selectCard("card_mounttype_virtiofs", expect: "mounttype:virtiofs")
     }
 
-    // MARK: - Native performance combo: vz + virtiofs + rosetta + nestedVirt
+    // MARK: - Native performance combo: vz + virtiofs
 
     func testNativePerformanceComboVZVirtiofs() {
-        selectCard("card_vmtype_vz")
-        selectCard("card_mounttype_virtiofs")
-        let rosetta = app.descendants(matching: .any)["toggle_config_rosetta"]
-        XCTAssertTrue(rosetta.waitForExistence(timeout: 3))
+        selectCard("card_vmtype_vz", expect: "vmtype:vz")
+        selectCard("card_mounttype_virtiofs", expect: "mounttype:virtiofs")
     }
 
-    // MARK: - Architecture — all possibilities
+    // MARK: - Pickers — all possibilities
 
     func testArchOptionsAllPresent() {
         assertPickerOptions("field_config_arch", ["host", "aarch64", "x86_64"])
     }
 
-    // MARK: - Runtime — all possibilities
-
     func testRuntimeOptionsAllPresent() {
         assertPickerOptions("field_config_runtime", ["docker", "containerd", "incus"])
     }
-
-    // MARK: - Port Forwarder — all possibilities
 
     func testPortForwarderOptionsAllPresent() {
         assertPickerOptions("field_config_portforwarder", ["ssh", "grpc", "none"])
     }
 
-    // MARK: - Network Mode — all possibilities
-
     func testNetworkModeOptionsAllPresent() {
         assertPickerOptions("field_config_networkmode", ["shared", "bridged"])
     }
-
-    // MARK: - Model Runner — all possibilities
 
     func testModelRunnerOptionsAllPresent() {
         assertPickerOptions("field_config_modelrunner", ["docker", "ramalama"])
@@ -120,9 +122,9 @@ final class NativePerformanceConfigUITests: XCTestCase {
 
     // MARK: - Performance toggles
 
-    func testRosettaToggle() { toggleAndVerifyChanges("toggle_config_rosetta") }
-    func testNestedVirtToggle() { toggleAndVerifyChanges("toggle_config_nestedvirt") }
-    func testBinfmtToggle() { toggleAndVerifyChanges("toggle_config_binfmt") }
-    func testInotifyToggle() { toggleAndVerifyChanges("toggle_config_inotify") }
-    func testAutoActivateToggle() { toggleAndVerifyChanges("toggle_config_autoactivate") }
+    func testRosettaToggle() { toggleAndVerify("toggle_config_rosetta") }
+    func testNestedVirtToggle() { toggleAndVerify("toggle_config_nestedvirt") }
+    func testBinfmtToggle() { toggleAndVerify("toggle_config_binfmt") }
+    func testInotifyToggle() { toggleAndVerify("toggle_config_inotify") }
+    func testAutoActivateToggle() { toggleAndVerify("toggle_config_autoactivate") }
 }

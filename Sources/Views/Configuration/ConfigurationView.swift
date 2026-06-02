@@ -125,6 +125,10 @@ struct ConfigurationView: View {
                 // MARK: VM Settings
                 configCard(icon: "gearshape.2", title: "VM Settings", description: "Virtual machine type, architecture, and runtime options") {
                     VStack(alignment: .leading, spacing: 12) {
+                        // Live selection summary (also used by E2E tests)
+                        Text("vmtype:\(vmType) cputype:\(cpuType.isEmpty ? "host" : cpuType) mounttype:\(mountType) rosetta:\(rosetta ? "on" : "off") nestedvirt:\(nestedVirt ? "on" : "off") binfmt:\(binfmt ? "on" : "off") inotify:\(mountInotify ? "on" : "off") autoactivate:\(autoActivate ? "on" : "off")")
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .accessibilityIdentifier("state_native_config")
                         // Architecture
                         HStack {
                             Picker("Architecture", selection: $arch) {
@@ -135,12 +139,12 @@ struct ConfigurationView: View {
 
                         // VM Type cards
                         Text("VM Type").font(.caption.weight(.medium))
+                            .accessibilityIdentifier("field_config_vmtype")
                         HStack(spacing: 8) {
                             vmTypeCard(type: "qemu", icon: "desktopcomputer", desc: "Universal — works everywhere, supports x86 emulation")
                             vmTypeCard(type: "vz", icon: "apple.logo", desc: "Native — Apple's framework, fastest I/O on Apple Silicon")
                             vmTypeCard(type: "krunkit", icon: "gpu", desc: "GPU — lightweight with Metal GPU access for AI")
                         }
-                        .accessibilityIdentifier("field_config_vmtype")
                         HStack {
                             Spacer()
                             lockIcon(id: "lock_config_vmtype")
@@ -149,13 +153,13 @@ struct ConfigurationView: View {
                         // CPU Type cards
                         VStack(alignment: .leading, spacing: 4) {
                             Text("CPU Type").font(.caption.weight(.medium))
+                                .accessibilityIdentifier("field_config_cputype")
                             HStack(spacing: 8) {
                                 cpuTypeCard(type: "host", icon: "cpu", desc: "Host native — uses your Mac's actual CPU type")
                                 cpuTypeCard(type: "cortex-a72", icon: "bolt", desc: "Cortex-A72 — generic ARM, max compatibility")
                                 cpuTypeCard(type: "max", icon: "flame", desc: "Max — all CPU features enabled, fastest")
                             }
                         }
-                        .accessibilityIdentifier("field_config_cputype")
 
                         // Rosetta toggle card
                         HStack {
@@ -471,6 +475,7 @@ struct ConfigurationView: View {
                         // Mount type cards
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Mount Type").font(.caption.weight(.medium))
+                                .accessibilityIdentifier("field_config_mounttype")
                             Text("How files are shared between your Mac and the VM. Cannot be changed after creation.").font(.caption2).foregroundStyle(.secondary)
                             HStack(spacing: 8) {
                                 mountTypeCard(
@@ -495,7 +500,6 @@ struct ConfigurationView: View {
                                     recommended: false
                                 )
                             }
-                            .accessibilityIdentifier("field_config_mounttype")
                         }
 
                         // Inotify
@@ -858,65 +862,68 @@ struct ConfigurationView: View {
 
     @ViewBuilder
     private func vmTypeCard(type: String, icon: String, desc: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon).font(.title3)
-            Text(type).font(.caption.weight(.medium))
-            Text(desc).font(.system(size: 9)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        Button { vmType = type } label: {
+            VStack(spacing: 4) {
+                Image(systemName: icon).font(.title3)
+                Text(type).font(.caption.weight(.medium))
+                Text(desc).font(.system(size: 9)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(8)
+            .background(vmType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(vmType == type ? Color.accentColor : Color.clear, lineWidth: 1))
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
-        .padding(8)
-        .background(vmType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(vmType == type ? Color.accentColor : Color.clear, lineWidth: 1))
-        .onTapGesture { vmType = type }
-        .accessibilityElement(children: .combine)
+        .buttonStyle(.plain)
         .accessibilityIdentifier("card_vmtype_\(type)")
         .accessibilityValue(vmType == type ? "selected" : "unselected")
-        .accessibilityAddTraits(.isButton)
     }
 
     private func cpuTypeCard(type: String, icon: String, desc: String) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon).font(.title3)
-            Text(type).font(.caption.weight(.medium))
-            Text(desc).font(.system(size: 9)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+        Button { cpuType = type } label: {
+            VStack(spacing: 4) {
+                Image(systemName: icon).font(.title3)
+                Text(type).font(.caption.weight(.medium))
+                Text(desc).font(.system(size: 9)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(8)
+            .background(cpuType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(cpuType == type ? Color.accentColor : Color.clear, lineWidth: 1))
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity)
-        .padding(8)
-        .background(cpuType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(cpuType == type ? Color.accentColor : Color.clear, lineWidth: 1))
-        .onTapGesture { cpuType = type }
-        .accessibilityElement(children: .combine)
+        .buttonStyle(.plain)
         .accessibilityIdentifier("card_cputype_\(type)")
         .accessibilityValue(cpuType == type ? "selected" : "unselected")
-        .accessibilityAddTraits(.isButton)
     }
 
     private func mountTypeCard(type: String, icon: String, speed: String, pros: String, cons: String, recommended: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Image(systemName: icon).font(.caption)
-                Text(type).font(.caption.weight(.semibold))
-                if recommended {
-                    Text("Recommended").font(.system(size: 8)).padding(.horizontal, 4).padding(.vertical, 1)
-                        .background(Color.green.opacity(0.2)).clipShape(RoundedRectangle(cornerRadius: 3))
+        Button { mountType = type } label: {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: icon).font(.caption)
+                    Text(type).font(.caption.weight(.semibold))
+                    if recommended {
+                        Text("Recommended").font(.system(size: 8)).padding(.horizontal, 4).padding(.vertical, 1)
+                            .background(Color.green.opacity(0.2)).clipShape(RoundedRectangle(cornerRadius: 3))
+                    }
                 }
+                Text(speed).font(.caption2)
+                Text(pros).font(.system(size: 9)).foregroundStyle(.green)
+                Text(cons).font(.system(size: 9)).foregroundStyle(.orange)
             }
-            Text(speed).font(.caption2)
-            Text(pros).font(.system(size: 9)).foregroundStyle(.green)
-            Text(cons).font(.system(size: 9)).foregroundStyle(.orange)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(8)
+            .background(mountType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .overlay(RoundedRectangle(cornerRadius: 6).stroke(mountType == type ? Color.accentColor : Color.clear, lineWidth: 1))
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
-        .background(mountType == type ? Color.accentColor.opacity(0.1) : Color.secondary.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(mountType == type ? Color.accentColor : Color.clear, lineWidth: 1))
-        .onTapGesture { mountType = type }
-        .accessibilityElement(children: .combine)
+        .buttonStyle(.plain)
         .accessibilityIdentifier("card_mounttype_\(type)")
         .accessibilityValue(mountType == type ? "selected" : "unselected")
-        .accessibilityAddTraits(.isButton)
     }
 
     @ViewBuilder
