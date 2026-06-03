@@ -1,7 +1,15 @@
 # ColimaUI — Testing Strategy & Progress Summary
 
 **Date:** May 12, 2026
-**Status:** GUI feature-complete with mocks. Test infrastructure exists but e2e tests are flaky.
+**Status:** GUI feature-complete with real backend. E2E suite is green — 297/297 XCUITests pass in the Tart VM (run via `./scripts/run_vm_tests.sh ColimaDesktopUITests`).
+
+> **Update (Jun 2026):** All E2E flakiness resolved. 297 tests, 0 failures. Reliability came from:
+> - Custom card selectors (vmType/cpuType/mountType) are real `Button`s with `accessibilityValue` "selected"/"unselected", verified via `app.buttons[id].value`.
+> - Container `accessibilityIdentifier`s were hiding child elements from the a11y tree — moved to label `Text`s (e.g. `field_config_vmtype`, `panel_dashboard_terminal`).
+> - Toggles verified via `app.checkBoxes[id].value`; pickers via `app.menuItems`.
+> - Hover-reveal row actions forced visible under `--ui-testing` via `appState.isUITesting`.
+> - Sidebar navigation clicks the hittable element (the `List(selection:)` auto-scrolls the selected row, zeroing offscreen rows).
+> - Run E2E **only in the Tart VM** — host XCUITest times out enabling automation mode. VirtioFS incremental builds are stale; `rm -rf /tmp/DD/Build` before each VM run.
 
 ---
 
