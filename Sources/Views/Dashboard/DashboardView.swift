@@ -462,6 +462,7 @@ struct DashboardTerminal: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Terminal").font(.caption.weight(.medium))
+                    .accessibilityIdentifier("panel_dashboard_terminal")
                 Spacer()
                 Button { history.removeAll() } label: {
                     Image(systemName: "trash").font(.caption2)
@@ -501,7 +502,6 @@ struct DashboardTerminal: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 6))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(borderColor))
-        .accessibilityIdentifier("panel_dashboard_terminal")
     }
 
     private func executeCommand() {

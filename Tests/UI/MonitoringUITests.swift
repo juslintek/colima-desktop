@@ -40,13 +40,21 @@ final class MonitoringUITests: XCTestCase {
     // MARK: - Navigation
 
     func testNavigateToMonitoringFromSidebar() {
-        let dash = app.descendants(matching: .any)["tab_dashboard"]
-        XCTAssertTrue(dash.waitForExistence(timeout: 5))
-        dash.click()
-        XCTAssertTrue(app.descendants(matching: .any)["status_indicator_dashboard"].waitForExistence(timeout: 5))
-        let mon = app.descendants(matching: .any)["tab_monitoring"]
-        XCTAssertTrue(mon.waitForExistence(timeout: 5))
-        mon.click()
+        // From Monitoring, the General section (Monitoring/Community) is visible.
+        // Navigate to a co-visible neighbor and back to verify sidebar navigation.
+        clickHittableTab("tab_community")
+        clickHittableTab("tab_monitoring")
         XCTAssertTrue(app.descendants(matching: .any)["table_activity_monitor"].waitForExistence(timeout: 8))
+    }
+
+    /// Sidebar tab identifiers can match a zero-size duplicate; click the hittable one.
+    private func clickHittableTab(_ identifier: String) {
+        let query = app.descendants(matching: .any).matching(identifier: identifier)
+        XCTAssertTrue(query.firstMatch.waitForExistence(timeout: 5), "Missing tab \(identifier)")
+        for i in 0..<query.count {
+            let element = query.element(boundBy: i)
+            if element.isHittable { element.click(); return }
+        }
+        query.firstMatch.click()
     }
 }
