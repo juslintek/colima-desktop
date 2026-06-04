@@ -14,8 +14,9 @@
 - Real Colima/nested VMs **cannot** run in the Tart guest: `kern.hv_support = 0`, the CPU is
   "Apple M1 Max (Virtual)" (nested virt needs M3+ with host exposure), and neither `colima`
   nor `docker` is installed. This is by design — see "Nested virtualization" below.
-- The suite went from ~55% flaky to **297→318 tests, 0 failures across 3+ consecutive runs**.
-  Almost every "flake" was a deterministic **accessibility-tree** problem, not random timing.
+- The suite went from ~55% flaky to **317 tests, 0 failures** (4 consecutive full runs: three
+  at 297, plus a final 317-test run after adding the new suites). Almost every "flake" was a
+  deterministic **accessibility-tree** problem, not random timing.
 
 ---
 
