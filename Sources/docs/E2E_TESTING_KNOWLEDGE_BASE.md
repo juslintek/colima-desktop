@@ -9,24 +9,44 @@
 
 ## TL;DR
 
-- E2E tests run **only in the Tart VM**, **mock mode** (`--ui-testing` → `MockServiceProvider`).
-  They validate the SwiftUI UI layer and flows, **not** real Colima/Docker/k8s.
+- E2E tests are **real/end-to-end by default** (real `ServiceProvider` → colima/docker).
+  **Mock mode is an explicit opt-in** (`E2E_BACKEND=mock`), used for CI and the Tart VM, which
+  cannot run a real backend. `--ui-testing` only enables UI-test affordances — it does NOT pick
+  the backend. (Before: `--ui-testing` hardcoded mock, so the suite could only ever run mocked.)
 - Real Colima/nested VMs **cannot** run in the Tart guest: `kern.hv_support = 0`, the CPU is
   "Apple M1 Max (Virtual)" (nested virt needs M3+ with host exposure), and neither `colima`
-  nor `docker` is installed. This is by design — see "Nested virtualization" below.
+  nor `docker` is installed. So the VM must run mock mode; real/production E2E runs on a
+  bare-metal Apple-Silicon host.
 - The suite went from ~55% flaky to **317 tests, 0 failures** (4 consecutive full runs: three
   at 297, plus a final 317-test run after adding the new suites). Almost every "flake" was a
   deterministic **accessibility-tree** problem, not random timing.
 
 ---
 
-## How to run the suite (the only reliable recipe)
+## How to run the suite
 
+E2E tests are **end-to-end by default** — they drive the **real** `ServiceProvider`
+(request → DaemonClient/DockerClient → colima/docker → response). `--ui-testing` only enables
+UI-test affordances and does **not** select the backend; backend is chosen by `--backend-mock`
+/ `--backend-real` (default real). The `E2ELaunch.configure(app)` helper sets these from the
+`E2E_BACKEND` env var (default `real`).
+
+### Real / production mode (true end-to-end) — needs Colima + Docker on the host
 ```bash
-# From the host. The VM mounts the project at "/Volumes/My Shared Files/project".
+# Run on a bare-metal Apple-Silicon host with `colima start` already running.
+xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' \
+  -only-testing:ColimaDesktopUITests
+```
+
+### Mock mode (CI / Tart VM with no nested virt) — explicit opt-in
+```bash
+# IMPORTANT: pass the env with the TEST_RUNNER_ prefix. xcodebuild only forwards
+# variables prefixed with TEST_RUNNER_ to the test-runner process (the prefix is
+# stripped), so the app's E2ELaunch sees E2E_BACKEND=mock. A plain `E2E_BACKEND=mock`
+# is NOT seen by the runner and the app would default to the real backend.
 ssh tart-vm "rm -rf /tmp/DD2/Build; cd '/Volumes/My Shared Files/project' && \
-  xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' \
-  -derivedDataPath /tmp/DD2 -only-testing:ColimaDesktopUITests 2>&1"
+  TEST_RUNNER_E2E_BACKEND=mock xcodebuild test -scheme ColimaDesktop \
+  -destination 'platform=macOS' -derivedDataPath /tmp/DD2 -only-testing:ColimaDesktopUITests 2>&1"
 ```
 
 Single suite/test: append `-only-testing:ColimaDesktopUITests/<Suite>[/<testMethod>]`.
@@ -110,6 +130,24 @@ for navigation/first-element-after-launch (VM under full-suite load), **3s** for
 elements. `continueAfterFailure = false` in every suite.
 
 ---
+
+## Backend selection — real by default, mock opt-in (architecture)
+
+E2E must be able to run truly end-to-end, so the backend is decoupled from UI-test affordances:
+
+- **`App.swift`**: `--backend-mock` → `MockServiceProvider`; otherwise → `RealServiceProvider`.
+  `--ui-testing` no longer selects the backend (it only enables window visibility + the
+  `appState.isUITesting` hover-reveal affordance).
+- **`Tests/UI/E2ELaunch.swift`**: `E2ELaunch.configure(app)` always passes `--ui-testing` and
+  reads `E2E_BACKEND` (default `real`) to add `--backend-real` / `--backend-mock`. Every suite's
+  `setUp` calls this instead of hardcoding launch args.
+- **Env propagation gotcha**: `xcodebuild` forwards only env vars prefixed with `TEST_RUNNER_`
+  to the test-runner process (stripping the prefix). So you must pass `TEST_RUNNER_E2E_BACKEND=mock`
+  (not plain `E2E_BACKEND=mock`) for the runner — and thus the app — to see `E2E_BACKEND=mock`.
+  Plain `E2E_BACKEND=mock` is silently ignored and the app defaults to the real backend.
+
+Verified: with `TEST_RUNNER_E2E_BACKEND=mock` the VM suite is green; without it the same VM run
+correctly fails (real backend, no Docker present) — proving mock is no longer de facto.
 
 ## Nested virtualization / real Colima — the honest answer
 

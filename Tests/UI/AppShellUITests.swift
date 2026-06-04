@@ -5,7 +5,7 @@ final class AppShellUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        app.launchArguments = ["--ui-testing"]
+        E2ELaunch.configure(app)
         app.launch()
         app.activate()
     }
