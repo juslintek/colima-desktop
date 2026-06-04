@@ -98,6 +98,36 @@ final class NativePerformanceConfigUITests: XCTestCase {
         selectCard("card_mounttype_virtiofs", expect: "mounttype:virtiofs")
     }
 
+    // MARK: - Valid configuration combinations (reachability across the option matrix)
+
+    func testComboQemu9p() {
+        selectCard("card_vmtype_qemu", expect: "vmtype:qemu")
+        selectCard("card_mounttype_9p", expect: "mounttype:9p")
+    }
+
+    func testComboQemuSshfs() {
+        selectCard("card_vmtype_qemu", expect: "vmtype:qemu")
+        selectCard("card_mounttype_sshfs", expect: "mounttype:sshfs")
+    }
+
+    func testComboVZVirtiofsRosetta() {
+        selectCard("card_vmtype_vz", expect: "vmtype:vz")
+        selectCard("card_mounttype_virtiofs", expect: "mounttype:virtiofs")
+        toggleAndVerify("toggle_config_rosetta")
+    }
+
+    func testComboKrunkitRamalama() {
+        selectCard("card_vmtype_krunkit", expect: "vmtype:krunkit")
+        assertPickerOptions("field_config_modelrunner", ["docker", "ramalama"])
+    }
+
+    func testComboFullNativeAppleSilicon() {
+        selectCard("card_vmtype_vz", expect: "vmtype:vz")
+        selectCard("card_cputype_host", expect: "cputype:host")
+        selectCard("card_mounttype_virtiofs", expect: "mounttype:virtiofs")
+        toggleAndVerify("toggle_config_binfmt")
+    }
+
     // MARK: - Pickers — all possibilities
 
     func testArchOptionsAllPresent() {
