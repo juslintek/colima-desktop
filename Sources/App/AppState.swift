@@ -26,6 +26,10 @@ class AppState: ObservableObject {
 
     @Published var colimaConfig: ColimaConfig?
 
+    // Installation onboarding
+    @Published var colimaInstalled: Bool = true
+    @Published var isInstallingColima: Bool = false
+
     @Published var containers: [MockContainer] = []
     @Published var images: [MockImage] = []
     @Published var volumes: [MockVolume] = []
@@ -111,7 +115,24 @@ class AppState: ObservableObject {
         return services.streamStats(containerId: containerId, handler: handler)
     }
 
+    @MainActor func installColima() {
+        guard !isInstallingColima else { return }
+        isInstallingColima = true
+        Task { @MainActor in
+            do {
+                try await services.installColima()
+                colimaInstalled = await services.isColimaInstalled()
+                if colimaInstalled { await refreshAll() }
+            } catch {
+                errorMessage = "Failed to install Colima: \(error.localizedDescription)"
+            }
+            isInstallingColima = false
+        }
+    }
+
     @MainActor func refreshAll() async {
+        colimaInstalled = await services.isColimaInstalled()
+        guard colimaInstalled else { vmRunning = false; return }
         await refreshContainers()
         await refreshImages()
         await refreshVolumes()

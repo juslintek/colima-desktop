@@ -90,6 +90,10 @@ protocol ServiceProvider {
 
     // Command execution
     func executeCommand(tool: String, args: [String]) async throws -> String
+
+    // Installation
+    func isColimaInstalled() async -> Bool
+    func installColima() async throws
 }
 
 /// Real implementation using DaemonClient + DockerClient
@@ -433,6 +437,9 @@ class RealServiceProvider: ServiceProvider {
         }
         return output
     }
+
+    func isColimaInstalled() async -> Bool { await daemon.isInstalled() }
+    func installColima() async throws { try await daemon.install() }
 }
 
 // Make DaemonClient.exec accessible to RealServiceProvider

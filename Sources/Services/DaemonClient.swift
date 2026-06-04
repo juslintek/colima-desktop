@@ -159,6 +159,17 @@ actor DaemonClient {
 
     // MARK: - Process Execution
 
+    /// True if the `colima` binary is present in a known location.
+    func isInstalled() -> Bool {
+        ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]
+            .contains { FileManager.default.fileExists(atPath: "\($0)/colima") }
+    }
+
+    /// Install Colima (and the docker CLI) via Homebrew. Long-running.
+    func install() async throws {
+        _ = try await exec("brew", ["install", "colima", "docker"])
+    }
+
     private func exec(_ command: String, _ args: String...) async throws -> String {
         try await exec(command, args)
     }

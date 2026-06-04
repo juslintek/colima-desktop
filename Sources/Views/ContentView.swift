@@ -13,7 +13,9 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            if needsDetailColumn {
+            if !appState.colimaInstalled {
+                InstallColimaView()
+            } else if needsDetailColumn {
                 NavigationSplitView(columnVisibility: $columnVisibility) {
                     SidebarView()
                 } content: {

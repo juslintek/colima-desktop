@@ -193,4 +193,12 @@ class MockServiceProvider: ServiceProvider {
     func executeCommand(tool: String, args: [String]) async throws -> String {
         "mock output for \(tool) \(args.joined(separator: " "))"
     }
+
+    // MARK: - Installation
+
+    /// Simulated as installed unless `--no-colima` is passed (lets UI tests exercise
+    /// the install-prompt flow). `installColima()` flips it to installed.
+    private var colimaInstalled = !CommandLine.arguments.contains("--no-colima")
+    func isColimaInstalled() async -> Bool { colimaInstalled }
+    func installColima() async throws { colimaInstalled = true }
 }
