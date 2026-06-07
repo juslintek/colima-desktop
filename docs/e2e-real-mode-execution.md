@@ -143,5 +143,26 @@ File ownership (no concurrent edits):
 - **New deterministic:** `MenuBarViewTests` 9/9, `DockerClientErrorTests` 4/4. `** TEST SUCCEEDED **`
 
 ## Final cleanup proof
-_(appended at teardown)_
+
+Before teardown (queried via `~/.colima/desktop-e2e/docker.sock`):
+```
+containers (name=colima-desktop-e2e): 0
+volumes    (name=colima-desktop-e2e): 0
+networks   (name=colima-desktop-e2e): 0
+```
+Safety-guarded teardown (only deletes a name containing `e2e`, never `default`):
+```
+safe to delete desktop-e2e
+Deleted "colima-desktop-e2e" ("/Users/juslintek/.colima/_lima/colima-desktop-e2e")
+```
+Post-teardown `colima list`:
+```
+default    Stopped   (untouched ✓)
+cdtest     Stopped   (prior-session leftover, intentionally retained — lacks e2e token)
+```
+`desktop-e2e` removed; `~/.colima/` now contains only `cdtest/` and `default/`.
+**No orphaned test resources. Default profile never mutated.**
+
+> Optional manual cleanup of the older leftover: `colima delete cdtest --force`.
+
 
