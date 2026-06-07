@@ -18,3 +18,5 @@ vendor/docker-api/
 # Go
 daemon/colima-daemon
 colima-desktop.json
+/build/
+/dist/

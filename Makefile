@@ -79,3 +79,14 @@ run: build
 setup-tart:
 	brew install cirruslabs/cli/tart
 	tart pull $(TART_IMAGE)
+
+# === Distribution (Developer ID + notarization; NOT App Store — see docs/DISTRIBUTION.md) ===
+.PHONY: package-dmg release
+
+# Unsigned DMG (pipeline proof): make package-dmg
+# Signed+notarized: SIGN_IDENTITY="Developer ID Application: ..." NOTARY_PROFILE=Name NOTARIZE=1 make release
+package-dmg:
+	scripts/package.sh
+
+release:
+	NOTARIZE=$(NOTARIZE) scripts/package.sh

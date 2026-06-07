@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Hardened Runtime entitlements for Developer ID distribution + notarization.
+
+      IMPORTANT: App Sandbox is intentionally NOT enabled. Colima Desktop launches
+      external executables (colima, docker, brew, kubectl) via Process() and talks to
+      Unix sockets under ~/.colima. The Mac App Store mandates App Sandbox, which
+      forbids both — so this app is distributed OUTSIDE the App Store (Developer ID +
+      notarized DMG), like Docker Desktop / OrbStack / Podman Desktop.
+
+      Hardened Runtime (required for notarization) permits spawning child processes;
+      no extra entitlement is needed for that. The flag below allows the JIT/Sparkle-
+      style cases only if ever needed; keep the set minimal.
+    -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <false/>
+</dict>
+</plist>
