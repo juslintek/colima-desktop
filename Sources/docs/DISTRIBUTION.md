@@ -19,6 +19,16 @@ signed, notarized direct download.
 
 **Verdict:** distribute as a **Developer ID-signed, notarized `.app` in a `.dmg`** (done below).
 
+## App icon
+
+`scripts/make-icon.sh` generates the icon (original isometric-cube artwork on a teal→blue
+squircle — no third-party marks) headlessly via CoreGraphics, producing
+`Sources/Assets.xcassets/AppIcon.appiconset/` (10 macOS sizes) and a standalone
+`packaging/AppIcon.icns`. `project.yml` sets `ASSETCATALOG_COMPILER_APPICON_NAME=AppIcon`, so
+the built `.app` carries `CFBundleIconName=AppIcon` (verified) and shows in Finder/Dock. The
+DMG also gets the icon as its volume icon (best-effort). Regenerate the artwork with
+`scripts/make-icon.sh` then rebuild.
+
 ## What's in the repo
 
 | File | Purpose |

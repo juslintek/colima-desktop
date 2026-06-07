@@ -67,7 +67,17 @@ rm -f "$DMG_PATH"
 STAGING="$(mktemp -d)"
 cp -R "$APP_PATH" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
-hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING" -ov -format UDZO "$DMG_PATH" >/dev/null
+# Give the DMG volume itself the app icon (best-effort): build RW, set icon, convert.
+[[ -f "$ROOT/packaging/AppIcon.icns" ]] && cp "$ROOT/packaging/AppIcon.icns" "$STAGING/.VolumeIcon.icns"
+TMPDMG="$(mktemp -u).dmg"
+hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING" -fs HFS+ -format UDRW -ov "$TMPDMG" >/dev/null
+MNT="$(hdiutil attach "$TMPDMG" -nobrowse -noverify -noautoopen 2>/dev/null | grep -Eo '/Volumes/.*$' | head -1 || true)"
+if [[ -n "${MNT:-}" && -f "$MNT/.VolumeIcon.icns" ]]; then
+  ( /usr/bin/SetFile -a C "$MNT" 2>/dev/null || xcrun SetFile -a C "$MNT" 2>/dev/null || true )
+fi
+[[ -n "${MNT:-}" ]] && hdiutil detach "$MNT" -quiet 2>/dev/null || true
+hdiutil convert "$TMPDMG" -format UDZO -ov -o "$DMG_PATH" >/dev/null
+rm -f "$TMPDMG"
 rm -rf "$STAGING"
 
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
