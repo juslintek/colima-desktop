@@ -26,13 +26,17 @@ BUILD_DIR="$ROOT/build/Release"
 DIST_DIR="$ROOT/dist"
 ENTITLEMENTS="$ROOT/packaging/ColimaDesktop.entitlements"
 APP_PATH="$BUILD_DIR/Build/Products/Release/$APP_NAME.app"
-DMG_PATH="$DIST_DIR/$APP_NAME.dmg"
-VERSION="${VERSION:-$(date +%Y.%m.%d)}"
+
+# Version from git tag (override with VERSION=1.2.0). See scripts/version.sh.
+eval "$("$ROOT/scripts/version.sh")"
+DMG_PATH="$DIST_DIR/$APP_NAME-$MARKETING_VERSION.dmg"
+echo "==> Version: $MARKETING_VERSION (build $CURRENT_PROJECT_VERSION)"
 
 echo "==> Generating project + building Release"
 cd "$ROOT"
 xcodegen generate >/dev/null
-BUILD_ARGS=(-scheme "$SCHEME" -configuration Release -destination 'platform=macOS' -derivedDataPath "$BUILD_DIR")
+BUILD_ARGS=(-scheme "$SCHEME" -configuration Release -destination 'platform=macOS' -derivedDataPath "$BUILD_DIR"
+  "MARKETING_VERSION=$MARKETING_VERSION" "CURRENT_PROJECT_VERSION=$CURRENT_PROJECT_VERSION")
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
   echo "==> Signing-enabled build as: $SIGN_IDENTITY"
   xcodebuild "${BUILD_ARGS[@]}" clean build \

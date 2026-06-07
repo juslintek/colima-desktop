@@ -60,10 +60,26 @@ The script signs deeply with `--options runtime --timestamp` and the entitlement
 signs the DMG, submits to `notarytool --wait`, then `stapler staple`s the ticket so the app
 opens offline without Gatekeeper prompts. Final `spctl --assess` confirms acceptance.
 
-## Versioning
+## Versioning (tag-driven)
 
-`VERSION` defaults to `YYYY.MM.DD`; override with `VERSION=1.2.0 make release`. (Wire this into
-`CFBundleShortVersionString`/`CFBundleVersion` in `project.yml` when cutting tagged releases.)
+Releases are versioned from **git tags** via `scripts/version.sh`:
+- `CFBundleShortVersionString` (marketing) = latest `vX.Y.Z` tag, leading `v` stripped.
+- `CFBundleVersion` (build) = `git rev-list --count HEAD` (monotonic, always increasing).
+
+`scripts/package.sh` derives these and passes `MARKETING_VERSION`/`CURRENT_PROJECT_VERSION`
+into the Release build, and names the artifact `dist/Colima Desktop-<version>.dmg`.
+`project.yml` carries dev defaults (`0.0.0` / `1`).
+
+**Cut a tagged release:**
+```bash
+git tag v1.2.0 && git push origin v1.2.0
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" \
+NOTARY_PROFILE="ColimaDesktopNotary" NOTARIZE=1 make release
+# -> dist/Colima Desktop-1.2.0.dmg, CFBundleShortVersionString=1.2.0
+```
+Override without a tag for a one-off: `VERSION=1.2.0 make release`.
+Verified end-to-end: a `0.1.0` build produced `CFBundleShortVersionString=0.1.0`,
+`CFBundleVersion=81`, `dist/Colima Desktop-0.1.0.dmg`.
 
 ## Gatekeeper / user experience
 

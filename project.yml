@@ -53,6 +53,10 @@ targets:
         PRODUCT_MODULE_NAME: ColimaDesktop
         SWIFT_EMIT_LOC_STRINGS: true
         ENABLE_PREVIEWS: true
+        # Defaults for dev builds; release builds override from the git tag
+        # (see scripts/version.sh + scripts/package.sh).
+        MARKETING_VERSION: "0.0.0"
+        CURRENT_PROJECT_VERSION: "1"
 
   # ─── Unit Tests (Swift Testing) ─────────────────────────
   ColimaDesktopUnitTests:
