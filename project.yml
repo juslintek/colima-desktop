@@ -60,6 +60,7 @@ targets:
       - UnitTestBundle
     sources:
       - Tests/Unit
+      - Tests/Support
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop.unit-tests
@@ -70,6 +71,7 @@ targets:
       - UnitTestBundle
     sources:
       - Tests/Integration
+      - Tests/Support
     dependencies:
       - package: ViewInspector
     settings:
