@@ -17,6 +17,7 @@ struct MenuBarView: View {
                 Text(appState.vmRunning ? "Running" : "Stopped")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("menubar_vm_status")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -25,9 +26,9 @@ struct MenuBarView: View {
 
             // Quick metrics row
             HStack(spacing: 16) {
-                metricPill(icon: "shippingbox", value: "\(runningCount)", label: "containers")
-                metricPill(icon: "photo.stack", value: "\(appState.images.count)", label: "images")
-                metricPill(icon: "externaldrive", value: "\(appState.volumes.count)", label: "volumes")
+                metricPill(icon: "shippingbox", value: "\(runningCount)", label: "containers", id: "menubar_metric_containers")
+                metricPill(icon: "photo.stack", value: "\(appState.images.count)", label: "images", id: "menubar_metric_images")
+                metricPill(icon: "externaldrive", value: "\(appState.volumes.count)", label: "volumes", id: "menubar_metric_volumes")
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -71,15 +72,18 @@ struct MenuBarView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
+                .accessibilityIdentifier("btn_menubar_open")
 
                 Spacer()
 
                 if appState.vmRunning {
                     Button("Stop") { appState.stopVM() }
                         .controlSize(.small)
+                        .accessibilityIdentifier("btn_menubar_stop_vm")
                 } else {
                     Button("Start") { appState.startVM() }
                         .controlSize(.small)
+                        .accessibilityIdentifier("btn_menubar_start_vm")
                 }
             }
             .padding(.horizontal, 12)
@@ -88,12 +92,14 @@ struct MenuBarView: View {
         .frame(width: 280)
     }
 
-    private func metricPill(icon: String, value: String, label: String) -> some View {
+    private func metricPill(icon: String, value: String, label: String, id: String) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.caption2).foregroundStyle(.secondary)
             Text(value).font(.caption.weight(.semibold).monospacedDigit())
             Text(label).font(.caption2).foregroundStyle(.secondary)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(id)
     }
 }
 

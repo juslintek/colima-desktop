@@ -3,7 +3,8 @@ import ViewInspector
 import SwiftUI
 @testable import ColimaDesktop
 
-@Suite("ContentView Integration")
+@Suite("ContentView Integration", .serialized)
+@MainActor
 struct ContentViewTests {
 
     @Test("renders sidebar with navigation items")
@@ -27,7 +28,8 @@ struct ContentViewTests {
     }
 }
 
-@Suite("AppState View Bindings")
+@Suite("AppState View Bindings", .serialized)
+@MainActor
 struct AppStateBindingTests {
 
     @Test("tab selection updates selectedTab")
@@ -40,10 +42,15 @@ struct AppStateBindingTests {
     }
 
     @Test("container actions update state in mock mode")
+    @MainActor
     func containerStart() async {
         let state = AppState(services: MockServiceProvider())
-        await state.startContainer(name: "redis-cache")
-        // In mock mode, toast should confirm action
-        #expect(state.toastMessage?.contains("started") == true || state.toastMessage != nil)
+        state.vmRunning = true   // startContainer is gated behind a running VM
+        state.startContainer(name: "redis-cache")
+        // startContainer dispatches an async Task; wait briefly for the toast to land.
+        for _ in 0..<100 where state.toastMessage == nil {
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        #expect(state.toastMessage?.contains("started") == true)
     }
 }
