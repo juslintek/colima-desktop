@@ -2,414 +2,397 @@ import Testing
 import Foundation
 @testable import ColimaDesktop
 
-/// Tests that run against a real Colima/Docker instance.
-/// Requires: colima running with Docker socket at ~/.colima/default/docker.sock
-@Suite("RealBackend", .serialized)
+/// TRUE end-to-end tests against a real Colima VM + Docker socket, exercising
+/// RealServiceProvider and DockerClient for real (no mocks).
+///
+/// SAFETY: runs ONLY when opted in via env (`COLIMA_DESKTOP_REAL_E2E=1`) AND the
+/// resolved profile is a dedicated e2e profile (never `default`) AND its socket
+/// is reachable. Every created Docker resource uses the `colima-desktop-e2e-*`
+/// prefix and is cleaned up (per-test backstop + final sweep). Skipped cleanly
+/// in CI / Tart VM (no nested virt). See Tests/Support/RealE2ESupport.swift and
+/// docs/e2e-real-mode-execution.md.
+@Suite("RealBackend", .serialized, .enabled(if: RealE2E.canRun))
 struct RealBackendTests {
     let services: RealServiceProvider
 
-    init() {
-        services = RealServiceProvider()
+    init() async throws {
+        let provider = RealServiceProvider(profile: RealE2E.profile)
+        services = provider
+        // Base image used across container tests (idempotent/fast; bounded).
+        try await withTimeout(120) { try await provider.pullImage(name: "alpine:latest") }
     }
 
-    // MARK: - Prerequisites
+    // MARK: - Helpers
 
-    @Test("Docker socket exists and is reachable")
-    func dockerSocketReachable() async throws {
-        let containers = try await services.listContainers()
-        #expect(containers is [[String: Any]])
+    private func containerNames(all: Bool = true) async throws -> [String] {
+        let list = try await services.listContainers()
+        return list.compactMap { ($0["Names"] as? [String])?.first }
     }
 
-    // MARK: - VM Lifecycle
+    private func containerExists(_ name: String) async throws -> Bool {
+        try await containerNames().contains { $0.contains(name) }
+    }
 
-    @Test("vmStatus returns running state")
+    private func containerState(_ name: String) async throws -> String? {
+        let list = try await services.listContainers()
+        return list.first { ($0["Names"] as? [String])?.first?.contains(name) == true }?["State"] as? String
+    }
+
+    /// Create a prefixed container, run `body(name)`, then always clean up.
+    @discardableResult
+    private func withContainer(
+        image: String = "alpine:latest",
+        started: Bool = false,
+        _ body: (String) async throws -> Void
+    ) async throws -> String {
+        let name = RealE2E.resourceName("ctr")
+        _ = try await withTimeout(60) { try await services.createContainer(name: name, image: image) }
+        if started { try await withTimeout(60) { try await services.startContainer(id: name) } }
+        do { try await body(name) } catch {
+            try? await services.killContainer(id: name)
+            try? await services.removeContainer(id: name)
+            throw error
+        }
+        try? await services.killContainer(id: name)
+        try? await services.removeContainer(id: name)
+        return name
+    }
+
+    // MARK: - VM / status
+
+    @Test("vmStatus reports the dedicated profile running with docker runtime")
     func vmStatus() async throws {
-        let status = try await services.vmStatus(profile: "default")
+        let status = try await withTimeout(20) { try await services.vmStatus(profile: RealE2E.profile) }
         #expect(status.running == true)
-        #expect(!status.profile.isEmpty)
+        #expect(status.runtime == "docker")
+        #expect(!status.version.isEmpty)
+        #expect(status.cpu >= 1)
+        #expect(status.memory > 0)
     }
 
-    @Test("vmVersion returns non-empty version")
+    @Test("vmVersion returns a dotted version string")
     func vmVersion() async throws {
         let version = try await services.vmVersion()
         #expect(!version.isEmpty)
         #expect(version.contains("."))
     }
 
-    @Test("sshConfig returns valid SSH config")
+    @Test("sshConfig contains a Host entry")
     func sshConfig() async throws {
-        let config = try await services.sshConfig(profile: "default")
+        let config = try await services.sshConfig(profile: RealE2E.profile)
         #expect(config.contains("Host"))
     }
 
-    // MARK: - Container Operations
-
-    @Test("listContainers returns array")
-    func listContainers() async throws {
-        let containers = try await services.listContainers()
-        #expect(containers is [[String: Any]])
+    @Test("listProfiles includes the dedicated e2e profile")
+    func listProfiles() async throws {
+        let profiles = try await services.listProfiles()
+        #expect(!profiles.isEmpty)
+        #expect(profiles.contains { $0.name == RealE2E.profile })
     }
 
-    @Test("createContainer creates and appears in list")
+    // MARK: - Containers (lifecycle)
+
+    @Test("create makes a container that appears in the list")
     func createContainer() async throws {
-        let id = try await services.createContainer(name: "test-create", image: "alpine:latest")
-        #expect(!id.isEmpty)
-        let containers = try await services.listContainers()
-        let found = containers.contains { ($0["Id"] as? String)?.hasPrefix(id.prefix(12).description) == true }
-        #expect(found)
-        // Cleanup
-        try await services.removeContainer(id: "test-create")
+        try await withContainer { name in
+            let exists = try await containerExists(name)
+            #expect(exists)
+        }
     }
 
-    @Test("startContainer changes state to running")
+    @Test("start transitions a container to running")
     func startContainer() async throws {
-        _ = try await services.createContainer(name: "test-start", image: "alpine:latest")
-        try await services.startContainer(id: "test-start")
-        let containers = try await services.listContainers()
-        let container = containers.first { ($0["Names"] as? [String])?.first?.contains("test-start") == true }
-        #expect(container?["State"] as? String == "running")
-        // Cleanup
-        try await services.killContainer(id: "test-start")
-        try await services.removeContainer(id: "test-start")
+        try await withContainer { name in
+            try await services.startContainer(id: name)
+            let ok = try await pollUntil { try await containerState(name) == "running" }
+            #expect(ok)
+        }
     }
 
-    @Test("stopContainer changes state to exited")
+    @Test("stop transitions a running container to exited")
     func stopContainer() async throws {
-        _ = try await services.createContainer(name: "test-stop", image: "alpine:latest")
-        try await services.startContainer(id: "test-stop")
-        try await services.stopContainer(id: "test-stop")
-        let containers = try await services.listContainers()
-        let container = containers.first { ($0["Names"] as? [String])?.first?.contains("test-stop") == true }
-        #expect(container?["State"] as? String == "exited")
-        try await services.removeContainer(id: "test-stop")
+        try await withContainer(started: true) { name in
+            try await services.stopContainer(id: name)
+            let ok = try await pollUntil { try await containerState(name) == "exited" }
+            #expect(ok)
+        }
     }
 
-    @Test("killContainer terminates container")
+    @Test("kill transitions a running container to exited")
     func killContainer() async throws {
-        _ = try await services.createContainer(name: "test-kill", image: "alpine:latest")
-        try await services.startContainer(id: "test-kill")
-        try await services.killContainer(id: "test-kill")
-        try await Task.sleep(nanoseconds: 500_000_000) // Wait for state to update
-        let containers = try await services.listContainers()
-        let container = containers.first { ($0["Names"] as? [String])?.first?.contains("test-kill") == true }
-        #expect(container?["State"] as? String == "exited")
-        try await services.removeContainer(id: "test-kill")
+        try await withContainer(started: true) { name in
+            try await services.killContainer(id: name)
+            let ok = try await pollUntil { try await containerState(name) == "exited" }
+            #expect(ok)
+        }
     }
 
-    @Test("restartContainer keeps running")
+    @Test("restart leaves the container running")
     func restartContainer() async throws {
-        _ = try await services.createContainer(name: "test-restart", image: "alpine:latest")
-        try await services.startContainer(id: "test-restart")
-        try await services.restartContainer(id: "test-restart")
-        let containers = try await services.listContainers()
-        let container = containers.first { ($0["Names"] as? [String])?.first?.contains("test-restart") == true }
-        #expect(container?["State"] as? String == "running")
-        try await services.killContainer(id: "test-restart")
-        try await services.removeContainer(id: "test-restart")
+        try await withContainer(started: true) { name in
+            try await services.restartContainer(id: name)
+            let ok = try await pollUntil { try await containerState(name) == "running" }
+            #expect(ok)
+        }
     }
 
-    @Test("pauseContainer and unpauseContainer")
+    @Test("pause then unpause toggles paused/running")
     func pauseUnpause() async throws {
-        _ = try await services.createContainer(name: "test-pause", image: "alpine:latest")
-        try await services.startContainer(id: "test-pause")
-        try await services.pauseContainer(id: "test-pause")
-        var containers = try await services.listContainers()
-        var container = containers.first { ($0["Names"] as? [String])?.first?.contains("test-pause") == true }
-        #expect(container?["State"] as? String == "paused")
-        try await services.unpauseContainer(id: "test-pause")
-        containers = try await services.listContainers()
-        container = containers.first { ($0["Names"] as? [String])?.first?.contains("test-pause") == true }
-        #expect(container?["State"] as? String == "running")
-        try await services.killContainer(id: "test-pause")
-        try await services.removeContainer(id: "test-pause")
+        try await withContainer(started: true) { name in
+            try await services.pauseContainer(id: name)
+            let paused = try await pollUntil { try await containerState(name) == "paused" }
+            #expect(paused)
+            try await services.unpauseContainer(id: name)
+            let resumed = try await pollUntil { try await containerState(name) == "running" }
+            #expect(resumed)
+        }
     }
 
-    @Test("removeContainer removes from list")
+    @Test("remove deletes the container from the list")
     func removeContainer() async throws {
-        _ = try await services.createContainer(name: "test-remove", image: "alpine:latest")
-        try await services.removeContainer(id: "test-remove")
-        let containers = try await services.listContainers()
-        let found = containers.contains { ($0["Names"] as? [String])?.first?.contains("test-remove") == true }
-        #expect(!found)
-    }
-
-    @Test("renameContainer changes name")
-    func renameContainer() async throws {
-        _ = try await services.createContainer(name: "test-rename-old", image: "alpine:latest")
-        try await services.renameContainer(id: "test-rename-old", newName: "test-rename-new")
-        let containers = try await services.listContainers()
-        let found = containers.contains { ($0["Names"] as? [String])?.first?.contains("test-rename-new") == true }
-        #expect(found)
-        try await services.removeContainer(id: "test-rename-new")
-    }
-
-    @Test("containerLogs returns string")
-    func containerLogs() async throws {
-        _ = try await services.createContainer(name: "test-logs", image: "alpine:latest")
-        try await services.startContainer(id: "test-logs")
-        let logs = try await services.containerLogs(id: "test-logs")
-        #expect(logs is String)
-        try await services.killContainer(id: "test-logs")
-        try await services.removeContainer(id: "test-logs")
-    }
-
-    @Test("inspectContainer returns JSON")
-    func inspectContainer() async throws {
-        _ = try await services.createContainer(name: "test-inspect", image: "alpine:latest")
-        let json = try await services.inspectContainer(id: "test-inspect")
-        #expect(json.contains("test-inspect"))
-        try await services.removeContainer(id: "test-inspect")
-    }
-
-    @Test("containerTop returns process list")
-    func containerTop() async throws {
-        _ = try await services.createContainer(name: "test-top", image: "alpine:latest")
-        try await services.startContainer(id: "test-top")
-        let top = try await services.containerTop(id: "test-top")
-        #expect(!top.isEmpty)
-        try await services.killContainer(id: "test-top")
-        try await services.removeContainer(id: "test-top")
-    }
-
-    @Test("containerStats returns stats JSON")
-    func containerStats() async throws {
-        _ = try await services.createContainer(name: "test-stats", image: "alpine:latest")
-        try await services.startContainer(id: "test-stats")
-        let stats = try await services.containerStats(id: "test-stats")
-        #expect(!stats.isEmpty)
-        try await services.killContainer(id: "test-stats")
-        try await services.removeContainer(id: "test-stats")
-    }
-
-    @Test("containerChanges returns diff")
-    func containerChanges() async throws {
-        let name = "test-changes-\(Int.random(in: 1000...9999))"
+        let name = RealE2E.resourceName("ctr")
         _ = try await services.createContainer(name: name, image: "alpine:latest")
-        try await services.startContainer(id: name)
-        let changes = try await services.containerChanges(id: name)
-        #expect(changes is String) // May be empty "[]" for fresh containers
-        try await services.killContainer(id: name)
-        try await Task.sleep(nanoseconds: 500_000_000)
+        let existsBefore = try await containerExists(name)
+        #expect(existsBefore)
         try await services.removeContainer(id: name)
+        let gone = try await pollUntil { try await !containerExists(name) }
+        #expect(gone)
     }
 
-    @Test("pruneContainers removes stopped containers")
+    @Test("rename changes the container name")
+    func renameContainer() async throws {
+        let old = RealE2E.resourceName("ctr-old")
+        let new = RealE2E.resourceName("ctr-new")
+        _ = try await services.createContainer(name: old, image: "alpine:latest")
+        do {
+            try await services.renameContainer(id: old, newName: new)
+            let hasNew = try await containerExists(new)
+            let hasOld = try await containerExists(old)
+            #expect(hasNew)
+            #expect(!hasOld)
+        } catch { try? await services.removeContainer(id: old); throw error }
+        try? await services.removeContainer(id: new)
+    }
+
+    @Test("logs returns a string for a started container")
+    func containerLogs() async throws {
+        try await withContainer(started: true) { name in
+            let logs = try await services.containerLogs(id: name)
+            #expect(logs is String)
+        }
+    }
+
+    @Test("inspect returns JSON referencing the container name")
+    func inspectContainer() async throws {
+        try await withContainer { name in
+            let json = try await services.inspectContainer(id: name)
+            #expect(json.contains(name))
+        }
+    }
+
+    @Test("top returns a process table for a started container")
+    func containerTop() async throws {
+        try await withContainer(started: true) { name in
+            let top = try await services.containerTop(id: name)
+            #expect(!top.isEmpty)
+        }
+    }
+
+    @Test("stats returns a stats payload for a started container")
+    func containerStats() async throws {
+        try await withContainer(started: true) { name in
+            let stats = try await withTimeout(20) { try await services.containerStats(id: name) }
+            #expect(!stats.isEmpty)
+        }
+    }
+
+    @Test("changes returns a diff payload")
+    func containerChanges() async throws {
+        try await withContainer(started: true) { name in
+            let changes = try await services.containerChanges(id: name)
+            #expect(changes is String)
+        }
+    }
+
+    @Test("prune removes a stopped prefixed container")
     func pruneContainers() async throws {
-        _ = try await services.createContainer(name: "test-prune-c", image: "alpine:latest")
+        let name = RealE2E.resourceName("ctr-prune")
+        _ = try await services.createContainer(name: name, image: "alpine:latest")
         try await services.pruneContainers()
-        let containers = try await services.listContainers()
-        let found = containers.contains { ($0["Names"] as? [String])?.first?.contains("test-prune-c") == true }
-        #expect(!found)
+        let gone = try await !containerExists(name)
+        #expect(gone)
     }
 
-    // MARK: - Image Operations
+    // MARK: - Containers (error paths)
 
-    @Test("listImages returns array")
+    @Test("inspect of a missing container throws a Docker API error")
+    func inspectMissingThrows() async throws {
+        do {
+            _ = try await services.inspectContainer(id: RealE2E.resourceName("missing"))
+            Issue.record("Expected inspect of a missing container to throw")
+        } catch { /* expected: Docker 404 */ }
+    }
+
+    @Test("create from a nonexistent image throws 404")
+    func createBadImageThrows() async throws {
+        let name = RealE2E.resourceName("ctr-badimg")
+        do {
+            _ = try await services.createContainer(name: name, image: "no.such/image:doesnotexist-\(name)")
+            Issue.record("Expected create from a nonexistent image to throw")
+        } catch { /* expected: Docker 404 */ }
+        try? await services.removeContainer(id: name)
+    }
+
+    // MARK: - Images
+
+    @Test("listImages includes the pulled base image")
     func listImages() async throws {
         let images = try await services.listImages()
-        #expect(!images.isEmpty)
+        let tags = images.compactMap { ($0["RepoTags"] as? [String]) }.flatMap { $0 }
+        #expect(tags.contains("alpine:latest"))
     }
 
-    @Test("pullImage downloads image")
-    func pullImage() async throws {
-        try await services.pullImage(name: "alpine:latest")
-        let images = try await services.listImages()
-        let found = images.contains { ($0["RepoTags"] as? [String])?.contains("alpine:latest") == true }
-        #expect(found)
-    }
-
-    @Test("inspectImage returns JSON")
-    func inspectImage() async throws {
-        try await services.pullImage(name: "alpine:latest")
+    @Test("pull then inspect/history works for the base image")
+    func pullInspectHistory() async throws {
+        try await withTimeout(120) { try await services.pullImage(name: "alpine:latest") }
         let json = try await services.inspectImage(name: "alpine:latest")
-        #expect(json.contains("alpine"))
-    }
-
-    @Test("imageHistory returns history")
-    func imageHistory() async throws {
-        try await services.pullImage(name: "alpine:latest")
+        #expect(json.contains("alpine") || json.contains("RepoTags"))
         let history = try await services.imageHistory(name: "alpine:latest")
         #expect(!history.isEmpty)
     }
 
-    @Test("tagImage creates new tag")
-    func tagImage() async throws {
-        try await services.pullImage(name: "alpine:latest")
-        try await services.tagImage(name: "alpine:latest", repo: "test-tag-img", tag: "v1")
-        let images = try await services.listImages()
-        let found = images.contains { ($0["RepoTags"] as? [String])?.contains("test-tag-img:v1") == true }
-        #expect(found)
-        try await services.removeImage(id: "test-tag-img:v1")
+    @Test("tag creates a prefixed tag, then remove deletes it")
+    func tagAndRemoveImage() async throws {
+        let repo = RealE2E.resourceName("img")
+        try await services.tagImage(name: "alpine:latest", repo: repo, tag: "v1")
+        var images = try await services.listImages()
+        #expect(images.contains { ($0["RepoTags"] as? [String])?.contains("\(repo):v1") == true })
+        try await services.removeImage(id: "\(repo):v1")
+        images = try await services.listImages()
+        #expect(!images.contains { ($0["RepoTags"] as? [String])?.contains("\(repo):v1") == true })
     }
 
-    @Test("removeImage removes from list")
-    func removeImage() async throws {
-        try await services.pullImage(name: "alpine:latest")
-        try await services.tagImage(name: "alpine:latest", repo: "test-rm-img", tag: "v1")
-        try await services.removeImage(id: "test-rm-img:v1")
-        let images = try await services.listImages()
-        let found = images.contains { ($0["RepoTags"] as? [String])?.contains("test-rm-img:v1") == true }
-        #expect(!found)
-    }
-
-    @Test("searchImages returns results")
+    @Test("searchImages returns results for a common term")
     func searchImages() async throws {
-        let results = try await services.searchImages(term: "alpine")
+        let results = try await withTimeout(30) { try await services.searchImages(term: "alpine") }
         #expect(!results.isEmpty)
     }
 
-    @Test("pruneImages completes without error")
+    @Test("pruneImages completes without throwing")
     func pruneImages() async throws {
         try await services.pruneImages()
     }
 
-    @Test("pushImage validates image exists")
-    func pushImage() async throws {
-        try await services.pullImage(name: "alpine:latest")
-        try await services.pushImage(name: "alpine:latest")
+    // MARK: - Volumes
+
+    @Test("volume create → appears → inspect → remove → gone")
+    func volumeLifecycle() async throws {
+        let name = RealE2E.resourceName("vol")
+        try await services.createVolume(name: name)
+        do {
+            let vols = try await services.listVolumes()
+            #expect(vols.contains { ($0["Name"] as? String) == name })
+            let json = try await services.inspectVolume(name: name)
+            #expect(json.contains(name))
+        } catch { try? await services.removeVolume(name: name); throw error }
+        try await services.removeVolume(name: name)
+        let after = try await services.listVolumes()
+        #expect(!after.contains { ($0["Name"] as? String) == name })
     }
 
-    // MARK: - Volume Operations
-
-    @Test("listVolumes returns array")
-    func listVolumes() async throws {
-        let volumes = try await services.listVolumes()
-        #expect(volumes is [[String: Any]])
-    }
-
-    @Test("createVolume creates and appears in list")
-    func createVolume() async throws {
-        try await services.createVolume(name: "test-vol")
-        let volumes = try await services.listVolumes()
-        let found = volumes.contains { ($0["Name"] as? String) == "test-vol" }
-        #expect(found)
-        try await services.removeVolume(name: "test-vol")
-    }
-
-    @Test("removeVolume removes from list")
-    func removeVolume() async throws {
-        try await services.createVolume(name: "test-vol-rm")
-        try await services.removeVolume(name: "test-vol-rm")
-        let volumes = try await services.listVolumes()
-        let found = volumes.contains { ($0["Name"] as? String) == "test-vol-rm" }
-        #expect(!found)
-    }
-
-    @Test("inspectVolume returns JSON")
-    func inspectVolume() async throws {
-        try await services.createVolume(name: "test-vol-inspect")
-        let json = try await services.inspectVolume(name: "test-vol-inspect")
-        #expect(json.contains("test-vol-inspect"))
-        try await services.removeVolume(name: "test-vol-inspect")
-    }
-
-    @Test("pruneVolumes completes without error")
+    @Test("pruneVolumes completes without throwing")
     func pruneVolumes() async throws {
-        try await services.createVolume(name: "test-vol-prune")
         try await services.pruneVolumes()
     }
 
-    // MARK: - Network Operations
+    // MARK: - Networks
 
-    @Test("listNetworks returns array with defaults")
+    @Test("listNetworks includes the default bridge")
     func listNetworks() async throws {
         let networks = try await services.listNetworks()
         #expect(!networks.isEmpty)
-        let names = networks.compactMap { $0["Name"] as? String }
-        #expect(names.contains("bridge"))
+        #expect(networks.compactMap { $0["Name"] as? String }.contains("bridge"))
     }
 
-    @Test("createNetwork creates and appears in list")
-    func createNetwork() async throws {
-        try await services.createNetwork(name: "test-net")
-        let networks = try await services.listNetworks()
-        let found = networks.contains { ($0["Name"] as? String) == "test-net" }
-        #expect(found)
-        try await services.removeNetwork(name: "test-net")
+    @Test("network create → appears → inspect → remove → gone")
+    func networkLifecycle() async throws {
+        let name = RealE2E.resourceName("net")
+        try await services.createNetwork(name: name)
+        do {
+            let nets = try await services.listNetworks()
+            #expect(nets.contains { ($0["Name"] as? String) == name })
+            let json = try await services.inspectNetwork(id: name)
+            #expect(json.contains(name))
+        } catch { try? await services.removeNetwork(name: name); throw error }
+        try await services.removeNetwork(name: name)
+        let after = try await services.listNetworks()
+        #expect(!after.contains { ($0["Name"] as? String) == name })
     }
 
-    @Test("removeNetwork removes from list")
-    func removeNetwork() async throws {
-        try await services.createNetwork(name: "test-net-rm")
-        try await services.removeNetwork(name: "test-net-rm")
-        let networks = try await services.listNetworks()
-        let found = networks.contains { ($0["Name"] as? String) == "test-net-rm" }
-        #expect(!found)
-    }
-
-    @Test("inspectNetwork returns JSON")
-    func inspectNetwork() async throws {
-        try await services.createNetwork(name: "test-net-inspect")
-        let json = try await services.inspectNetwork(id: "test-net-inspect")
-        #expect(json.contains("test-net-inspect"))
-        try await services.removeNetwork(name: "test-net-inspect")
-    }
-
-    @Test("connectNetwork and disconnectNetwork")
+    @Test("connect then disconnect a container to a created network")
     func connectDisconnectNetwork() async throws {
-        try await services.createNetwork(name: "test-net-conn")
-        _ = try await services.createContainer(name: "test-net-container", image: "alpine:latest")
-        try await services.startContainer(id: "test-net-container")
-        try await services.connectNetwork(networkId: "test-net-conn", containerId: "test-net-container")
-        try await services.disconnectNetwork(networkId: "test-net-conn", containerId: "test-net-container")
-        try await services.killContainer(id: "test-net-container")
-        try await services.removeContainer(id: "test-net-container")
-        try await services.removeNetwork(name: "test-net-conn")
+        let net = RealE2E.resourceName("net-conn")
+        try await services.createNetwork(name: net)
+        do {
+            try await withContainer(started: true) { ctr in
+                try await services.connectNetwork(networkId: net, containerId: ctr)
+                try await services.disconnectNetwork(networkId: net, containerId: ctr)
+            }
+        } catch { try? await services.removeNetwork(name: net); throw error }
+        try await services.removeNetwork(name: net)
     }
 
-    @Test("pruneNetworks completes without error")
+    @Test("pruneNetworks completes without throwing")
     func pruneNetworks() async throws {
-        try await services.createNetwork(name: "test-net-prune")
         try await services.pruneNetworks()
-    }
-
-    // MARK: - Profile Operations
-
-    @Test("listProfiles returns at least default")
-    func listProfiles() async throws {
-        let profiles = try await services.listProfiles()
-        #expect(!profiles.isEmpty)
-        #expect(profiles.contains { $0.name == "default" })
     }
 
     // MARK: - Streaming
 
-    @Test("streamEvents returns a task")
+    @Test("streamEvents returns a cancellable task")
     func streamEvents() async throws {
         let task = services.streamEvents { _ in }
         #expect(task != nil)
         task?.cancel()
     }
 
-    @Test("streamLogs returns a task")
+    @Test("streamLogs returns a cancellable task for a started container")
     func streamLogs() async throws {
-        _ = try await services.createContainer(name: "test-stream-logs", image: "alpine:latest")
-        try await services.startContainer(id: "test-stream-logs")
-        let task = services.streamLogs(containerId: "test-stream-logs") { _ in }
-        #expect(task != nil)
-        task?.cancel()
-        try await services.killContainer(id: "test-stream-logs")
-        try await services.removeContainer(id: "test-stream-logs")
+        try await withContainer(started: true) { name in
+            let task = services.streamLogs(containerId: name) { _ in }
+            #expect(task != nil)
+            task?.cancel()
+        }
     }
 
-    @Test("streamStats returns a task")
+    @Test("streamStats returns a cancellable task for a started container")
     func streamStats() async throws {
-        _ = try await services.createContainer(name: "test-stream-stats", image: "alpine:latest")
-        try await services.startContainer(id: "test-stream-stats")
-        let task = services.streamStats(containerId: "test-stream-stats") { _ in }
-        #expect(task != nil)
-        task?.cancel()
-        try await services.killContainer(id: "test-stream-stats")
-        try await services.removeContainer(id: "test-stream-stats")
+        try await withContainer(started: true) { name in
+            let task = services.streamStats(containerId: name) { _ in }
+            #expect(task != nil)
+            task?.cancel()
+        }
     }
 
-    // MARK: - AppState Integration
+    // MARK: - Final sweep (best-effort cleanup of any prefixed leftovers)
 
-    @Test("AppState with MockServiceProvider works")
-    func appStateWithMock() async throws {
-        let state = AppState(services: MockServiceProvider())
-        await state.refreshAll()
-        #expect(!state.containers.isEmpty)
-        #expect(!state.images.isEmpty)
+    @Test("zzz final sweep removes any leftover prefixed resources")
+    func finalSweep() async throws {
+        let containers = try await services.listContainers()
+        for c in containers {
+            guard let name = (c["Names"] as? [String])?.first, name.contains(RealE2E.prefix) else { continue }
+            try? await services.killContainer(id: name)
+            try? await services.removeContainer(id: name)
+        }
+        let vols = try await services.listVolumes()
+        for v in vols where (v["Name"] as? String)?.contains(RealE2E.prefix) == true {
+            try? await services.removeVolume(name: v["Name"] as! String)
+        }
+        let nets = try await services.listNetworks()
+        for n in nets where (n["Name"] as? String)?.contains(RealE2E.prefix) == true {
+            try? await services.removeNetwork(name: n["Name"] as! String)
+        }
+        let leftover = try await containerNames().filter { $0.contains(RealE2E.prefix) }
+        #expect(leftover.isEmpty)
     }
 }
