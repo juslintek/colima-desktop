@@ -56,11 +56,10 @@ targets:
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
         INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Colima Desktop contributors. Distributed under the project license."
         INFOPLIST_KEY_NSHighResolutionCapable: YES
-        # Sparkle auto-update. Replace SUPublicEDKey with the output of
-        # `scripts/sparkle-keys.sh` (generate_keys) before shipping, and point
-        # SUFeedURL at where you host appcast.xml. See Sources/docs/DISTRIBUTION.md.
-        INFOPLIST_KEY_SUFeedURL: "https://raw.githubusercontent.com/juslintek/colima-desktop/main/appcast.xml"
-        INFOPLIST_KEY_SUPublicEDKey: "REPLACE_WITH_ED25519_PUBLIC_KEY"
+        # Sparkle auto-update. Custom keys (SUFeedURL/SUPublicEDKey) live in
+        # packaging/Info.plist because Xcode's INFOPLIST_KEY_* only injects known keys.
+        # Replace SUPublicEDKey via `make sparkle-keys`; point SUFeedURL at appcast.xml.
+        INFOPLIST_FILE: packaging/Info.plist
         GENERATE_INFOPLIST_FILE: true
         PRODUCT_NAME: "Colima Desktop"
         PRODUCT_MODULE_NAME: ColimaDesktop

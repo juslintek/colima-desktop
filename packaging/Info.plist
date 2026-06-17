@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+      Partial Info.plist used as the base while GENERATE_INFOPLIST_FILE=YES merges the
+      standard/auto keys (versions, category, etc.) on top. Holds Sparkle keys that
+      Xcode's INFOPLIST_KEY_* mechanism does NOT inject (arbitrary custom keys).
+
+      SUPublicEDKey: replace the placeholder with `make sparkle-keys` output before shipping.
+      SUFeedURL:     where appcast.xml is hosted.
+    -->
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/juslintek/colima-desktop/main/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>REPLACE_WITH_ED25519_PUBLIC_KEY</string>
+    <key>SUEnableInstallerLauncherService</key>
+    <false/>
+</dict>
+</plist>
