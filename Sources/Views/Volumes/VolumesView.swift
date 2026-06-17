@@ -133,7 +133,7 @@ struct VolumesView: View {
                 TextField("Volume name", text: $newVolumeName)
                     .textFieldStyle(.roundedBorder)
                     .accessibilityIdentifier("field_volume_name")
-                    .onChange(of: newVolumeName) { _ in validationError = appState.validateVolumeName(newVolumeName) }
+                    .onChange(of: newVolumeName) { validationError = appState.validateVolumeName(newVolumeName) }
                 if let err = validationError {
                     Text(err).font(.caption).foregroundStyle(.red)
                         .accessibilityIdentifier("text_volume_validation_error")

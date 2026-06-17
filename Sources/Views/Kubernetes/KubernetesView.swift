@@ -133,7 +133,7 @@ struct KubernetesView: View {
             ForEach(0..<tabNames.count, id: \.self) { Text(tabNames[$0]).tag($0) }
         }
         .pickerStyle(.segmented)
-        .onChange(of: selectedTab) { _ in appState.selectedPodName = nil }
+        .onChange(of: selectedTab) { appState.selectedPodName = nil }
     }
 
     @ViewBuilder

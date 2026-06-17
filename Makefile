@@ -90,3 +90,11 @@ package-dmg:
 
 release:
 	NOTARIZE=$(NOTARIZE) scripts/package.sh
+
+# === Sparkle auto-update tooling ===
+.PHONY: sparkle-keys appcast
+sparkle-keys:   # one-time: generate EdDSA keys (private -> keychain, public -> stdout)
+	scripts/sparkle-keys.sh
+
+appcast:        # sign dist/*.dmg and (re)generate dist/appcast.xml
+	scripts/sparkle-appcast.sh

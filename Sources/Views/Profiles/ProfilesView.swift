@@ -44,7 +44,7 @@ struct ProfilesView: View {
                     TextField("Profile Name", text: $newName)
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("field_create_profile_name")
-                        .onChange(of: newName) { _ in nameError = appState.validateProfileName(newName) }
+                        .onChange(of: newName) { nameError = appState.validateProfileName(newName) }
                     if let err = nameError {
                         Text(err).font(.caption).foregroundStyle(.red)
                             .accessibilityIdentifier("text_profile_name_error")
@@ -82,7 +82,7 @@ struct ProfilesView: View {
                     TextField("Destination Name", text: $cloneDest)
                         .textFieldStyle(.roundedBorder)
                         .accessibilityIdentifier("field_clone_profile_dest")
-                        .onChange(of: cloneDest) { _ in cloneError = appState.validateProfileName(cloneDest) }
+                        .onChange(of: cloneDest) { cloneError = appState.validateProfileName(cloneDest) }
                     if let err = cloneError {
                         Text(err).font(.caption).foregroundStyle(.red)
                             .accessibilityIdentifier("text_clone_name_error")

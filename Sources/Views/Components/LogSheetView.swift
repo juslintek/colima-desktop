@@ -37,7 +37,7 @@ struct LogSheetView: View {
                     }
                     .padding()
                 }
-                .onChange(of: logs.count) { _ in
+                .onChange(of: logs.count) {
                     if follow, let last = logs.indices.last {
                         proxy.scrollTo(last, anchor: .bottom)
                     }

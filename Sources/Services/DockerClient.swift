@@ -10,7 +10,7 @@ actor DockerClient {
         self.socketPath = socketPath
     }
 
-    convenience init(profile: String = "default") {
+    init(profile: String = "default") {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         let path = "\(home)/.colima/\(profile)/docker.sock"
         self.init(socketPath: path)

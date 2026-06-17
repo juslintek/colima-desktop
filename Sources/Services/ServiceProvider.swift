@@ -427,11 +427,16 @@ class RealServiceProvider: ServiceProvider {
         process.standardOutput = pipe
         process.standardError = errPipe
         try process.run()
+        // Drain concurrently before waiting (avoid >64KB pipe-buffer deadlock).
+        let outHandle = pipe.fileHandleForReading
+        let errHandle = errPipe.fileHandleForReading
+        async let outRead = Task.detached { outHandle.readDataToEndOfFile() }.value
+        async let errRead = Task.detached { errHandle.readDataToEndOfFile() }.value
+        let data = await outRead
+        let errData = await errRead
         process.waitUntilExit()
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: data, encoding: .utf8) ?? ""
         if process.terminationStatus != 0 {
-            let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
             let errOutput = String(data: errData, encoding: .utf8) ?? ""
             throw DaemonError.commandFailed(tool, process.terminationStatus, errOutput.isEmpty ? output : errOutput)
         }

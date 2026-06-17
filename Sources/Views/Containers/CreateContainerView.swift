@@ -57,7 +57,7 @@ struct CreateContainerView: View {
                         TextField("auto-generated if empty", text: $containerName)
                             .textFieldStyle(.roundedBorder)
                             .accessibilityIdentifier("field_create_container_name_full")
-                            .onChange(of: containerName) { _ in
+                            .onChange(of: containerName) {
                                 nameError = containerName.isEmpty ? nil : appState.validateContainerName(containerName)
                             }
                         if let err = nameError {

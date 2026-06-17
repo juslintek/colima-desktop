@@ -18,6 +18,9 @@ packages:
   SnapshotTesting:
     url: https://github.com/pointfreeco/swift-snapshot-testing
     from: "1.17.0"
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.6.0"
 
 settings:
   base:
@@ -43,11 +46,21 @@ targets:
     platform: macOS
     sources:
       - Sources
+    dependencies:
+      - package: Sparkle
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop
         INFOPLIST_KEY_CFBundleDisplayName: "Colima Desktop"
         INFOPLIST_KEY_LSApplicationIsAgent: NO
+        INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.developer-tools"
+        INFOPLIST_KEY_NSHumanReadableCopyright: "Copyright © 2026 Colima Desktop contributors. Distributed under the project license."
+        INFOPLIST_KEY_NSHighResolutionCapable: YES
+        # Sparkle auto-update. Replace SUPublicEDKey with the output of
+        # `scripts/sparkle-keys.sh` (generate_keys) before shipping, and point
+        # SUFeedURL at where you host appcast.xml. See Sources/docs/DISTRIBUTION.md.
+        INFOPLIST_KEY_SUFeedURL: "https://raw.githubusercontent.com/juslintek/colima-desktop/main/appcast.xml"
+        INFOPLIST_KEY_SUPublicEDKey: "REPLACE_WITH_ED25519_PUBLIC_KEY"
         GENERATE_INFOPLIST_FILE: true
         PRODUCT_NAME: "Colima Desktop"
         PRODUCT_MODULE_NAME: ColimaDesktop

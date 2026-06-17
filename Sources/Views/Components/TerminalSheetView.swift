@@ -50,7 +50,7 @@ struct TerminalSheetView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding()
                 }
-                .onChange(of: history.count) { _ in
+                .onChange(of: history.count) {
                     if let last = history.indices.last { proxy.scrollTo(last, anchor: .bottom) }
                 }
             }

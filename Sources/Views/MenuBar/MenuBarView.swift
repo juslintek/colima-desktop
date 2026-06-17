@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var appState: AppState
+    @EnvironmentObject var updater: UpdaterManager
 
     private var runningCount: Int {
         appState.containers.filter { $0.state == "running" }.count
@@ -88,6 +89,23 @@ struct MenuBarView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+
+            Divider()
+
+            // Update
+            Button {
+                updater.checkForUpdates()
+            } label: {
+                Label("Check for Updates…", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .disabled(!updater.canCheckForUpdates)
+            .help(updater.canCheckForUpdates ? "Check for a newer version" : "Updates are not configured in this build")
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .accessibilityIdentifier("btn_menubar_check_updates")
         }
         .frame(width: 280)
     }

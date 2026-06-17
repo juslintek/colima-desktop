@@ -170,7 +170,7 @@ struct ContainersView: View {
                 TextField("Container Name", text: $newContainerName)
                     .textFieldStyle(.roundedBorder)
                     .accessibilityIdentifier("field_create_container_name")
-                    .onChange(of: newContainerName) { _ in
+                    .onChange(of: newContainerName) {
                         nameError = appState.validateContainerName(newContainerName)
                     }
                 if let err = nameError {
@@ -354,7 +354,7 @@ struct ImageBrowserSheet: View {
         .frame(width: 550, height: 450)
         .accessibilityIdentifier("sheet_image_browser")
         .onAppear { searchHub() }
-        .onChange(of: searchText) { _ in searchHub() }
+        .onChange(of: searchText) { searchHub() }
     }
 
     private func searchHub() {

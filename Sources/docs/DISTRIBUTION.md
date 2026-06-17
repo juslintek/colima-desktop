@@ -19,6 +19,39 @@ signed, notarized direct download.
 
 **Verdict:** distribute as a **Developer ID-signed, notarized `.app` in a `.dmg`** (done below).
 
+## Auto-update (Sparkle)
+
+The app self-updates via **Sparkle 2** (the standard for Developer ID Mac apps; the App Store's
+own updater is unavailable to us since we don't ship there). Wired in:
+
+- `Sources/App/UpdaterManager.swift` — `SPUStandardUpdaterController`, background checks enabled.
+  It stays **dormant** until a real `SUPublicEDKey` is set (so dev/placeholder builds never error)
+  and is **disabled under `--ui-testing`** (XCUITest never triggers a check/prompt).
+- "Check for Updates…" appears both in the app menu (`CommandGroup(after: .appInfo)`) and in the
+  menu-bar status menu (`btn_menubar_check_updates`).
+- Info.plist keys (in `project.yml`): `SUFeedURL` (where `appcast.xml` is hosted) and
+  `SUPublicEDKey` (currently the placeholder `REPLACE_WITH_ED25519_PUBLIC_KEY`).
+
+### One-time setup
+```bash
+make app            # resolves Sparkle (needed so its tools exist)
+make sparkle-keys   # generates EdDSA keys: private -> keychain, public -> stdout
+```
+Paste the printed public key into `project.yml` → `INFOPLIST_KEY_SUPublicEDKey`, set
+`INFOPLIST_KEY_SUFeedURL` to your hosting URL, then `xcodegen generate`.
+
+### Per release
+```bash
+git tag v1.2.0
+SIGN_IDENTITY="Developer ID Application: …" NOTARY_PROFILE=ColimaDesktopNotary NOTARIZE=1 make release
+DOWNLOAD_URL_PREFIX="https://github.com/<you>/colima-desktop/releases/download/v1.2.0/" make appcast
+# upload dist/Colima Desktop-1.2.0.dmg + dist/appcast.xml to the SUFeedURL location
+```
+`make appcast` signs each DMG with the keychain private key and writes `dist/appcast.xml`.
+Running apps poll `SUFeedURL`, verify the EdDSA signature against `SUPublicEDKey`, and update.
+
+> Until a real key + hosted appcast exist, the menu item is shown but disabled — no errors.
+
 ## App icon
 
 `scripts/make-icon.sh` generates the icon (original isometric-cube artwork on a teal→blue

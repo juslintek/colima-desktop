@@ -18,6 +18,12 @@ struct MenuBarViewTests {
         return s
     }
 
+    /// Build the menu with both required environment objects (UpdaterManager stays
+    /// dormant in tests: no SUPublicEDKey in the test bundle, so it never starts).
+    @ViewBuilder private func menu(_ s: AppState) -> some View {
+        MenuBarView().environmentObject(s).environmentObject(UpdaterManager())
+    }
+
     private func running(_ name: String) -> MockContainer {
         MockContainer(id: name, name: name, image: "alpine", status: "Up", state: "running", ports: "", created: "now")
     }
@@ -27,7 +33,7 @@ struct MenuBarViewTests {
 
     @Test("shows Running and a Stop button when the VM is up")
     func runningState() throws {
-        let view = MenuBarView().environmentObject(state(vmRunning: true))
+        let view = menu(state(vmRunning: true))
         let status = try view.inspect().find(viewWithAccessibilityIdentifier: "menubar_vm_status")
         #expect(try status.text().string() == "Running")
         #expect((try? view.inspect().find(viewWithAccessibilityIdentifier: "btn_menubar_stop_vm")) != nil)
@@ -35,7 +41,7 @@ struct MenuBarViewTests {
 
     @Test("shows Stopped and a Start button when the VM is down")
     func stoppedState() throws {
-        let view = MenuBarView().environmentObject(state(vmRunning: false))
+        let view = menu(state(vmRunning: false))
         let status = try view.inspect().find(viewWithAccessibilityIdentifier: "menubar_vm_status")
         #expect(try status.text().string() == "Stopped")
         #expect((try? view.inspect().find(viewWithAccessibilityIdentifier: "btn_menubar_start_vm")) != nil)
@@ -44,7 +50,7 @@ struct MenuBarViewTests {
     @Test("running-container metric counts only running containers")
     func runningCountMetric() throws {
         let s = state(vmRunning: true, containers: [running("a"), running("b"), stopped("c")])
-        let view = MenuBarView().environmentObject(s)
+        let view = menu(s)
         let pill = try view.inspect().find(viewWithAccessibilityIdentifier: "menubar_metric_containers")
         // The pill combines icon + value + label; the running count (2) must appear.
         #expect(try pill.find(text: "2").string() == "2")
@@ -53,20 +59,20 @@ struct MenuBarViewTests {
     @Test("lists container names in the menu")
     func listsContainers() throws {
         let s = state(vmRunning: true, containers: [running("web"), stopped("db")])
-        let view = MenuBarView().environmentObject(s)
+        let view = menu(s)
         #expect((try? view.inspect().find(text: "web")) != nil)
         #expect((try? view.inspect().find(text: "db")) != nil)
     }
 
     @Test("Open Colima Desktop action is always present")
     func openButtonPresent() throws {
-        let view = MenuBarView().environmentObject(state(vmRunning: true))
+        let view = menu(state(vmRunning: true))
         #expect((try? view.inspect().find(viewWithAccessibilityIdentifier: "btn_menubar_open")) != nil)
     }
 
     @Test("zero state shows 0 running containers and the Start button")
     func zeroState() throws {
-        let view = MenuBarView().environmentObject(state(vmRunning: false))
+        let view = menu(state(vmRunning: false))
         let pill = try view.inspect().find(viewWithAccessibilityIdentifier: "menubar_metric_containers")
         #expect(try pill.find(text: "0").string() == "0")
         #expect((try? view.inspect().find(viewWithAccessibilityIdentifier: "btn_menubar_start_vm")) != nil)
@@ -77,14 +83,14 @@ struct MenuBarViewTests {
     @Test("more than five containers shows an overflow summary line")
     func overflowSummary() throws {
         let many = (0..<8).map { running("ctr\($0)") }
-        let view = MenuBarView().environmentObject(state(vmRunning: true, containers: many))
+        let view = menu(state(vmRunning: true, containers: many))
         // 8 containers → "3 more..." (shows first 5).
         #expect((try? view.inspect().find(text: "3 more...")) != nil)
     }
 
     @Test("image and volume counters reflect AppState")
     func counters() throws {
-        let view = MenuBarView().environmentObject(state(vmRunning: true, images: 4, volumes: 2))
+        let view = menu(state(vmRunning: true, images: 4, volumes: 2))
         let imgPill = try view.inspect().find(viewWithAccessibilityIdentifier: "menubar_metric_images")
         #expect(try imgPill.find(text: "4").string() == "4")
         let volPill = try view.inspect().find(viewWithAccessibilityIdentifier: "menubar_metric_volumes")
@@ -101,7 +107,7 @@ struct MenuBarViewTests {
     func notInstalledShowsStopped() throws {
         let s = state(vmRunning: false)
         s.colimaInstalled = false
-        let view = MenuBarView().environmentObject(s)
+        let view = menu(s)
         let status = try view.inspect().find(viewWithAccessibilityIdentifier: "menubar_vm_status")
         #expect(try status.text().string() == "Stopped")
     }

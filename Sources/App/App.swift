@@ -4,6 +4,7 @@ import SwiftUI
 struct ColimaDesktopApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState: AppState
+    @StateObject private var updater = UpdaterManager()
 
     init() {
         // Backend is independent of UI-test affordances: `--ui-testing` only enables
@@ -21,11 +22,19 @@ struct ColimaDesktopApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .environmentObject(updater)
+        }
+        .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { updater.checkForUpdates() }
+                    .disabled(!updater.canCheckForUpdates)
+            }
         }
 
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(appState)
+                .environmentObject(updater)
         } label: {
             Label("\(appState.containers.filter { $0.state == "running" }.count)", systemImage: "cube")
         }

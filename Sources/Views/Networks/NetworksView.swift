@@ -137,7 +137,7 @@ struct NetworksView: View {
                 TextField("Network name", text: $newNetworkName)
                     .textFieldStyle(.roundedBorder)
                     .accessibilityIdentifier("field_network_name")
-                    .onChange(of: newNetworkName) { _ in validationError = appState.validateNetworkName(newNetworkName) }
+                    .onChange(of: newNetworkName) { validationError = appState.validateNetworkName(newNetworkName) }
                 if let err = validationError {
                     Text(err).font(.caption).foregroundStyle(.red)
                         .accessibilityIdentifier("text_network_validation_error")

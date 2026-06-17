@@ -199,13 +199,20 @@ actor DaemonClient {
         process.standardError = errPipe
 
         try process.run()
+        // Drain stdout+stderr concurrently BEFORE waiting. Reading after waitUntilExit()
+        // deadlocks when a command emits more than the ~64KB pipe buffer (e.g. `colima
+        // start` logs, `docker logs`): the child blocks on write and never exits.
+        let outHandle = pipe.fileHandleForReading
+        let errHandle = errPipe.fileHandleForReading
+        async let outRead = Task.detached { outHandle.readDataToEndOfFile() }.value
+        async let errRead = Task.detached { errHandle.readDataToEndOfFile() }.value
+        let data = await outRead
+        let errData = await errRead
         process.waitUntilExit()
 
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let output = String(data: data, encoding: .utf8) ?? ""
 
         if process.terminationStatus != 0 {
-            let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
             let errOutput = String(data: errData, encoding: .utf8) ?? ""
             throw DaemonError.commandFailed(command, process.terminationStatus, errOutput.isEmpty ? output : errOutput)
         }
