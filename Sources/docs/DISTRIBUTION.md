@@ -19,6 +19,46 @@ signed, notarized direct download.
 
 **Verdict:** distribute as a **Developer ID-signed, notarized `.app` in a `.dmg`** (done below).
 
+## Distribution status & roadmap
+
+> "Apple Developer license" vs "App Store" — these are different things, and it matters here:
+> - The **App Store** is **not possible** for this app (sandbox; see above) — license or not.
+> - The paid **Apple Developer Program** ($99/yr) is what unlocks **Developer ID signing +
+>   notarization**, i.e. a DMG that opens cleanly past Gatekeeper. That is the real goal.
+> - **Sparkle auto-update needs no Apple membership** — it uses its own EdDSA keys, so
+>   GitHub-hosted auto-update works **today**.
+
+| Phase | Signing | Gatekeeper UX | Auto-update | Status |
+|-------|---------|---------------|-------------|--------|
+| **Now** (no membership) | unsigned | right-click → Open (one-time) | ✅ via Sparkle EdDSA | **ready** |
+| **Later** (membership) | Developer ID + notarized | opens with no warning | ✅ same | pipeline pre-wired, secret-gated |
+
+## GitHub releases (current path — no Apple membership)
+
+Hosting: DMGs are GitHub **Release assets**; `appcast.xml` lives on `main`
+(`SUFeedURL` → `raw.githubusercontent.com/<owner>/colima-desktop/main/appcast.xml`).
+
+One-time:
+```bash
+make app && make sparkle-keys     # paste the public key into packaging/Info.plist (SUPublicEDKey)
+```
+Each release (local):
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+scripts/github-release.sh         # builds DMG, gh release, signs+publishes appcast.xml
+```
+Or automated — push the tag and the **`.github/workflows/release.yml`** job builds the DMG,
+creates the GitHub Release, and (if the `SPARKLE_PRIVATE_KEY` repo secret is set) signs +
+commits `appcast.xml`. Unsigned users open the app once via **right-click → Open** (Gatekeeper);
+auto-updates thereafter are EdDSA-verified by Sparkle.
+
+## When you buy the Apple Developer Program membership
+
+No code changes — just add repo secrets and the release workflow starts signing + notarizing:
+`MACOS_CERTIFICATE_P12` (base64 .p12), `MACOS_CERTIFICATE_PASSWORD`, `KEYCHAIN_PASSWORD`,
+`MACOS_SIGN_IDENTITY`, and `NOTARY_APPLE_ID` / `NOTARY_TEAM_ID` / `NOTARY_PASSWORD`. Locally,
+`SIGN_IDENTITY=… NOTARY_PROFILE=… NOTARIZE=1 make release` does the same (see below).
+
 ## Auto-update (Sparkle)
 
 The app self-updates via **Sparkle 2** (the standard for Developer ID Mac apps; the App Store's

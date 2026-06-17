@@ -13,6 +13,10 @@ BIN="$(find "$ROOT/build" -path '*artifacts/sparkle/Sparkle/bin' -type d 2>/dev/
 echo "==> Generating/locating EdDSA key (private key -> login keychain)"
 "$BIN/generate_keys"
 echo
-echo "==> Paste the public key above into project.yml:"
-echo "      INFOPLIST_KEY_SUPublicEDKey: \"<public key>\""
+echo "==> Paste the public key above into packaging/Info.plist (SUPublicEDKey),"
 echo "    then \`xcodegen generate\` and rebuild."
+echo
+echo "==> For GitHub Actions auto-update, export the PRIVATE key and store it as the"
+echo "    repo secret SPARKLE_PRIVATE_KEY:"
+echo "      \"$BIN/generate_keys\" -x sparkle_private_key.pem   # then: gh secret set SPARKLE_PRIVATE_KEY < sparkle_private_key.pem"
+echo "    (delete the exported file afterwards)."

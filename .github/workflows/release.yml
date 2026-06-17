@@ -1,0 +1,119 @@
+name: Release
+
+# Cut a release when a vX.Y.Z tag is pushed:
+#   git tag v1.0.0 && git push origin v1.0.0
+#
+# Works TODAY unsigned (GitHub-hosted DMG + Sparkle appcast). It also contains
+# Developer ID signing + notarization steps that stay DORMANT until you add the
+# corresponding secrets (after buying the Apple Developer Program membership).
+#
+# Optional repo secrets:
+#   SPARKLE_PRIVATE_KEY      EdDSA private key (no Apple membership needed) — enables auto-update
+#   MACOS_CERTIFICATE_P12    base64 of your Developer ID Application .p12   ┐
+#   MACOS_CERTIFICATE_PASSWORD                                              │ signing (later)
+#   KEYCHAIN_PASSWORD        any throwaway password for the CI keychain     │
+#   MACOS_SIGN_IDENTITY      "Developer ID Application: Name (TEAMID)"      ┘
+#   NOTARY_APPLE_ID / NOTARY_TEAM_ID / NOTARY_PASSWORD   notarization (later)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to (re)release, e.g. v1.0.0'
+        required: true
+
+permissions:
+  contents: write   # create releases + push appcast.xml
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.MACOS_SIGN_IDENTITY != '' }}
+      HAS_NOTARY: ${{ secrets.NOTARY_APPLE_ID != '' }}
+      HAS_SPARKLE: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # tags + commit count for the build number
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project + resolve packages (provides Sparkle tools)
+        run: |
+          xcodegen generate
+          xcodebuild -resolvePackageDependencies -scheme ColimaDesktop -derivedDataPath build/Release
+
+      - name: Import Developer ID certificate (dormant until secrets exist)
+        if: env.HAS_SIGNING == 'true'
+        env:
+          CERT_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
+          CERT_PW: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          KC_PW: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          echo "$CERT_P12" | base64 --decode > /tmp/cert.p12
+          security create-keychain -p "$KC_PW" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KC_PW" build.keychain
+          security import /tmp/cert.p12 -k build.keychain -P "$CERT_PW" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PW" build.keychain
+          rm -f /tmp/cert.p12
+
+      - name: Configure notarization (dormant until secrets exist)
+        if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials ColimaDesktopNotary \
+            --apple-id "$NOTARY_APPLE_ID" --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD"
+
+      - name: Build DMG
+        env:
+          VERSION: ${{ env.TAG }}
+          SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          NOTARIZE: ${{ (env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true') && '1' || '0' }}
+          NOTARY_PROFILE: ColimaDesktopNotary
+        run: scripts/package.sh
+
+      - name: Create / update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          DMG="dist/Colima Desktop-${TAG#v}.dmg"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$DMG" --clobber
+          else
+            gh release create "$TAG" "$DMG" --title "$TAG" --generate-notes
+          fi
+
+      - name: Generate + publish Sparkle appcast (enables auto-update)
+        if: env.HAS_SPARKLE == 'true'
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          DOWNLOAD_URL_PREFIX: https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          [ -f appcast.xml ] && cp appcast.xml dist/appcast.xml || true
+          scripts/sparkle-appcast.sh
+          cp dist/appcast.xml appcast.xml
+          if ! git diff --quiet -- appcast.xml; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add appcast.xml
+            git commit -m "chore(release): appcast for ${TAG}"
+            git push origin main
+          fi
+
+      - name: Summary
+        run: |
+          echo "Released $TAG" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Signed/notarized: ${HAS_SIGNING}/${HAS_NOTARY}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Auto-update appcast: ${HAS_SPARKLE}" >> "$GITHUB_STEP_SUMMARY"
