@@ -9,46 +9,46 @@ struct ResourceAdvisor: View {
     private var recommendations: [Recommendation] {
         var items: [Recommendation] = []
 
-        // Battery-aware
+        guard appState.vmRunning else { return items }
+
+        let cpu = appState.vmCPU
+        let memGiB = Double(appState.vmMemory) / 1_073_741_824.0
+        let allocText = cpu > 0 ? "\(cpu) CPU, \(String(format: "%.0f", memGiB)) GiB" : "the current allocation"
+        let runningContainers = appState.containers.filter { $0.state == "running" }.count
+
+        // Battery-aware (real: ProcessInfo low-power state + real allocation).
         if ProcessInfo.processInfo.isLowPowerModeEnabled {
             items.append(Recommendation(
                 icon: "battery.25",
                 severity: .warning,
-                title: "Low Power Mode detected",
-                detail: "Consider reducing VM resources to preserve battery. Current: 4 CPU, 8 GiB.",
-                action: "Switch to battery preset"
+                title: "Low Power Mode is on",
+                detail: "Colima is allocated \(allocText). Reducing it preserves battery while on the go.",
+                action: "Adjust config"
             ))
         }
 
-        // Idle detection
-        let runningContainers = appState.containers.filter { $0.state == "running" }.count
-        if runningContainers == 0 && appState.vmRunning {
+        // Idle detection (real: running-container count from the backend).
+        if runningContainers == 0 {
             items.append(Recommendation(
                 icon: "moon.zzz",
                 severity: .info,
                 title: "No containers running",
-                detail: "VM is idle. Consider stopping Colima to free ~1 GB memory and CPU.",
+                detail: "The VM is idle but holding \(allocText). Stop Colima to free those resources.",
                 action: "Stop VM"
             ))
         }
 
-        // Over-allocation detection
-        items.append(Recommendation(
-            icon: "chart.line.uptrend.xyaxis",
-            severity: .info,
-            title: "Right-sizing opportunity",
-            detail: "Peak usage this week: 2.1 CPU, 3.2 GiB. Current allocation: 4 CPU, 8 GiB. Consider reducing to save resources.",
-            action: "Adjust config"
-        ))
-
-        // x86 on ARM detection
-        items.append(Recommendation(
-            icon: "cpu",
-            severity: .info,
-            title: "x86 images detected",
-            detail: "2 containers run x86 images on ARM. Enable Rosetta for 5x faster execution.",
-            action: "Enable Rosetta"
-        ))
+        // Right-sizing hint (real: only when generously provisioned for the host).
+        let hostCores = ProcessInfo.processInfo.processorCount
+        if cpu > 0 && hostCores > 0 && cpu >= max(4, hostCores / 2) {
+            items.append(Recommendation(
+                icon: "chart.line.uptrend.xyaxis",
+                severity: .info,
+                title: "Right-sizing opportunity",
+                detail: "Colima holds \(allocText) of this \(hostCores)-core Mac. Lower it in Configuration if workloads are light.",
+                action: "Adjust config"
+            ))
+        }
 
         return items
     }
@@ -72,7 +72,12 @@ struct ResourceAdvisor: View {
                                 Text(rec.detail).font(.caption2).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button(rec.action) { appState.showToast("Applied: \(rec.action)") }
+                            Button(rec.action) {
+                                switch rec.action {
+                                case "Stop VM": appState.stopVM()
+                                default: appState.selectedTab = .configuration
+                                }
+                            }
                                 .font(.caption2)
                                 .controlSize(.small)
                         }

@@ -35,6 +35,7 @@ class AppState: ObservableObject {
     @Published var volumes: [MockVolume] = []
     @Published var networks: [MockNetwork] = []
     @Published var profiles: [MockProfile] = []
+    @Published var machines: [MockVM] = []
     @Published var k8sRunning: Bool = false
     var k8sEnabled: Bool { k8sRunning }
     @Published var memoryGovernorTier: Int = 0
@@ -138,6 +139,7 @@ class AppState: ObservableObject {
         await refreshVolumes()
         await refreshNetworks()
         await refreshProfiles()
+        await refreshMachines()
         do {
             let status = try await services.vmStatus(profile: activeProfile)
             vmRunning = status.running
@@ -326,6 +328,27 @@ class AppState: ObservableObject {
             }
         } catch {
             showError("Failed to refresh profiles: \(error.localizedDescription)")
+        }
+    }
+
+    @MainActor func refreshMachines() async {
+        do {
+            let raw = try await services.listMachines()
+            machines = raw.map { m in
+                let bytes = { (v: Any?) -> Int in (v as? Int) ?? Int((v as? Int64) ?? 0) }
+                return MockVM(
+                    id: m["name"] as? String ?? UUID().uuidString,
+                    name: m["name"] as? String ?? "",
+                    os: MockVM.VMOS(rawValue: (m["os"] as? String ?? "linux")) ?? .linux,
+                    status: (m["status"] as? String ?? "").lowercased(),
+                    cpus: m["cpus"] as? Int ?? 0,
+                    memory: bytes(m["memory"]) / (1024*1024*1024),
+                    disk: bytes(m["disk"]) / (1024*1024*1024),
+                    arch: m["arch"] as? String ?? ""
+                )
+            }
+        } catch {
+            machines = []
         }
     }
 

@@ -53,6 +53,17 @@ class MockServiceProvider: ServiceProvider {
         profiles.append(MockProfile(id: UUID().uuidString, name: dest, status: "Stopped", arch: src.arch, cpus: src.cpus, memory: src.memory, disk: src.disk, runtime: src.runtime))
     }
 
+    // MARK: - Machines
+
+    func listMachines() async throws -> [[String: Any]] {
+        [
+            ["name": "dev-ubuntu", "os": "linux", "status": "running", "cpus": 4, "memory": Int64(8) * 1_073_741_824, "disk": Int64(50) * 1_073_741_824, "arch": "aarch64"],
+            ["name": "build-fedora", "os": "linux", "status": "stopped", "cpus": 2, "memory": Int64(4) * 1_073_741_824, "disk": Int64(30) * 1_073_741_824, "arch": "aarch64"],
+            ["name": "macos-ci", "os": "macos", "status": "running", "cpus": 4, "memory": Int64(16) * 1_073_741_824, "disk": Int64(80) * 1_073_741_824, "arch": "aarch64"],
+            ["name": "win11-test", "os": "windows", "status": "stopped", "cpus": 4, "memory": Int64(8) * 1_073_741_824, "disk": Int64(64) * 1_073_741_824, "arch": "aarch64"],
+        ]
+    }
+
     // MARK: - Kubernetes
 
     func k8sStart(profile: String) async throws { k8sRunning = true }

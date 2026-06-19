@@ -90,6 +90,19 @@ actor DaemonClient {
         return profiles
     }
 
+    /// Real Lima VMs via `limactl list --json` (one JSON object per line).
+    func listMachines() async throws -> [[String: Any]] {
+        let output = try await exec("limactl", "list", "--json")
+        var machines: [[String: Any]] = []
+        for line in output.components(separatedBy: "\n") where !line.isEmpty {
+            if let data = line.data(using: .utf8),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                machines.append(json)
+            }
+        }
+        return machines
+    }
+
     func sshConfig(profile: String = "default") async throws -> String {
         return try await exec("colima", "ssh-config", "--profile", profile)
     }
@@ -178,7 +191,7 @@ actor DaemonClient {
         let process = Process()
         let searchPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin"]
         // Resolve full path for known commands
-        if command == "colima" || command == "docker" || command == "kubectl" {
+        if command == "colima" || command == "docker" || command == "kubectl" || command == "limactl" {
             let resolvedCommand = searchPaths.map { "\($0)/\(command)" }
                 .first { FileManager.default.fileExists(atPath: $0) } ?? command
             process.executableURL = URL(fileURLWithPath: resolvedCommand)

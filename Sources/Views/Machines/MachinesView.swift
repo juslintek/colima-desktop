@@ -23,13 +23,6 @@ struct MockVM: Identifiable {
     }
 }
 
-let mockVMs: [MockVM] = [
-    MockVM(id: "1", name: "dev-ubuntu", os: .linux, status: "running", cpus: 4, memory: 8, disk: 50, arch: "aarch64"),
-    MockVM(id: "2", name: "build-fedora", os: .linux, status: "stopped", cpus: 2, memory: 4, disk: 30, arch: "aarch64"),
-    MockVM(id: "3", name: "macos-ci", os: .macos, status: "running", cpus: 4, memory: 16, disk: 80, arch: "aarch64"),
-    MockVM(id: "4", name: "win11-test", os: .windows, status: "stopped", cpus: 4, memory: 8, disk: 64, arch: "aarch64"),
-]
-
 // MARK: - Machines View
 
 struct MachinesView: View {
@@ -38,7 +31,7 @@ struct MachinesView: View {
     @State private var searchText = ""
 
     private var filtered: [MockVM] {
-        searchText.isEmpty ? mockVMs : mockVMs.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        searchText.isEmpty ? appState.machines : appState.machines.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
@@ -66,7 +59,7 @@ struct MachinesView: View {
             .listStyle(.plain)
         }
         .navigationTitle("Machines")
-        .navigationSubtitle("\(mockVMs.filter { $0.status == "running" }.count) running")
+        .navigationSubtitle("\(appState.machines.filter { $0.status == "running" }.count) running")
         .sheet(isPresented: $showCreateSheet) { CreateMachineSheet() }
     }
 

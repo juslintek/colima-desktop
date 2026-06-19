@@ -21,6 +21,9 @@ protocol ServiceProvider {
     func deleteProfile(name: String, data: Bool) async throws
     func cloneProfile(source: String, dest: String) async throws
 
+    // Machines (Lima VMs)
+    func listMachines() async throws -> [[String: Any]]
+
     // Kubernetes
     func k8sStart(profile: String) async throws
     func k8sStop(profile: String) async throws
@@ -170,6 +173,12 @@ class RealServiceProvider: ServiceProvider {
             let data = pipe.fileHandleForReading.readDataToEndOfFile()
             throw DaemonError.commandFailed("colima clone", process.terminationStatus, String(data: data, encoding: .utf8) ?? "")
         }
+    }
+
+    // MARK: - Machines
+
+    func listMachines() async throws -> [[String: Any]] {
+        try await daemon.listMachines()
     }
 
     // MARK: - Kubernetes
