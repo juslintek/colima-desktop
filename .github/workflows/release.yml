@@ -104,10 +104,10 @@ jobs:
           [ -f appcast.xml ] && cp appcast.xml dist/appcast.xml || true
           scripts/sparkle-appcast.sh
           cp dist/appcast.xml appcast.xml
-          if ! git diff --quiet -- appcast.xml; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add appcast.xml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add appcast.xml
+          if ! git diff --cached --quiet -- appcast.xml; then
             git commit -m "chore(release): appcast for ${TAG}"
             git push origin main
           fi

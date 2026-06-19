@@ -1,0 +1,15 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>Colima Desktop</title>
+        <item>
+            <title>0.1.0</title>
+            <pubDate>Fri, 19 Jun 2026 12:09:14 +0300</pubDate>
+            <sparkle:version>87</sparkle:version>
+            <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <sparkle:hardwareRequirements>arm64</sparkle:hardwareRequirements>
+            <enclosure url="https://github.com/juslintek/colima-desktop/releases/download/v0.1.0/Colima%20Desktop-0.1.0.dmg" length="8781953" type="application/octet-stream" sparkle:edSignature="SabYDxBzY5DI2QuEdhDUo6dY8apEwZzTCcNnXnPVFNMZopF5zLab1lDjkrTpJoL7VrWPiKyITHGikXT0lQoXBQ=="/>
+        </item>
+    </channel>
+</rss>

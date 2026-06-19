@@ -60,6 +60,13 @@ if [[ -n "${SIGN_IDENTITY:-}" ]]; then
     --entitlements "$ENTITLEMENTS" \
     --sign "$SIGN_IDENTITY" "$APP_PATH"
   codesign --verify --strict --verbose=2 "$APP_PATH"
+else
+  # No Developer ID: ad-hoc sign so the bundle has a VALID (self) signature.
+  # Sparkle's generate_appcast rejects apps with no signature at all (errSecCSUnsigned);
+  # ad-hoc passes that check. Gatekeeper still flags it as unidentified (right-click → Open).
+  echo "==> Ad-hoc signing (no Developer ID)"
+  codesign --force --deep --sign - "$APP_PATH"
+  codesign --verify --deep "$APP_PATH" || true
 fi
 
 echo "==> Building DMG: $DMG_PATH"

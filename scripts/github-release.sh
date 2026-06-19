@@ -41,8 +41,8 @@ DOWNLOAD_URL_PREFIX="https://github.com/$REPO/releases/download/$TAG/" \
 
 echo "==> Publishing appcast.xml to main (served at SUFeedURL)"
 cp dist/appcast.xml appcast.xml
-if ! git diff --quiet -- appcast.xml; then
-  git add appcast.xml
+git add appcast.xml
+if ! git diff --cached --quiet -- appcast.xml; then
   git commit -m "chore(release): appcast for $TAG"
   git push origin HEAD:main
 else
