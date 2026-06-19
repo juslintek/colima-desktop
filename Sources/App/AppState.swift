@@ -74,6 +74,12 @@ class AppState: ObservableObject {
 
     init(services: ServiceProvider = RealServiceProvider()) {
         self.services = services
+        // Deterministic deep-link for screenshots/testing: `--open-tab <name>`.
+        if let i = CommandLine.arguments.firstIndex(of: "--open-tab"),
+           i + 1 < CommandLine.arguments.count,
+           let tab = NavigationItem(rawValue: CommandLine.arguments[i + 1]) {
+            selectedTab = tab
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             Task { @MainActor in
