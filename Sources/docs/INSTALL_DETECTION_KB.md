@@ -54,7 +54,7 @@ Button/Text directly. Detection logic was always correct.
 
 ## Notes / limitations
 
-- The Tart VM now has `colima` installed but **`kern.hv_support = 0`**, so it still cannot run a
+- The host machine now has `colima` installed but **`kern.hv_support = 0`**, so it still cannot run a
   real Colima VM — real *operational* E2E (start VM, run containers) must happen on a bare-metal
   host. Real **detection** is what the host integration test validates.
 - `installColima()` requires Homebrew. If absent, the install fails and `errorMessage` is set;

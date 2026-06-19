@@ -212,4 +212,14 @@ class MockServiceProvider: ServiceProvider {
     private var colimaInstalled = !CommandLine.arguments.contains("--no-colima")
     func isColimaInstalled() async -> Bool { colimaInstalled }
     func installColima() async throws { colimaInstalled = true }
+
+    // MARK: - AI Models
+
+    func modelList(runner: String) async throws -> [AIModelInfo] {
+        MockK8sData.aiModels.map { AIModelInfo(id: $0.name, name: $0.name, size: $0.size, status: $0.status, port: $0.port) }
+    }
+    func modelPull(name: String, runner: String) async throws {}
+    func modelRun(name: String, runner: String) async throws {}
+    func modelServe(name: String?, runner: String, port: Int?) async throws {}
+    func modelStop(name: String) async throws {}
 }

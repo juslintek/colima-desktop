@@ -1,7 +1,9 @@
+> **NOTE (2026-06):** Tart VM infrastructure has been removed. All tests now run on host. Historical context below is retained for reference.
+
 # E2E Testing Knowledge Base — Colima Desktop
 
 > Historical reference for the XCUITest end-to-end suite: what broke, why, and how it was
-> fixed. Read this before touching `Tests/UI/`, the Tart VM workflow, or any
+> fixed. Read this before touching `Tests/UI/`, the host machine workflow, or any
 > `accessibilityIdentifier`. Companion docs:
 > `FLAKINESS_ANALYSIS.md` (root-cause deep dive) and `E2E_COVERAGE_AND_TEST_PLAN.md` (coverage + plan).
 
@@ -10,7 +12,7 @@
 ## TL;DR
 
 - E2E tests are **real/end-to-end by default** (real `ServiceProvider` → colima/docker).
-  **Mock mode is an explicit opt-in** (`E2E_BACKEND=mock`), used for CI and the Tart VM, which
+  **Mock mode is an explicit opt-in** (`E2E_BACKEND=mock`), used for CI and the host machine, which
   cannot run a real backend. `--ui-testing` only enables UI-test affordances — it does NOT pick
   the backend. (Before: `--ui-testing` hardcoded mock, so the suite could only ever run mocked.)
 - Real Colima/nested VMs **cannot** run in the Tart guest: `kern.hv_support = 0`, the CPU is
@@ -38,13 +40,13 @@ xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' \
   -only-testing:ColimaDesktopUITests
 ```
 
-### Mock mode (CI / Tart VM with no nested virt) — explicit opt-in
+### Mock mode (CI / host machine with no nested virt) — explicit opt-in
 ```bash
 # IMPORTANT: pass the env with the TEST_RUNNER_ prefix. xcodebuild only forwards
 # variables prefixed with TEST_RUNNER_ to the test-runner process (the prefix is
 # stripped), so the app's E2ELaunch sees E2E_BACKEND=mock. A plain `E2E_BACKEND=mock`
 # is NOT seen by the runner and the app would default to the real backend.
-ssh tart-vm "rm -rf /tmp/DD2/Build; cd '/Volumes/My Shared Files/project' && \
+ssh host "rm -rf /tmp/DD2/Build; cd '/Volumes/My Shared Files/project' && \
   TEST_RUNNER_E2E_BACKEND=mock xcodebuild test -scheme ColimaDesktop \
   -destination 'platform=macOS' -derivedDataPath /tmp/DD2 -only-testing:ColimaDesktopUITests 2>&1"
 ```
@@ -65,7 +67,7 @@ text shows up in failures, or edits "have no effect."
 **inside the VM**, never on the host (host regeneration corrupts the VM's VirtioFS view of the
 `.xcodeproj` bundle):
 ```bash
-ssh tart-vm "cd '/Volumes/My Shared Files/project' && /opt/homebrew/bin/xcodegen generate"
+ssh host "cd '/Volumes/My Shared Files/project' && /opt/homebrew/bin/xcodegen generate"
 ```
 Host can still `xcodebuild build-for-testing ... -derivedDataPath build/DerivedData` to
 compile-check Swift changes (do not run XCUITests on the host — see below).
@@ -151,7 +153,7 @@ correctly fails (real backend, no Docker present) — proving mock is no longer 
 
 ## Nested virtualization / real Colima — the honest answer
 
-**No — real Colima and nested VMs do not (and cannot) run inside the Tart VM.** Evidence
+**No — real Colima and nested VMs do not (and cannot) run inside the host machine.** Evidence
 gathered in the guest:
 - `sysctl kern.hv_support` → `0` (no Hypervisor.framework; the guest cannot create VMs).
 - No `hw.optional.arm.FEAT_NV` (nested-virt feature absent).

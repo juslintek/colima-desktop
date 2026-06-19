@@ -22,6 +22,7 @@ class AppState: ObservableObject {
     @Published var vmRuntime: String = ""
     @Published var vmArch: String = ""
     @Published var vmMountType: String = ""
+    @Published var vmType: String = ""
     @Published var vmDriver: String = ""
 
     @Published var colimaConfig: ColimaConfig?
@@ -36,6 +37,7 @@ class AppState: ObservableObject {
     @Published var networks: [MockNetwork] = []
     @Published var profiles: [MockProfile] = []
     @Published var machines: [MockVM] = []
+    @Published var aiModels: [AIModelInfo] = []
     @Published var k8sRunning: Bool = false
     var k8sEnabled: Bool { k8sRunning }
     @Published var memoryGovernorTier: Int = 0
@@ -146,6 +148,7 @@ class AppState: ObservableObject {
         await refreshNetworks()
         await refreshProfiles()
         await refreshMachines()
+        await refreshAIModels()
         do {
             let status = try await services.vmStatus(profile: activeProfile)
             vmRunning = status.running
@@ -156,6 +159,7 @@ class AppState: ObservableObject {
             vmRuntime = status.runtime
             vmArch = status.arch
             vmMountType = status.mountType
+            vmType = status.vmType
         } catch {
             vmRunning = false
         }
@@ -355,6 +359,15 @@ class AppState: ObservableObject {
             }
         } catch {
             machines = []
+        }
+    }
+
+    @MainActor func refreshAIModels(runner: String = "docker") async {
+        do {
+            aiModels = try await services.modelList(runner: runner)
+        } catch {
+            // Model commands fail if vmType != krunkit — expected
+            aiModels = []
         }
     }
 

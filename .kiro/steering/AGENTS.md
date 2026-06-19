@@ -5,75 +5,11 @@
 - **Stack**: SwiftUI + AppKit, Go daemon, gRPC, Docker API over Unix socket
 - **Working dir**: /Volumes/Projects/colima-desktop
 - **Build**: `xcodegen generate && xcodebuild build -scheme ColimaDesktop -destination 'platform=macOS' -quiet`
-- **Tests**: 3-layer pyramid (unit/integration/snapshot) + smoke E2E in Tart VM
+- **Tests**: 3-layer pyramid (unit/integration/snapshot) + XCUITest E2E — all on host
 - **Repo**: github.com/juslintek/colima-desktop (private)
 - **Password for sudo**: `liepos10`
 
-## VM Infrastructure
-
-### Tart VM (macOS — primary test runner)
-
-**Persistent VM:** `colima-test-vnc` (macOS Tahoe + Xcode 26.4)
-
-**SSH access (passwordless via key):**
-```bash
-ssh tart-vm                    # uses ~/.ssh/config entry
-ssh tart-vm "command"          # run command remotely
-```
-
-**SSH config entry** (`~/.ssh/config`):
-```
-Host tart-vm
-    HostName 192.168.64.8
-    User admin
-    IdentityFile ~/.ssh/id_ed25519
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-    LogLevel ERROR
-```
-
-**Start VM (if stopped):**
-```bash
-tart run colima-test-vnc --dir=project:/Volumes/Projects/colima-desktop --vnc > /tmp/tart-run.log 2>&1 &
-echo $! > /tmp/tart-run.pid
-```
-
-**Project path inside VM:** `/Volumes/My Shared Files/project/`
-
-**Run tests in VM:**
-```bash
-./scripts/run_vm_tests.sh                              # unit tests (default)
-./scripts/run_vm_tests.sh ColimaDesktopIntegrationTests # integration
-./scripts/run_vm_tests.sh ColimaDesktopUITests          # E2E smoke
-```
-
-### UTM VM (Windows/Linux — future use)
-
-For Windows ARM64 or Linux VMs, use UTM with `utmctl`:
-```bash
-utmctl list                          # list VMs
-utmctl start "VM Name"               # start
-utmctl exec "VM Name" --cmd "cmd"    # run command in guest
-utmctl ip-address "VM Name"          # get IP
-```
-
-### VM Setup Rules
-
-**When setting up a new VM for SSH:**
-1. Start the VM and get its IP: `tart ip <vm-name>`
-2. Copy SSH key: `cat ~/.ssh/id_ed25519.pub | sshpass -p <password> ssh user@<ip> "mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys && chmod 700 ~/.ssh && chmod 600 ~/.ssh/authorized_keys"`
-3. Add entry to `~/.ssh/config` with `StrictHostKeyChecking no` and `UserKnownHostsFile /dev/null`
-4. Verify: `ssh <host-alias> "echo OK"`
-5. Remove sshpass usage — always use key-based auth after setup
-
 ## Agent Roles
-
-### lead (Curator/Observer)
-- Monitors subagent progress
-- Checks Tart VM status periodically
-- Reports results to user
-- Never writes code directly — delegates everything
-- Kills stuck processes after timeout
 
 ### swiftui-dev (Implementation)
 - Writes SwiftUI views matching OrbStack design reference
@@ -82,9 +18,9 @@ utmctl ip-address "VM Name"          # get IP
 - Uses mock data from `Sources/Models/MockData.swift`
 
 ### test-engineer (Testing)
-- Runs tests via `ssh tart-vm` (never on host)
-- Unit/integration tests: fast, deterministic, no GUI needed
-- E2E smoke tests: only in Tart VM
+- Runs all tests on host directly
+- Unit/integration tests: fast, deterministic
+- XCUITest: runs on host (`make test-ui`)
 - Pattern: test element existence, NOT toast behavior
 
 ### go-backend (Daemon)
@@ -95,7 +31,7 @@ utmctl ip-address "VM Name"          # get IP
 
 ## Testing Strategy
 
-### 3-Layer Pyramid (fast, deterministic)
+### 3-Layer Pyramid
 ```
 ┌─────────────────────────────────────────┐
 │   Snapshot Tests (visual regression)     │  ~3 sec
@@ -106,17 +42,14 @@ utmctl ip-address "VM Name"          # get IP
 └─────────────────────────────────────────┘
 ```
 
-**Run locally or in VM:**
+**Run on host:**
 ```bash
 make test-unit          # Swift Testing — AppState, validation, models
 make test-integration   # ViewInspector — view logic without rendering
 make test-snapshots     # swift-snapshot-testing — visual regression
+make test-ui            # XCUITest — full E2E with app running
 make test               # unit + integration (default)
-```
-
-**E2E smoke (VM only):**
-```bash
-make test-smoke         # XCUITests in Tart VM
+make test-real-e2e      # Real-backend tests (requires colima profile desktop-e2e)
 ```
 
 ### Test Targets
@@ -135,16 +68,12 @@ make test-smoke         # XCUITests in Tart VM
 - `project.yml` — XcodeGen spec (regenerate with `xcodegen generate`)
 - `Package.swift` — SPM deps (ViewInspector, swift-snapshot-testing)
 - `Makefile` — build/test commands
-- `scripts/run_vm_tests.sh` — run tests inside Tart VM
 
 ## Rules
-- NEVER run XCUITests on host desktop (steals focus, unreliable)
-- ALWAYS use `ssh tart-vm` for VM access (never sshpass)
-- ALWAYS use key-based SSH auth for VMs (set up authorized_keys)
 - Build must compile with 0 errors before any commit
 - Commit messages: conventional commits format
 - All views must have accessibilityIdentifier for testing
-- Unit/integration tests CAN run on host (no GUI needed)
+- All tests run on host — no VMs
 
 ## Stall Prevention Rules
 
@@ -162,30 +91,12 @@ make test-smoke         # XCUITests in Tart VM
 
 ### When waiting for external processes:
 1. **Never block on a single operation** — always have a fallback plan
-2. **Set explicit timeouts** — `ssh -o ConnectTimeout=5`, `curl --max-time 10`
-3. **If colima start hangs** — kill it, check logs, try different flags
+2. **If colima start hangs** — kill it, check logs, try different flags
 
 ### Between tool calls:
-1. **Always have a next action ready** — never end a response without either completing the task or stating what's next
+1. **Always have a next action ready** — never end a response without completing the task or stating what's next
 2. **If stuck on one item** — skip it, work on the next item, come back later
 3. **Batch independent operations** — don't serialize things that can run in parallel
-
-### Session continuity:
-1. **After any interruption** — re-read the task list, check what's done, continue from where you left off
-2. **Before long operations** — tell the user what you're about to do and what the fallback is
-3. **If a task has failed twice** — stop, explain the blocker, ask the user for guidance instead of retrying forever
-
-## HARD RULES — DO NOT VIOLATE
-
-### Tart VM Management
-- **NEVER delete a cloned Tart VM image** — only `tart stop` then `tart run` to restart
-- **NEVER re-clone** unless the VM is corrupted — use `tart stop` + `tart run` to restart existing
-- **NEVER re-pull** the OCI base image — it's already cached locally
-
-### SSH
-- **NEVER use sshpass** in scripts — always key-based auth via ~/.ssh/config
-- **NEVER hardcode IPs** in scripts — use SSH host aliases from config
-- **If SSH hangs** — VM likely needs restart: `tart stop <vm> && tart run <vm> ... &`
 
 ### Long-Running Processes
 - **NEVER run long processes in foreground** — they block the chat session
@@ -195,5 +106,4 @@ make test-smoke         # XCUITests in Tart VM
   echo $! > /tmp/task.pid
   ```
 - **ALWAYS return immediately** after launching — check status separately
-- This applies to: `tart run`, `tart clone`, `xcodebuild test`, any download, any build >30s
-- Use subagents for tasks that need monitoring loops
+- This applies to: `xcodebuild test`, any download, any build >30s

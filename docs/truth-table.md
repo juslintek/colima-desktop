@@ -31,5 +31,5 @@ RealBackendTests, MenuBarViewTests, InstallPromptUITests`.
 
 The combinatorial config rows are covered representatively (each option/toggle individually +
 key combos) by `NativePerformanceConfigUITests` rather than 7,776 literal UI runs — exhaustive
-literal UI enumeration isn't feasible (XCUITest can't run on the host; the Tart VM can't run
+literal UI enumeration isn't feasible (XCUITest can't run on the host; the host machine can't run
 nested colima). See `e2e-real-mode-execution.md` for that constraint.

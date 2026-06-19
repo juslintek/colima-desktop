@@ -1,6 +1,6 @@
 # ColimaUI — Implementation Plan v2
 
-## Testing Strategy: Tart VMs (Isolated, No Desktop Interference)
+## Testing Strategy: host machines (Isolated, No Desktop Interference)
 
 ### Why Tart
 - Runs macOS VMs using Apple Virtualization.framework (native speed)
@@ -58,7 +58,7 @@ echo "EXIT: $?"
 ### GitHub Actions (Self-Hosted Apple Silicon Runner)
 
 ```yaml
-name: ColimaUI Tests (Tart VM)
+name: ColimaUI Tests (host machine)
 on: [push]
 jobs:
   test:
@@ -214,7 +214,7 @@ class AppState: ObservableObject {
 - [ ] Write `scripts/run_tests.sh`
 - [ ] Update Makefile with `make test` target
 - [ ] Set up self-hosted GitHub Actions runner
-- [ ] Get all 280 tests passing in Tart VM
+- [ ] Get all 280 tests passing on host
 
 ### Phase 4: VM Management (Machines)
 - [ ] Linux VMs via Lima (already in Colima)
@@ -272,7 +272,7 @@ colima-ui/
 ├── ColimaUITests/                 # Unit tests
 ├── ColimaUIUITests/               # 280 E2E XCUITests
 ├── scripts/
-│   └── run_tests.sh              # Tart VM test runner
+│   └── run_tests.sh              # host machine test runner
 └── vendor/                        # Reference docs
     ├── colima/                    # Colima source
     ├── colima-docs/               # Scraped docs
@@ -284,6 +284,6 @@ colima-ui/
 ## Next Immediate Steps
 
 1. **Install Tart** and create test VM image
-2. **Run tests in Tart VM** — fix any remaining failures
+2. **Run tests on host** — fix any remaining failures
 3. **Update GUI** to match all OrbStack screenshots (tooltips, activity monitor, guided setup)
-4. **Push and verify CI** passes in Tart VM
+4. **Push and verify CI** passes on host

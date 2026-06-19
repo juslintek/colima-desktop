@@ -12,12 +12,20 @@ actor DaemonClient {
             let output = try await exec("colima", ["status", "--profile", profile, "--json"])
             if let data = output.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let driverStr = json["driver"] as? String ?? ""
+                let vmTypeFromDriver: String = {
+                    if driverStr.lowercased().contains("virtualization") { return "vz" }
+                    if driverStr.lowercased().contains("qemu") { return "qemu" }
+                    if driverStr.lowercased().contains("krunkit") { return "krunkit" }
+                    return driverStr
+                }()
                 return VMStatusInfo(
                     running: true,
                     profile: json["display_name"] as? String ?? profile,
                     arch: json["arch"] as? String ?? "",
                     runtime: json["runtime"] as? String ?? "",
                     mountType: json["mount_type"] as? String ?? "",
+                    vmType: vmTypeFromDriver,
                     dockerSocket: json["docker_socket"] as? String ?? "",
                     cpu: json["cpu"] as? Int ?? 0,
                     memory: json["memory"] as? Int64 ?? 0,
@@ -242,6 +250,7 @@ struct VMStatusInfo {
     var arch: String = ""
     var runtime: String = ""
     var mountType: String = ""
+    var vmType: String = ""
     var ipAddress: String = ""
     var dockerSocket: String = ""
     var cpu: Int = 0

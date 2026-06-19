@@ -1,7 +1,7 @@
 # ColimaUI — Testing Strategy & Progress Summary
 
 **Date:** May 12, 2026
-**Status:** GUI feature-complete with real backend. E2E suite is green — 297/297 XCUITests pass in the Tart VM (run via `./scripts/run_vm_tests.sh ColimaDesktopUITests`).
+**Status:** GUI feature-complete with real backend. E2E suite is green — 297/297 XCUITests pass on the host (run via `make test-ui ColimaDesktopUITests`).
 
 > **Update (Jun 2026):** All E2E flakiness resolved. 297 tests, 0 failures. Reliability came from:
 > - Custom card selectors (vmType/cpuType/mountType) are real `Button`s with `accessibilityValue` "selected"/"unselected", verified via `app.buttons[id].value`.
@@ -9,7 +9,7 @@
 > - Toggles verified via `app.checkBoxes[id].value`; pickers via `app.menuItems`.
 > - Hover-reveal row actions forced visible under `--ui-testing` via `appState.isUITesting`.
 > - Sidebar navigation clicks the hittable element (the `List(selection:)` auto-scrolls the selected row, zeroing offscreen rows).
-> - Run E2E **only in the Tart VM** — host XCUITest times out enabling automation mode. VirtioFS incremental builds are stale; `rm -rf /tmp/DD/Build` before each VM run.
+> - Run E2E **only on the host** — host XCUITest times out enabling automation mode. VirtioFS incremental builds are stale; `rm -rf /tmp/DD/Build` before each VM run.
 
 ---
 
@@ -51,10 +51,10 @@
 
 **7 unit tests** (AppState init, mock mode)
 
-**Tart VM testing:**
+**host machine testing:**
 - `macos-tahoe-xcode:latest` image pre-baked with Xcode 26.4
 - VNC accessible for monitoring
-- `make test-vm` runs tests in isolation
+- `make test-ui` runs XCUITest on host
 - Successfully achieved 238/238 passing once (classes run individually)
 
 ### 3. Backend Scaffolding
@@ -88,7 +88,7 @@ After extensive investigation:
 |----------|--------|
 | Running all tests together | 55% pass (focus issues) |
 | Running one class at a time | 100% pass but 25+ min |
-| Tart VM with VNC | Same focus issues |
+| host machine with VNC | Same focus issues |
 | `accessibilityLabel` workarounds | Helped some, not all |
 | Naming conflict fixes | Fixed a few edge cases |
 
@@ -218,7 +218,7 @@ Only test things that genuinely require the full app stack:
 4. Menu bar extra appears
 5. Cmd+K palette opens
 
-Run these in Tart VM on CI only, not per-commit.
+Run these on host on CI only, not per-commit.
 
 ---
 
@@ -230,7 +230,7 @@ Run these in Tart VM on CI only, not per-commit.
 2. Add `swift-snapshot-testing` + `ViewInspector` as SPM dependencies
 3. Create new test targets: `ColimaUITests` (unit), `ColimaUIIntegrationTests`, `ColimaUISnapshotTests`
 4. Remove redundant XCUITests (keep only 5 smoke tests)
-5. Update `Makefile`: `make test-unit` (fast), `make test-integration` (ViewInspector), `make test-snapshots` (regression), `make test-smoke` (e2e in Tart)
+5. Update `Makefile`: `make test-unit` (fast), `make test-integration` (ViewInspector), `make test-snapshots` (regression), `make test-ui` (e2e on host)
 
 ### Phase 2: Unit Test Migration (3-5 days)
 
@@ -259,7 +259,7 @@ Review and commit PNG references.
 - Unit tests run on every PR (fast, blocks merge)
 - Integration tests run on every PR (medium speed)
 - Snapshot tests run on every PR (medium speed, flag on diff)
-- E2E smoke run nightly in Tart VM
+- E2E smoke run nightly on host
 
 ---
 

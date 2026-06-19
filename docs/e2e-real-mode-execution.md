@@ -40,12 +40,12 @@ All test-created Docker resources use the deterministic prefix `colima-desktop-e
 | Unit | `make test-unit` → `xcodebuild test … -only-testing:ColimaDesktopUnitTests` |
 | Integration | `make test-integration` → `-only-testing:ColimaDesktopIntegrationTests` |
 | Snapshots | `make test-snapshots` |
-| UI (Tart VM only) | `make test-vm` / `scripts/run_vm_tests.sh` |
+| UI (host) | `make test-ui` |
 | Real E2E (to add) | `make test-real-e2e` (gated by env vars above) |
 
 Scheme `ColimaDesktop`, dest `platform=macOS`, derivedData `build/DerivedData`.
 **XCUITest cannot run on host** (times out enabling automation) — host coverage is
-integration/unit (Swift Testing + ViewInspector); XCUITest runs in the Tart VM.
+integration/unit (Swift Testing + ViewInspector); XCUITest runs on the host.
 
 ## DAG / agent ownership
 
@@ -80,7 +80,7 @@ File ownership (no concurrent edits):
 | Status menu states | MenuBarView | ✅ running/stopped, counts, list, overflow, zero, not-installed→Stopped, open/start/stop | MenuBarViewTests (9) | P1 |
 | App shell/nav/toast | ContentView/AppState | ✅ sidebar, bindings, toast (polled) | ContentViewTests (4) | P2 |
 | Unit (models/state) | AppState/NavigationItem/MockData | ✅ | UnitTests (49) | P2 |
-| Full UI (XCUITest) | all views | ✅ 320 tests — **Tart VM only** (host times out) | ColimaDesktopUITests | P1 |
+| Full UI (XCUITest) | all views | ✅ 320 tests — **host** (host times out) | ColimaDesktopUITests | P1 |
 
 ### Documented gaps (NOT invented as tests)
 - MenuBarView models VM state as a single Bool → no `installing/starting/stopping/error/unknown`
@@ -103,7 +103,7 @@ File ownership (no concurrent edits):
 | Unit (RealBackend skips) | `make test-unit` |
 | Integration | `make test-integration` |
 | Real backend (opt-in) | `make test-real-e2e` (sets `TEST_RUNNER_COLIMA_DESKTOP_REAL_E2E=1`, `TEST_RUNNER_COLIMA_DESKTOP_TEST_PROFILE=desktop-e2e`) |
-| Full UI | `make test-vm` (Tart VM) |
+| Full UI | `make test-ui` (host) |
 
 ## Real-mode test recipe
 

@@ -10,7 +10,7 @@ screenshotted, and quit. Screenshots + per-shot context: `manifest.json` + `scre
 The full action/outcome space (7,996 rows) is enumerated in `../truth-table.csv` (built first).
 
 **Honest constraint:** XCUITest cannot drive the host (it times out enabling automation mode),
-and the Tart VM can't run nested colima — so literal automated 1000+ click-combinations with a
+and the host machine can't run nested colima — so literal automated 1000+ click-combinations with a
 screenshot each is not feasible. Coverage here = every view against the real backend + the
 combinatorial space enumerated in the truth table + representative automation in the XCUITest
 suites (~320, mock) and RealBackendTests (35, real service layer).

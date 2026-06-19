@@ -116,7 +116,7 @@ Tests must pass **without mocks** against a running Colima instance.
 
 - [x] Unit tests pass without mocks (AppState + real ServiceProvider)
 - [x] Integration tests verify real Docker API responses
-- [x] E2E tests run against real Colima in Tart VM
+- [x] E2E tests run against real Colima on host
 - [x] Test fixtures: create/teardown containers, images, volumes, networks
 
 ---
@@ -126,7 +126,7 @@ Tests must pass **without mocks** against a running Colima instance.
 
 ## Implementation Notes
 
-- **Colima runs on host** (not in Tart VM) because nested virtualization isn't supported
+- **Colima runs on host** (not on host) because nested virtualization isn't supported
 - **DockerClient** uses raw Unix sockets directly (no URLSession/URLProtocol) for reliable body handling
 - **DaemonClient** resolves CLI paths and sets PATH env to include `/opt/homebrew/bin`
 - **AppState** uses `ServiceProvider` protocol uniformly — zero `if useMocks` branches

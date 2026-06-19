@@ -11,7 +11,7 @@ Colima itself provides the Docker daemon inside a Linux VM.
 - App builds and runs (scheme: `ColimaDesktop`, dir: `/Volumes/Projects/colima-desktop`)
 - 45 `if useMocks` branches in `Sources/App/AppState.swift` — mock mode fakes everything
 - `RealServiceProvider` exists but is untested — wraps `DockerClient` (HTTP over Unix socket) + `DaemonClient` (colima CLI)
-- Tart VM (`colima-test-vnc`) available via `ssh tart-vm` — has Xcode 26.4, macOS Tahoe
+- host machine (`colima-test-vnc`) available via `ssh host` — has Xcode 26.4, macOS Tahoe
 - Project mounted in VM at `/Volumes/My Shared Files/project/`
 - Colima needs to be installed in VM: `brew install colima docker` (docker = CLI client only)
 
@@ -40,7 +40,7 @@ Colima itself provides the Docker daemon inside a Linux VM.
 
 ## What Needs To Be Done
 
-1. **VM Setup**: Install colima + docker CLI in Tart VM, `colima start`
+1. **VM Setup**: Install colima + docker CLI on host, `colima start`
 2. **Fix DaemonClient**: Make it work without Go daemon — direct CLI fallback
 3. **Real Backend Tests**: Test every operation against live Docker socket
 4. **Remove mock branches**: AppState should use ServiceProvider protocol uniformly
@@ -66,7 +66,7 @@ xcodegen generate && xcodebuild build -scheme ColimaDesktop -destination 'platfo
 xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' -derivedDataPath build/DerivedData -only-testing:ColimaDesktopUnitTests
 
 # SSH to VM
-ssh tart-vm
+ssh host
 
 # Start VM if stopped
 tart run colima-test-vnc --dir=project:/Volumes/Projects/colima-desktop --vnc > /tmp/tart-run.log 2>&1 &
@@ -81,7 +81,7 @@ colima start --vm-type vz --mount-type virtiofs
 ## Rules
 
 - NEVER install Docker Desktop — Colima IS the Docker runtime
-- NEVER run XCUITests on host — only in Tart VM
+- NEVER run XCUITests on host — only on host
 - NEVER run long processes in foreground — background with &
 - Module import: `@testable import ColimaDesktop`
 - Docker socket path: `~/.colima/<profile>/docker.sock`

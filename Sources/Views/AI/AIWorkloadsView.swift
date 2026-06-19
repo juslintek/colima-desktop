@@ -4,13 +4,14 @@ struct AIWorkloadsView: View {
     @EnvironmentObject var appState: AppState
     @State private var selectedModel = "gemma3"
     @State private var runner = "docker"
-    @State private var krunkitAvailable = true
     @State private var selectedTab = 0
-    @State private var vmType = "qemu"
-    @State private var vmRAM = 8
     @State private var pullingModel: String?
+    @State private var errorMessage: String?
 
     private let tabNames = ["Downloaded", "Docker AI", "HuggingFace", "Ollama"]
+
+    private var vmType: String { appState.vmType.isEmpty ? "unknown" : appState.vmType }
+    private var krunkitAvailable: Bool { vmType == "krunkit" }
 
     var body: some View {
         ScrollView {
@@ -24,6 +25,7 @@ struct AIWorkloadsView: View {
             .padding()
         }
         .navigationTitle("AI Workloads")
+        .task { await appState.refreshAIModels(runner: runner) }
     }
 
     // MARK: - Section 1: Prerequisites
@@ -39,13 +41,13 @@ struct AIWorkloadsView: View {
                     Button("Install Krunkit") { appState.showToast("Krunkit installed") }
                         .accessibilityIdentifier("btn_install_ai_krunkit")
                 }
-                if vmType != "krunkit" {
+                if !krunkitAvailable {
                     warningRow("VM type is '\(vmType)'. krunkit recommended for AI workloads.") {
-                        Button("Switch to krunkit") { vmType = "krunkit"; appState.showToast("Switched to krunkit") }.font(.caption)
+                        Button("Switch to krunkit") { appState.showToast("Requires VM recreation with --vm-type krunkit") }.font(.caption)
                     }
                 }
-                if let m = MockK8sData.aiModels.first(where: { $0.name == selectedModel }), m.requiredRAM > vmRAM {
-                    warningRow("Model requires \(m.requiredRAM)GB RAM, VM has \(vmRAM)GB.", color: .red) { EmptyView() }
+                if let err = errorMessage {
+                    warningRow(err, color: .red) { EmptyView() }
                 }
             }
         }
@@ -72,9 +74,9 @@ struct AIWorkloadsView: View {
                     Picker("Runner", selection: $runner) {
                         Text("docker").tag("docker"); Text("ramalama").tag("ramalama")
                     }.frame(maxWidth: 150).accessibilityIdentifier("field_ai_runner")
-                    Button("Run") { appState.showToast("Model '\(selectedModel)' running") }
+                    Button("Run") { runModel(selectedModel) }
                         .accessibilityIdentifier("btn_run_ai_model")
-                    Button("Serve") { appState.showToast("Model '\(selectedModel)' serving") }
+                    Button("Serve") { serveModel(selectedModel) }
                         .accessibilityIdentifier("btn_serve_ai_model")
                 }
                 Picker("Tab", selection: $selectedTab) {
@@ -94,24 +96,28 @@ struct AIWorkloadsView: View {
 
     private var downloadedTab: some View {
         VStack(alignment: .leading, spacing: 0) {
-            ForEach(MockK8sData.aiModels, id: \.name) { model in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(model.name).fontWeight(.medium)
-                        Text("\(model.size) • \(model.registry) • \(model.status)").font(.caption).foregroundStyle(.secondary)
+            if appState.aiModels.isEmpty {
+                Text("No models downloaded. Pull a model or use `colima model pull <name>`.").font(.caption).foregroundStyle(.secondary).padding(.vertical, 8)
+            } else {
+                ForEach(appState.aiModels) { model in
+                    HStack {
+                        VStack(alignment: .leading) {
+                            Text(model.name).fontWeight(.medium)
+                            Text("\(model.size) • \(model.status)").font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if model.status == "idle" {
+                            Button("Run") { runModel(model.name) }
+                                .font(.caption).accessibilityIdentifier("btn_ai_run_\(model.name)")
+                            Button("Serve") { serveModel(model.name) }
+                                .font(.caption).accessibilityIdentifier("btn_ai_serve_\(model.name)")
+                        }
+                        Button("Delete") { deleteModel(model.name) }
+                            .foregroundStyle(.red).font(.caption).accessibilityIdentifier("btn_ai_delete_\(model.name)")
                     }
-                    Spacer()
-                    if model.status == "idle" {
-                        Button("Run") { appState.showToast("Model '\(model.name)' running") }
-                            .font(.caption).accessibilityIdentifier("btn_ai_run_\(model.name)")
-                        Button("Serve") { appState.showToast("Model '\(model.name)' serving") }
-                            .font(.caption).accessibilityIdentifier("btn_ai_serve_\(model.name)")
-                    }
-                    Button("Delete") { appState.showToast("Deleted \(model.name)") }
-                        .foregroundStyle(.red).font(.caption).accessibilityIdentifier("btn_ai_delete_\(model.name)")
+                    .padding(.vertical, 4)
+                    Divider()
                 }
-                .padding(.vertical, 4)
-                Divider()
             }
         }.accessibilityIdentifier("tab_ai_downloaded")
     }
@@ -131,7 +137,7 @@ struct AIWorkloadsView: View {
                             Button("Cancel") { pullingModel = nil }
                                 .font(.caption)
                         } else {
-                            Button("Pull") { pullingModel = m.name }
+                            Button("Pull") { pullModel(m.name) }
                                 .font(.caption).accessibilityIdentifier("btn_ai_pull_\(m.name)")
                         }
                     }
@@ -149,11 +155,11 @@ struct AIWorkloadsView: View {
 
     private var activeModelsSection: some View {
         GroupBox("Active Models") {
-            let active = MockK8sData.aiModels.filter { $0.status != "idle" }
+            let active = appState.aiModels.filter { $0.status != "idle" }
             if active.isEmpty {
                 Text("No active models").foregroundStyle(.secondary).font(.caption)
             } else {
-                ForEach(active, id: \.name) { model in
+                ForEach(active) { model in
                     HStack {
                         Circle().fill(model.status == "serving" ? .green : .blue).frame(width: 8, height: 8)
                         Text(model.name).fontWeight(.medium)
@@ -163,10 +169,12 @@ struct AIWorkloadsView: View {
                             Text("http://localhost:\(port)")
                                 .font(.system(.caption, design: .monospaced))
                                 .accessibilityIdentifier("text_ai_serve_url")
-                            Button("Open") { appState.showToast("Opening browser") }
-                                .font(.caption).accessibilityIdentifier("btn_ai_open_browser")
+                            Button("Open") {
+                                NSWorkspace.shared.open(URL(string: "http://localhost:\(port)")!)
+                            }
+                            .font(.caption).accessibilityIdentifier("btn_ai_open_browser")
                         }
-                        Button("Stop") { appState.showToast("Stopped \(model.name)") }
+                        Button("Stop") { stopModel(model.name) }
                             .foregroundStyle(.red).font(.caption).accessibilityIdentifier("btn_ai_stop_\(model.name)")
                     }
                 }
@@ -182,7 +190,14 @@ struct AIWorkloadsView: View {
             HStack(spacing: 8) {
                 Button("Setup") { showSetupFlow = true }.accessibilityIdentifier("btn_setup_ai_model")
                 Button("Browse Models") { showModelBrowser = true }.accessibilityIdentifier("btn_browse_ai_registry")
-                Button("Create AI Profile") { appState.showToast("AI profile created") }.accessibilityIdentifier("btn_createprofile_ai_new")
+                Button("Create AI Profile") {
+                    Task {
+                        do {
+                            try await appState.services.createProfile(name: "ai", config: ColimaStartConfig(vmType: "krunkit", runtime: "docker"))
+                            appState.showToast("AI profile created")
+                        } catch { errorMessage = error.localizedDescription }
+                    }
+                }.accessibilityIdentifier("btn_createprofile_ai_new")
             }
 
             if showSetupFlow {
@@ -190,8 +205,64 @@ struct AIWorkloadsView: View {
             }
 
             if showModelBrowser {
-                ModelBrowserView { showModelBrowser = false }
+                ModelBrowserView(runner: runner, onPull: pullModel) { showModelBrowser = false }
             }
+        }
+    }
+
+    // MARK: - Real actions
+
+    private func pullModel(_ name: String) {
+        pullingModel = name
+        errorMessage = nil
+        Task {
+            do {
+                try await appState.services.modelPull(name: name, runner: runner)
+                await appState.refreshAIModels(runner: runner)
+                pullingModel = nil
+            } catch {
+                errorMessage = "Pull failed: \(error.localizedDescription)"
+                pullingModel = nil
+            }
+        }
+    }
+
+    private func runModel(_ name: String) {
+        errorMessage = nil
+        Task {
+            do {
+                try await appState.services.modelRun(name: name, runner: runner)
+                await appState.refreshAIModels(runner: runner)
+            } catch { errorMessage = "Run failed: \(error.localizedDescription)" }
+        }
+    }
+
+    private func serveModel(_ name: String) {
+        errorMessage = nil
+        Task {
+            do {
+                try await appState.services.modelServe(name: name, runner: runner, port: 8080)
+                await appState.refreshAIModels(runner: runner)
+            } catch { errorMessage = "Serve failed: \(error.localizedDescription)" }
+        }
+    }
+
+    private func stopModel(_ name: String) {
+        Task {
+            do {
+                try await appState.services.modelStop(name: name)
+                await appState.refreshAIModels(runner: runner)
+            } catch { errorMessage = "Stop failed: \(error.localizedDescription)" }
+        }
+    }
+
+    private func deleteModel(_ name: String) {
+        Task {
+            do {
+                // colima model doesn't have a delete — remove via docker rmi
+                _ = try await appState.services.executeCommand(tool: "docker", args: ["rmi", name])
+                await appState.refreshAIModels(runner: runner)
+            } catch { errorMessage = "Delete failed: \(error.localizedDescription)" }
         }
     }
 }
@@ -199,54 +270,25 @@ struct AIWorkloadsView: View {
 // MARK: - Model Browser
 
 struct ModelBrowserView: View {
+    let runner: String
+    let onPull: (String) -> Void
     let onClose: () -> Void
     @State private var selectedRegistry = "Docker AI"
     @State private var searchText = ""
-    @State private var pullingModel: String?
 
     private let registries = ["Docker AI", "HuggingFace", "Ollama"]
 
-    private var models: [(name: String, desc: String, size: String, downloads: String, stars: Int, capabilities: [String])] {
+    private var models: [(name: String, desc: String, size: String)] {
         switch selectedRegistry {
-        case "Docker AI":
-            return [
-                ("ai/gemma3", "Google's Gemma 3 — fast, efficient", "2.5 GB", "1.2M", 4850, ["Text Generation", "Chat"]),
-                ("ai/llama3.2", "Meta's Llama 3.2 — versatile", "4.7 GB", "890K", 5200, ["Text Generation", "Code"]),
-                ("ai/phi-4", "Microsoft Phi-4 — compact powerhouse", "2.3 GB", "650K", 3900, ["Text Generation", "Reasoning"]),
-                ("ai/smollm2", "HuggingFace SmolLM2 — tiny & fast", "1.1 GB", "420K", 2100, ["Text Generation"]),
-                ("ai/mistral", "Mistral 7B — balanced performance", "4.1 GB", "780K", 4600, ["Text Generation", "Code"]),
-                ("ai/qwen2.5", "Alibaba Qwen 2.5 — multilingual", "4.5 GB", "560K", 3400, ["Text Generation", "Multilingual"]),
-                ("ai/deepseek-r1", "DeepSeek R1 — reasoning focused", "8.2 GB", "340K", 4100, ["Reasoning", "Math"]),
-                ("ai/codellama", "Meta Code Llama — code specialist", "3.8 GB", "920K", 4300, ["Code Generation", "Completion"]),
-                ("ai/nomic-embed", "Nomic Embed — text embeddings", "0.5 GB", "280K", 1800, ["Embeddings"]),
-                ("ai/whisper", "OpenAI Whisper — speech to text", "1.5 GB", "1.5M", 5100, ["Speech Recognition"]),
-            ]
-        case "HuggingFace":
-            return [
-                ("microsoft/Phi-3-mini-4k-instruct-gguf", "Phi-3 Mini GGUF", "2.4 GB", "3.2M", 8900, ["Text Generation"]),
-                ("TheBloke/Llama-2-7B-GGUF", "Llama 2 7B quantized", "4.0 GB", "2.8M", 7200, ["Text Generation"]),
-                ("sentence-transformers/all-MiniLM-L6-v2", "Sentence embeddings", "0.1 GB", "5.1M", 6800, ["Embeddings"]),
-                ("openai/whisper-large-v3", "Whisper Large V3", "3.1 GB", "1.9M", 5400, ["Speech"]),
-                ("stabilityai/stable-diffusion-xl", "SDXL image generation", "6.9 GB", "4.2M", 9100, ["Image Generation"]),
-            ]
-        default: // Ollama
-            return [
-                ("gemma3", "Google Gemma 3", "2.5 GB", "1.8M", 5600, ["Text Generation", "Chat"]),
-                ("llama3.2", "Meta Llama 3.2", "4.7 GB", "2.1M", 6200, ["Text Generation", "Code"]),
-                ("mistral", "Mistral 7B", "4.1 GB", "1.4M", 5100, ["Text Generation"]),
-                ("codellama", "Code Llama", "3.8 GB", "980K", 4500, ["Code Generation"]),
-                ("phi4", "Microsoft Phi-4", "2.3 GB", "720K", 3800, ["Reasoning"]),
-            ]
+        case "Docker AI": return MockK8sData.dockerAIModels
+        case "HuggingFace": return MockK8sData.huggingFaceModels
+        default: return MockK8sData.ollamaModels
         }
     }
 
-    private var filteredModels: [(name: String, desc: String, size: String, downloads: String, stars: Int, capabilities: [String])] {
-        guard !searchText.isEmpty else { return Array(models.prefix(10)) }
-        return models.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            $0.desc.localizedCaseInsensitiveContains(searchText) ||
-            $0.capabilities.joined().localizedCaseInsensitiveContains(searchText)
-        }.prefix(10).map { $0 }
+    private var filteredModels: [(name: String, desc: String, size: String)] {
+        guard !searchText.isEmpty else { return models }
+        return models.filter { $0.name.localizedCaseInsensitiveContains(searchText) || $0.desc.localizedCaseInsensitiveContains(searchText) }
     }
 
     var body: some View {
@@ -254,70 +296,29 @@ struct ModelBrowserView: View {
             HStack {
                 Text("Model Browser").font(.caption.weight(.semibold))
                 Spacer()
-                Button { onClose() } label: { Image(systemName: "xmark").font(.caption) }
-                    .buttonStyle(.borderless)
+                Button { onClose() } label: { Image(systemName: "xmark").font(.caption) }.buttonStyle(.borderless)
             }
-
-            // Registry picker
             Picker("Registry", selection: $selectedRegistry) {
                 ForEach(registries, id: \.self) { Text($0).tag($0) }
-            }
-            .pickerStyle(.segmented)
-
-            // Search
-            TextField("Search models...", text: $searchText)
-                .textFieldStyle(.roundedBorder)
-                .font(.caption)
-
-            // Model list
+            }.pickerStyle(.segmented)
+            TextField("Search models...", text: $searchText).textFieldStyle(.roundedBorder).font(.caption)
             ScrollView {
                 VStack(spacing: 0) {
                     ForEach(filteredModels, id: \.name) { model in
-                        HStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(model.name).font(.caption.weight(.medium)).lineLimit(1)
-                                Text(model.desc).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
-                                HStack(spacing: 6) {
-                                    ForEach(model.capabilities, id: \.self) { cap in
-                                        Text(cap)
-                                            .font(.system(size: 9))
-                                            .padding(.horizontal, 4)
-                                            .padding(.vertical, 1)
-                                            .background(Color.accentColor.opacity(0.1))
-                                            .clipShape(RoundedRectangle(cornerRadius: 3))
-                                    }
-                                }
+                        HStack {
+                            VStack(alignment: .leading) {
+                                Text(model.name).font(.caption.weight(.medium))
+                                Text(model.desc).font(.caption2).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            VStack(alignment: .trailing, spacing: 2) {
-                                HStack(spacing: 3) {
-                                    Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow)
-                                    Text("\(model.stars)").font(.caption2)
-                                }
-                                HStack(spacing: 3) {
-                                    Image(systemName: "arrow.down.circle").font(.system(size: 8)).foregroundStyle(.secondary)
-                                    Text(model.downloads).font(.caption2)
-                                }
-                                Text(model.size).font(.caption2).foregroundStyle(.secondary)
-                            }
-                            if pullingModel == model.name {
-                                ProgressView().controlSize(.small)
-                            } else {
-                                Button("Pull") { pullingModel = model.name }
-                                    .font(.caption2)
-                                    .controlSize(.small)
-                            }
+                            Text(model.size).font(.caption2).foregroundStyle(.secondary)
+                            Button("Pull") { onPull(model.name) }.font(.caption2).controlSize(.small)
                         }
-                        .padding(.vertical, 6)
+                        .padding(.vertical, 4)
                         Divider()
                     }
                 }
-            }
-            .frame(maxHeight: 250)
-
-            if let pulling = pullingModel {
-                PullProgressView(name: pulling) { pullingModel = nil }
-            }
+            }.frame(maxHeight: 200)
         }
         .padding(10)
         .background(Color.secondary.opacity(0.03))

@@ -18,7 +18,7 @@ Remaining work (in priority order):
 5. KubernetesView — add kubectl JSON integration (only when k8s enabled)
 
 Rules:
-- Run on HOST machine (not Tart VM — no nested virt)
+- Run on HOST machine (not host machine — no nested virt)
 - NEVER run interactive colima commands (template, ssh without --, start --edit)
 - Read/write YAML files directly for config changes
 - Build: xcodegen generate && xcodebuild build -scheme ColimaDesktop -destination 'platform=macOS' -derivedDataPath build/DerivedData -quiet

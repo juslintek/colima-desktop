@@ -105,7 +105,7 @@ All Docker operations work against live socket at `~/.colima/default/docker.sock
 5. **Memory is float32** in YAML (can be 2.5 GiB)
 6. **`colima start` when already running** just warns — use `colima restart` to apply changes
 7. **JSON memory/disk are in bytes** — divide by 1024³ for GiB display
-8. **Colima runs on HOST only** — Tart VM cannot do nested virtualization
+8. **Colima runs on HOST only** — host machine cannot do nested virtualization
 
 ---
 
@@ -124,7 +124,7 @@ Remaining work (in priority order):
 5. KubernetesView — add kubectl JSON integration (only when k8s enabled)
 
 Rules:
-- Run on HOST machine (not Tart VM — no nested virt)
+- Run on HOST machine (not host machine — no nested virt)
 - NEVER run interactive colima commands (template, ssh without --, start --edit)
 - Read/write YAML files directly for config changes
 - Build: xcodegen generate && xcodebuild build -scheme ColimaDesktop -destination 'platform=macOS' -derivedDataPath build/DerivedData -quiet

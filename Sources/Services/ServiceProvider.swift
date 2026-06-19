@@ -94,6 +94,13 @@ protocol ServiceProvider {
     // Command execution
     func executeCommand(tool: String, args: [String]) async throws -> String
 
+    // AI Models
+    func modelList(runner: String) async throws -> [AIModelInfo]
+    func modelPull(name: String, runner: String) async throws
+    func modelRun(name: String, runner: String) async throws
+    func modelServe(name: String?, runner: String, port: Int?) async throws
+    func modelStop(name: String) async throws
+
     // Installation
     func isColimaInstalled() async -> Bool
     func installColima() async throws
@@ -454,6 +461,34 @@ class RealServiceProvider: ServiceProvider {
 
     func isColimaInstalled() async -> Bool { await daemon.isInstalled() }
     func installColima() async throws { try await daemon.install() }
+
+    // MARK: - AI Models
+
+    func modelList(runner: String) async throws -> [AIModelInfo] {
+        let output = try await executeCommand(tool: "colima", args: ["model", "list", "--runner", runner])
+        return AIModelInfo.parse(output)
+    }
+
+    func modelPull(name: String, runner: String) async throws {
+        _ = try await executeCommand(tool: "colima", args: ["model", "pull", name, "--runner", runner])
+    }
+
+    func modelRun(name: String, runner: String) async throws {
+        _ = try await executeCommand(tool: "colima", args: ["model", "run", name, "--runner", runner])
+    }
+
+    func modelServe(name: String?, runner: String, port: Int?) async throws {
+        var args = ["model", "serve"]
+        if let name { args.append(name) }
+        args += ["--runner", runner]
+        if let port { args += ["--port", "\(port)"] }
+        _ = try await executeCommand(tool: "colima", args: args)
+    }
+
+    func modelStop(name: String) async throws {
+        // Stop a running/serving model (docker stop the model container)
+        _ = try await executeCommand(tool: "docker", args: ["stop", name])
+    }
 }
 
 // Make DaemonClient.exec accessible to RealServiceProvider

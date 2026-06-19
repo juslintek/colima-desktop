@@ -1,6 +1,6 @@
 # E2E Flakiness — Root Cause Analysis & Stabilization
 
-**Scope:** `ColimaDesktopUITests` (XCUITest), run in the Tart VM.
+**Scope:** `ColimaDesktopUITests` (XCUITest), run on the host.
 **Mode:** All E2E tests launch with `--ui-testing`, which swaps in `MockServiceProvider`.
 They exercise the **SwiftUI/AppKit UI layer and its flows against mock data** — not real
 Colima/Docker/k8s. See "Scope & Honesty" at the bottom.
@@ -102,7 +102,7 @@ cannot reliably synthesize the hover needed to reveal them.
 
 ## Empirical Stability
 
-Method: run the full `ColimaDesktopUITests` target 3× consecutively in the Tart VM
+Method: run the full `ColimaDesktopUITests` target 3× consecutively on the host
 (`rm -rf /tmp/DD2/Build` once to force a clean compile; reuse `SourcePackages`).
 
 | Run | Passed | Failed | Notes |

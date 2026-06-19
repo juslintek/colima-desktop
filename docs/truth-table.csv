@@ -7995,3 +7995,21 @@ MenuBar,vm-stopped,btn_menubar_check_updates,reflects real appState; updates dor
 Onboarding,colima not installed,render,install prompt shown; main UI gated,isColimaInstalled,InstallPromptUITests
 Onboarding,colima not installed,btn_install_colima,brew install colima docker → main UI,installColima,InstallPromptUITests
 Update,SUPublicEDKey set + feed reachable,Check for Updates,Sparkle checks appcast,Sparkle,-
+AI/ModelLifecycle,krunkit vm + docker runtime,colima model pull ai/smollm2,model downloads; colima model list shows ai/smollm2,colima model pull,RealBackendTests/AIModelTests
+AI/ModelLifecycle,krunkit vm + model pulled,colima model list,lists downloaded models with name/size/status,colima model list,RealBackendTests/AIModelTests
+AI/ModelLifecycle,krunkit vm + model pulled,colima model run ai/smollm2,model runs; status changes to running,colima model run,RealBackendTests/AIModelTests
+AI/ModelLifecycle,krunkit vm + model running,colima model list,shows model status=running,colima model list,RealBackendTests/AIModelTests
+AI/ModelLifecycle,krunkit vm + model pulled,colima model serve ai/smollm2 --port 8080,model serves on :8080; status=serving,colima model serve,RealBackendTests/AIModelTests
+AI/ModelLifecycle,krunkit vm + model serving,curl http://localhost:8080/v1/models,returns OpenAI-compatible model list,http GET,RealBackendTests/AIModelTests
+AI/ModelLifecycle,krunkit vm + model serving,docker stop <model-container>,model stops; status returns to idle,docker stop,RealBackendTests/AIModelTests
+AI/ModelLifecycle,krunkit vm + model idle,docker rmi <model>,model removed; colima model list no longer shows it,docker rmi,RealBackendTests/AIModelTests
+AI/ModelLifecycle,vz vm (not krunkit),colima model list,fails with "requires krunkit VM type",colima model list,RealBackendTests/AIModelTests
+AI/ModelLifecycle,vz vm (not krunkit),colima model pull ai/smollm2,fails with "requires krunkit VM type",colima model pull,RealBackendTests/AIModelTests
+AI/UIActions,krunkit vm + models listed,btn_run_ai_model,calls modelRun; refreshes list; status updates,appState.services.modelRun,AIWorkloadsUITests
+AI/UIActions,krunkit vm + models listed,btn_serve_ai_model,calls modelServe; active models section updates,appState.services.modelServe,AIWorkloadsUITests
+AI/UIActions,krunkit vm + model serving,btn_ai_stop_<name>,calls modelStop; active models clears,appState.services.modelStop,AIWorkloadsUITests
+AI/UIActions,krunkit vm + registry tab,btn_ai_pull_<name>,calls modelPull; downloaded tab updates,appState.services.modelPull,AIWorkloadsUITests
+AI/UIActions,krunkit vm + downloaded model,btn_ai_delete_<name>,calls docker rmi; downloaded tab updates,docker rmi,AIWorkloadsUITests
+AI/UIActions,any vm,btn_createprofile_ai_new,creates profile with vmType=krunkit,createProfile,AIWorkloadsUITests
+AI/Prereqs,vz vm,prerequisite badge,shows "VM type is vz. krunkit recommended" warning,vmStatus,AIWorkloadsUITests
+AI/Prereqs,krunkit vm,prerequisite badge,shows "Krunkit Available" green,vmStatus,AIWorkloadsUITests
