@@ -13,7 +13,7 @@
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/juslintek/colima-desktop/main/appcast.xml</string>
     <key>SUPublicEDKey</key>
-    <string>REPLACE_WITH_ED25519_PUBLIC_KEY</string>
+    <string>s9mMrmm8Gydc6gn5JWOY2586TROs/PTaM6wm71s5Wcc=</string>
     <key>SUEnableInstallerLauncherService</key>
     <false/>
 </dict>
