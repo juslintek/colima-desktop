@@ -1,7 +1,7 @@
 import Testing
 import ViewInspector
 import SwiftUI
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 @Suite("ContentView Integration", .serialized)
 @MainActor

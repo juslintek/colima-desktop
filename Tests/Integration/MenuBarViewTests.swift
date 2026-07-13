@@ -1,7 +1,7 @@
 import Testing
 import ViewInspector
 import SwiftUI
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 /// Logic tests for the MenuBarExtra status menu. XCUITest can't drive the macOS
 /// menu-bar extra, so we validate its bindings to AppState via ViewInspector.

@@ -18,5 +18,5 @@
 - **intent:** Fix the Xcode-26 test-runner hang by extracting `ColimaDesktopKit` framework so logic tests link the module instead of hosting the `@main` app.
 - **plan:** Add framework target in `project.yml`; move App/Models/Services/Views into the framework (app target becomes a thin `@main` shell + `main.swift`); unit/integration tests depend on the framework with `@testable import ColimaDesktopKit` and NO TEST_HOST; XCUITest keeps minimal host.
 - **files-to-touch:** `project.yml`, `Sources/**` (module boundary only), `Tests/**` imports.
-- **outcome:** (pending)
-- **contract-impact:** none.
+- **outcome:** DONE ✅. Created `ColimaDesktopKit` framework (App/Models/Services/Views); app target reduced to `Sources/Main/main.swift` calling `ColimaDesktopApp.main()`; `ColimaDesktopApp` made `public`. Tests link the framework (`@testable import ColimaDesktopKit`, no TEST_HOST). RESULT: Xcode-26 hang GONE — unit **53 tests/5 suites PASS (0.036s)**, integration **16 tests/4 suites PASS (1.1s)**. Build SUCCEEDED. Previously hung 704s.
+- **contract-impact:** none (public surface limited to `ColimaDesktopApp`).

@@ -1,7 +1,7 @@
 import Testing
 import SnapshotTesting
 import SwiftUI
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 @Suite("Snapshot Tests")
 struct SnapshotTests {

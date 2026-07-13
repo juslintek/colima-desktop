@@ -1,19 +1,18 @@
 import SwiftUI
 
-@main
-struct ColimaDesktopApp: App {
+public struct ColimaDesktopApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState: AppState
     @StateObject private var updater = UpdaterManager()
 
-    init() {
+    public init() {
         let services: ServiceProvider = CommandLine.arguments.contains("--backend-mock")
             ? MockServiceProvider()
             : RealServiceProvider()
         _appState = StateObject(wrappedValue: AppState(services: services))
     }
 
-    var body: some Scene {
+    public var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)

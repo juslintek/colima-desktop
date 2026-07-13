@@ -1,5 +1,5 @@
 import XCTest
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 final class ColimaUITests: XCTestCase {
     func testAppStateInitialValues() {

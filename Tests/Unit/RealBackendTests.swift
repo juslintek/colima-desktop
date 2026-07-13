@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 /// TRUE end-to-end tests against a real Colima VM + Docker socket, exercising
 /// RealServiceProvider and DockerClient for real (no mocks).

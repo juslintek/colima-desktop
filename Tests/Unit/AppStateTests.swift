@@ -1,5 +1,5 @@
 import Testing
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 @Suite("AppState")
 struct AppStateTests {

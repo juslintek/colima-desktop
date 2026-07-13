@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 /// Deterministic failure-mode tests for DockerClient that need NO real backend:
 /// they point the client at a bogus socket and assert the error path, plus verify

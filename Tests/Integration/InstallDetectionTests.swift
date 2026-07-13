@@ -1,6 +1,6 @@
 import Testing
 import Foundation
-@testable import ColimaDesktop
+@testable import ColimaDesktopKit
 
 /// Real-backend integration tests for Colima install detection. These run on the
 /// host (no GUI) and exercise the actual Process → colima path, unlike the mock UI tests.
