@@ -82,6 +82,14 @@ class AppState: ObservableObject {
            let tab = NavigationItem(rawValue: CommandLine.arguments[i + 1]) {
             selectedTab = tab
         }
+        // Skip real backend calls when running as a test host.
+        // Detection: XCTestConfigurationFilePath is set by xcodebuild test.
+        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+            || ProcessInfo.processInfo.environment["XCTestSessionIdentifier"] != nil
+            || NSClassFromString("XCTestCase") != nil
+            || CommandLine.arguments.contains("--backend-mock") {
+            return
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             Task { @MainActor in

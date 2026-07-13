@@ -7,11 +7,6 @@ struct ColimaDesktopApp: App {
     @StateObject private var updater = UpdaterManager()
 
     init() {
-        // Backend is independent of UI-test affordances: `--ui-testing` only enables
-        // test-friendly UI (window visibility, always-visible row actions). The real
-        // ServiceProvider is the default (true end-to-end); `--backend-mock` opts into
-        // mocks for CI / environments without a real Colima/Docker (e.g. the Tart VM,
-        // which has no nested virtualization).
         let services: ServiceProvider = CommandLine.arguments.contains("--backend-mock")
             ? MockServiceProvider()
             : RealServiceProvider()

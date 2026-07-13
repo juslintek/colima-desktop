@@ -4,6 +4,11 @@ DerivedData/
 *.xcodeproj/xcuserdata/
 *.xcworkspace/xcuserdata/
 
+# SwiftPM
+.build/
+.swiftpm/
+*.profraw
+
 # Generated
 ColimaDesktop.xcodeproj/
 

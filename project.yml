@@ -121,3 +121,31 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.colima.desktop.ui-tests
         GENERATE_INFOPLIST_FILE: true
         TEST_TARGET_NAME: ColimaDesktop
+
+schemes:
+  ColimaDesktop:
+    build:
+      targets:
+        ColimaDesktop: all
+        ColimaDesktopUnitTests: [test]
+        ColimaDesktopIntegrationTests: [test]
+        ColimaDesktopSnapshotTests: [test]
+        ColimaDesktopUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      commandLineArguments:
+        "--backend-mock": true
+      targets:
+        - ColimaDesktopUnitTests
+        - ColimaDesktopIntegrationTests
+        - ColimaDesktopSnapshotTests
+        - ColimaDesktopUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
