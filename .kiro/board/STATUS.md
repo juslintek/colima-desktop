@@ -6,9 +6,9 @@ Last run: 2026-07-14 (M0.3 baseline)
 
 | Criterion | macOS | Windows | Linux | TUI | Daemon |
 |-----------|-------|---------|-------|-----|--------|
-| builds (0 warnings) | FAIL (2 warns) | n/a | n/a | n/a | PASS |
+| builds (0 warnings) | FAIL (2 warns) | scaffold (CI) | scaffold (CI) | PASS (go) | PASS |
 | lint clean | n/a (swiftlint not installed) | n/a | n/a | n/a | ? |
-| unit+integration green | PASS (69) | n/a | n/a | n/a | PASS |
+| unit+integration green | PASS (69) | n/a (CI) | n/a (CI) | PASS (6 TUI) | PASS |
 | explorer 0 broken interactions | ? | n/a | n/a | n/a | n/a |
 | coverage = 100% | FAIL (9.8%) | n/a | n/a | n/a | ? |
 | parity matrix complete | ? | n/a | n/a | n/a | n/a |

@@ -60,3 +60,10 @@
 ### 2026-07-15T00:20Z · go-daemon-dev + tui-dev · M1.5-residual + M2.8 inc.2
 - **outcome:** DONE. (1) daemon ColimaService residual handlers implemented as colima CLI wrappers: CreateProfile, DeleteProfile, CloneProfile, SwitchRuntime, UpdateRuntime, ModelSetup(stream), ModelRun(stream), ModelServe, ModelStop. GetConfig/SetConfig/GetTemplate/SetTemplate remain Unimplemented (config proto↔yaml marshaling; documented follow-up). build+tests+win-cross all green. (2) TUI Model refactored to a DataSource interface; 6 unit tests (view renders all tabs, tab-nav wraps, number-key select, quit, bodyMsg render, profiles loader) PASS.
 - **contract-impact:** none (handlers fill existing frozen RPCs).
+
+---
+
+### 2026-07-15T00:35Z · windows-native-dev + linux-native-dev + devops · M2.6 + M2.7 (scaffold)
+- **outcome:** Windows WinUI 3 scaffold (windows/: csproj with WindowsAppSDK+grpc-dotnet+Grpc.Tools, DaemonClient.cs, App, README) and Linux GTK4 scaffold (linux/: Cargo.toml gtk4-rs+tonic, build.rs proto codegen, client.rs, main.rs with 13 surfaces, README). Proto copied into each. CI workflow .github/workflows/frontends.yml builds daemon+tui (mac/linux/win), windows-winui (windows-latest), linux-gtk4 (ubuntu-latest), macos-kit tests (macos-latest).
+- **honesty:** windows/ and linux/ CANNOT build on this macOS host — they are verified by the native CI runners (integration gate honored off-host). They are canonical scaffolds (gRPC client + surface skeleton + build docs), not yet full-surface implementations.
+- **contract-impact:** none (clients consume frozen CONTRACT v1).

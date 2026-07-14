@@ -1,0 +1,428 @@
+syntax = "proto3";
+
+package colimaui;
+
+option go_package = "github.com/colima-desktop/daemon/proto";
+
+// ColimaService wraps the Colima CLI operations via gRPC.
+service ColimaService {
+  // VM Lifecycle
+  rpc Start(StartRequest) returns (stream ProgressEvent);
+  rpc Stop(StopRequest) returns (StatusResponse);
+  rpc Restart(RestartRequest) returns (stream ProgressEvent);
+  rpc Delete(DeleteRequest) returns (StatusResponse);
+  rpc Status(StatusRequest) returns (VMStatus);
+  rpc Version(Empty) returns (VersionResponse);
+  rpc Update(Empty) returns (StatusResponse);
+  rpc Prune(PruneRequest) returns (StatusResponse);
+
+  // SSH
+  rpc SSHConfig(ProfileRequest) returns (SSHConfigResponse);
+
+  // Profiles
+  rpc ListProfiles(Empty) returns (ProfileList);
+  rpc ListMachines(Empty) returns (MachineList);
+  rpc CreateProfile(CreateProfileRequest) returns (StatusResponse);
+  rpc DeleteProfile(DeleteProfileRequest) returns (StatusResponse);
+  rpc CloneProfile(CloneProfileRequest) returns (StatusResponse);
+
+  // Configuration
+  rpc GetConfig(ProfileRequest) returns (ColimaConfig);
+  rpc SetConfig(SetConfigRequest) returns (StatusResponse);
+  rpc GetTemplate(Empty) returns (ColimaConfig);
+  rpc SetTemplate(ColimaConfig) returns (StatusResponse);
+
+  // Kubernetes
+  rpc KubernetesStart(ProfileRequest) returns (StatusResponse);
+  rpc KubernetesStop(ProfileRequest) returns (StatusResponse);
+  rpc KubernetesReset(ProfileRequest) returns (StatusResponse);
+  rpc KubernetesExec(KubeExecRequest) returns (KubeExecResponse);
+
+  // AI Models
+  rpc ModelSetup(ModelRequest) returns (stream ProgressEvent);
+  rpc ModelRun(ModelRunRequest) returns (stream ProgressEvent);
+  rpc ModelServe(ModelServeRequest) returns (StatusResponse);
+  rpc ModelStop(ProfileRequest) returns (StatusResponse);
+
+  // Runtime
+  rpc SwitchRuntime(SwitchRuntimeRequest) returns (StatusResponse);
+  rpc UpdateRuntime(ProfileRequest) returns (StatusResponse);
+
+  // Monitoring (streaming)
+  rpc VMStats(ProfileRequest) returns (stream VMStatsEvent);
+  rpc ProcessList(ProfileRequest) returns (ProcessListResponse);
+  rpc KillProcess(KillProcessRequest) returns (StatusResponse);
+}
+
+// Common messages
+
+message Empty {}
+
+message StatusResponse {
+  bool success = 1;
+  string message = 2;
+  string error = 3;
+}
+
+message ProgressEvent {
+  string stage = 1;
+  string message = 2;
+  float progress = 3; // 0.0 - 1.0
+  bool done = 4;
+  string error = 5;
+}
+
+message ProfileRequest {
+  string profile = 1;
+}
+
+// VM Lifecycle
+
+message StartRequest {
+  string profile = 1;
+  ColimaConfig config = 2; // optional override
+}
+
+message StopRequest {
+  string profile = 1;
+  bool force = 2;
+}
+
+message RestartRequest {
+  string profile = 1;
+}
+
+message DeleteRequest {
+  string profile = 1;
+  bool data = 2;
+  bool force = 3;
+}
+
+message StatusRequest {
+  string profile = 1;
+  bool extended = 2;
+}
+
+message VMStatus {
+  bool running = 1;
+  string display_name = 2;
+  string driver = 3;
+  string arch = 4;
+  string runtime = 5;
+  string mount_type = 6;
+  string ip_address = 7;
+  string docker_socket = 8;
+  bool kubernetes = 9;
+  int32 cpu = 10;
+  int64 memory = 11;
+  int64 disk = 12;
+  string version = 13;
+}
+
+message VersionResponse {
+  string version = 1;
+  string revision = 2;
+}
+
+message PruneRequest {
+  bool all = 1;
+}
+
+// SSH
+
+message SSHConfigResponse {
+  string config = 1;
+  string host = 2;
+  int32 port = 3;
+  string user = 4;
+  string identity_file = 5;
+}
+
+// Profiles
+
+message ProfileList {
+  repeated ProfileInfo profiles = 1;
+}
+
+message ProfileInfo {
+  string name = 1;
+  string status = 2;
+  string arch = 3;
+  int32 cpus = 4;
+  int64 memory = 5;
+  int64 disk = 6;
+  string runtime = 7;
+  string ip_address = 8;
+}
+
+message CreateProfileRequest {
+  string name = 1;
+  ColimaConfig config = 2;
+}
+
+message DeleteProfileRequest {
+  string name = 1;
+  bool data = 2;
+  bool force = 3;
+}
+
+message CloneProfileRequest {
+  string source = 1;
+  string destination = 2;
+}
+
+message MachineList {
+  repeated MachineInfo machines = 1;
+}
+
+message MachineInfo {
+  string name = 1;
+  string status = 2;
+  string arch = 3;
+  int32 cpus = 4;
+  int64 memory = 5;
+  int64 disk = 6;
+  string os = 7;
+  string dir = 8;
+}
+
+// Configuration
+
+message ColimaConfig {
+  int32 cpu = 1;
+  float memory = 2;
+  int32 disk = 3;
+  int32 root_disk = 4;
+  string arch = 5;
+  string vm_type = 6;
+  string cpu_type = 7;
+  bool rosetta = 8;
+  bool nested_virtualization = 9;
+  string hostname = 10;
+  string disk_image = 11;
+  bool binfmt = 12;
+  string port_forwarder = 13;
+  string runtime = 14;
+  bool auto_activate = 15;
+  string model_runner = 16;
+  string mount_type = 17;
+  bool mount_inotify = 18;
+  bool forward_agent = 19;
+  bool ssh_config = 20;
+  int32 ssh_port = 21;
+  NetworkConfig network = 22;
+  KubernetesConfig kubernetes = 23;
+  map<string, string> docker = 24;
+  repeated Mount mounts = 25;
+  repeated Provision provision = 26;
+  map<string, string> env = 27;
+}
+
+message NetworkConfig {
+  bool address = 1;
+  string mode = 2;
+  string interface = 3;
+  repeated string dns = 4;
+  map<string, string> dns_hosts = 5;
+  string gateway_address = 6;
+  bool host_addresses = 7;
+  bool preferred_route = 8;
+}
+
+message KubernetesConfig {
+  bool enabled = 1;
+  string version = 2;
+  repeated string k3s_args = 3;
+  int32 port = 4;
+}
+
+message Mount {
+  string location = 1;
+  string mount_point = 2;
+  bool writable = 3;
+}
+
+message Provision {
+  string mode = 1;
+  string script = 2;
+}
+
+message SetConfigRequest {
+  string profile = 1;
+  ColimaConfig config = 2;
+}
+
+// Kubernetes
+
+message KubeExecRequest {
+  string profile = 1;
+  string command = 2; // e.g. "get pods -n default"
+}
+
+message KubeExecResponse {
+  string output = 1;
+  string error = 2;
+  int32 exit_code = 3;
+}
+
+// AI Models
+
+message ModelRequest {
+  string profile = 1;
+  string runner = 2; // "docker" or "ramalama"
+}
+
+message ModelRunRequest {
+  string profile = 1;
+  string model = 2;
+  string runner = 3;
+  string prompt = 4; // empty for interactive
+}
+
+message ModelServeRequest {
+  string profile = 1;
+  string model = 2;
+  string runner = 3;
+  int32 port = 4;
+}
+
+// Runtime
+
+message SwitchRuntimeRequest {
+  string profile = 1;
+  string runtime = 2;
+}
+
+// Monitoring
+
+message VMStatsEvent {
+  double cpu_percent = 1;
+  int64 memory_used = 2;
+  int64 memory_total = 3;
+  int64 disk_used = 4;
+  int64 disk_total = 5;
+  int64 timestamp = 6;
+}
+
+message ProcessListResponse {
+  repeated ProcessInfo processes = 1;
+}
+
+message ProcessInfo {
+  int32 pid = 1;
+  string user = 2;
+  double cpu_percent = 3;
+  double memory_percent = 4;
+  string command = 5;
+  string container = 6;
+}
+
+message KillProcessRequest {
+  string profile = 1;
+  int32 pid = 2;
+  int32 signal = 3; // default 9 (SIGKILL)
+}
+
+// ─── DockerService (CONTRACT v1 Part B) ─────────────────────────
+// JSON-passthrough surface: responses carry raw Docker Engine API JSON so
+// every frontend parses identically (mirrors the Swift DockerClient).
+service DockerService {
+  // Containers
+  rpc ListContainers(DockerScope) returns (JsonResponse);
+  rpc ContainerAction(ContainerActionRequest) returns (StatusResponse);
+  rpc CreateContainer(CreateContainerRequest) returns (JsonResponse);
+  rpc RenameContainer(RenameRequest) returns (StatusResponse);
+  rpc ContainerLogs(IdRequest) returns (JsonResponse);
+  rpc InspectContainer(IdRequest) returns (JsonResponse);
+  rpc ContainerTop(IdRequest) returns (JsonResponse);
+  rpc ContainerStats(IdRequest) returns (JsonResponse);
+  rpc ContainerChanges(IdRequest) returns (JsonResponse);
+  rpc PruneContainers(DockerScope) returns (JsonResponse);
+  // Images
+  rpc ListImages(DockerScope) returns (JsonResponse);
+  rpc PullImage(NameRequest) returns (stream ProgressEvent);
+  rpc RemoveImage(IdRequest) returns (StatusResponse);
+  rpc InspectImage(NameRequest) returns (JsonResponse);
+  rpc ImageHistory(NameRequest) returns (JsonResponse);
+  rpc TagImage(TagRequest) returns (StatusResponse);
+  rpc PushImage(NameRequest) returns (stream ProgressEvent);
+  rpc SearchImages(SearchRequest) returns (JsonResponse);
+  rpc PruneImages(DockerScope) returns (JsonResponse);
+  // Volumes
+  rpc ListVolumes(DockerScope) returns (JsonResponse);
+  rpc CreateVolume(NameRequest) returns (JsonResponse);
+  rpc RemoveVolume(NameRequest) returns (StatusResponse);
+  rpc InspectVolume(NameRequest) returns (JsonResponse);
+  rpc PruneVolumes(DockerScope) returns (JsonResponse);
+  // Networks
+  rpc ListNetworks(DockerScope) returns (JsonResponse);
+  rpc CreateNetwork(NameRequest) returns (JsonResponse);
+  rpc RemoveNetwork(IdRequest) returns (StatusResponse);
+  rpc InspectNetwork(IdRequest) returns (JsonResponse);
+  rpc ConnectNetwork(NetworkContainerRequest) returns (StatusResponse);
+  rpc DisconnectNetwork(NetworkContainerRequest) returns (StatusResponse);
+  rpc PruneNetworks(DockerScope) returns (JsonResponse);
+  // Streams
+  rpc StreamEvents(DockerScope) returns (stream JsonResponse);
+  rpc StreamLogs(IdRequest) returns (stream JsonResponse);
+  rpc StreamStats(IdRequest) returns (stream JsonResponse);
+}
+
+// profile selects which backend the daemon targets; host (optional) selects a
+// remote colima/Lima host over SSH; wsl2 selects a local WSL2/Docker engine.
+message DockerScope {
+  string profile = 1;
+  bool all = 2;
+  string host = 3;   // remote-ssh target (user@host); empty = local
+  bool wsl2 = 4;     // Windows: use local WSL2/Docker engine
+}
+message JsonResponse {
+  string json = 1;
+  string error = 2;
+}
+message IdRequest {
+  string id = 1;
+  string profile = 2;
+  string host = 3;
+  bool wsl2 = 4;
+}
+message NameRequest {
+  string name = 1;
+  string profile = 2;
+  string host = 3;
+  bool wsl2 = 4;
+}
+message ContainerActionRequest {
+  string id = 1;
+  string action = 2; // start|stop|kill|restart|pause|unpause|remove
+  string profile = 3;
+  string host = 4;
+  bool wsl2 = 5;
+}
+message CreateContainerRequest {
+  string name = 1;
+  string image = 2;
+  string profile = 3;
+  string host = 4;
+  bool wsl2 = 5;
+}
+message RenameRequest {
+  string id = 1;
+  string new_name = 2;
+  string profile = 3;
+}
+message TagRequest {
+  string name = 1;
+  string repo = 2;
+  string tag = 3;
+  string profile = 4;
+}
+message SearchRequest {
+  string term = 1;
+  string profile = 2;
+}
+message NetworkContainerRequest {
+  string network_id = 1;
+  string container_id = 2;
+  string profile = 3;
+}

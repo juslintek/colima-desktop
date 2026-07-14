@@ -1,0 +1,43 @@
+name: frontends
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  daemon:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: { os: [macos-latest, ubuntu-latest, windows-latest] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      - run: cd daemon && go build ./... && go test ./...
+  tui:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix: { os: [macos-latest, ubuntu-latest, windows-latest] }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      - run: cd tui && go build ./... && go test ./...
+  windows-winui:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - run: cd windows && dotnet restore && dotnet build -c Release
+  linux-gtk4:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev protobuf-compiler
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cd linux && cargo build --release
+  macos-kit:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: brew install xcodegen && xcodegen generate
+      - run: xcodebuild test -scheme ColimaDesktop -destination 'platform=macOS' -only-testing:ColimaDesktopUnitTests -only-testing:ColimaDesktopIntegrationTests
