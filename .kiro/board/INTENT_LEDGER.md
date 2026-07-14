@@ -54,3 +54,9 @@
 - **outcome:** (pending)
 
 - **outcome (M2.8 inc.1):** DONE. tui/ Go module builds+vets clean. gRPC client wrapper over ColimaService+DockerService (Dial unix socket). Bubble Tea tabbed UI: Dashboard/Containers/Images/Volumes/Networks/Profiles/Machines, live daemon data, ←/→/1-7 nav, r refresh, q quit. Both daemon + tui binaries compile. Next (inc.2): wire remaining Docker surfaces + teatest golden tests.
+
+---
+
+### 2026-07-15T00:20Z · go-daemon-dev + tui-dev · M1.5-residual + M2.8 inc.2
+- **outcome:** DONE. (1) daemon ColimaService residual handlers implemented as colima CLI wrappers: CreateProfile, DeleteProfile, CloneProfile, SwitchRuntime, UpdateRuntime, ModelSetup(stream), ModelRun(stream), ModelServe, ModelStop. GetConfig/SetConfig/GetTemplate/SetTemplate remain Unimplemented (config proto↔yaml marshaling; documented follow-up). build+tests+win-cross all green. (2) TUI Model refactored to a DataSource interface; 6 unit tests (view renders all tabs, tab-nav wraps, number-key select, quit, bodyMsg render, profiles loader) PASS.
+- **contract-impact:** none (handlers fill existing frozen RPCs).

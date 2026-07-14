@@ -8,14 +8,23 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/colima-desktop/tui/internal/client"
+	pb "github.com/colima-desktop/daemon/proto"
 )
+
+// DataSource is the subset of the daemon client the UI needs (interface enables testing).
+type DataSource interface {
+	Status(profile string) (*pb.VMStatus, error)
+	Profiles() (*pb.ProfileList, error)
+	Machines() (*pb.MachineList, error)
+	Containers(profile string) (string, error)
+	Images(profile string) (string, error)
+}
 
 // Tabs mirror the desktop app surfaces.
 var Tabs = []string{"Dashboard", "Containers", "Images", "Volumes", "Networks", "Profiles", "Machines"}
 
 type Model struct {
-	cli     *client.Client
+	cli     DataSource
 	profile string
 	tab     int
 	width   int
@@ -25,7 +34,7 @@ type Model struct {
 	err     string
 }
 
-func New(cli *client.Client, profile string) Model {
+func New(cli DataSource, profile string) Model {
 	return Model{cli: cli, profile: profile, status: "connecting…", body: "Loading…"}
 }
 
