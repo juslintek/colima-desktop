@@ -20,3 +20,11 @@
 - **files-to-touch:** `project.yml`, `Sources/**` (module boundary only), `Tests/**` imports.
 - **outcome:** DONE ✅. Created `ColimaDesktopKit` framework (App/Models/Services/Views); app target reduced to `Sources/Main/main.swift` calling `ColimaDesktopApp.main()`; `ColimaDesktopApp` made `public`. Tests link the framework (`@testable import ColimaDesktopKit`, no TEST_HOST). RESULT: Xcode-26 hang GONE — unit **53 tests/5 suites PASS (0.036s)**, integration **16 tests/4 suites PASS (1.1s)**. Build SUCCEEDED. Previously hung 704s.
 - **contract-impact:** none (public surface limited to `ColimaDesktopApp`).
+
+---
+
+### 2026-07-14T22:45Z · architect+go-daemon-dev · M0.4
+- **intent:** Freeze CONTRACT v1 to unlock parallel M1 (daemon) ∥ M2 (frontends) ∥ docs.
+- **plan:** Map ServiceProvider ↔ proto; capture Docker resource ops as a frozen addendum (Part B) to be added to the proto as DockerService in M1.5 (v1-additive, non-breaking); document provider mapping (mac direct-access; win/linux/tui gRPC).
+- **outcome:** DONE 🔒. CONTRACT.md frozen at v1 (Parts A colima / B docker / C install). proto ColimaService frozen; ListMachines + DockerService are v1-additive. mac keeps native direct-access provider (0-overhead); a mac gRPC client is deferred (optional, not blocking).
+- **contract-impact:** CONTRACT v1 FROZEN. Frontend agents build against Parts A+B+C.

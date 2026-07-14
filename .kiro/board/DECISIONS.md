@@ -29,3 +29,19 @@
 - **Decision:** 100% on logic + backend command construction; view layers via ViewInspector/explorer
   where feasible; any unreachable line must be explicitly justified in code + gap report.
 - **Status:** Accepted.
+
+## ADR-006: Docker resource ops are a v1-additive gRPC surface (DockerService)
+- **Context:** `proto/colima_ui.proto` is colima-centric; the Swift ServiceProvider also exposes
+  full Docker container/image/volume/network ops via direct Docker API. Cross-platform frontends
+  need those too.
+- **Decision:** Freeze CONTRACT v1 = ColimaService (proto) + a documented Docker addendum
+  (CONTRACT.md Part B). M1.5 adds a `DockerService` to the proto covering that surface — additive,
+  non-breaking to Part A. macOS keeps direct Docker-socket access as its native provider; other
+  frontends call the daemon's DockerService over gRPC.
+- **Status:** Accepted.
+
+## ADR-007: macOS keeps a native direct-access provider (no mandatory gRPC client)
+- **Decision:** mac's `RealServiceProvider` (CLI + Docker socket) IS its contract implementation —
+  native, zero-overhead. A daemon-backed gRPC provider for mac is optional/deferred; it is not
+  required to unblock the Windows/Linux/TUI frontends (the frozen CONTRACT is the gate).
+- **Status:** Accepted.
