@@ -28,3 +28,11 @@
 - **plan:** Map ServiceProvider ↔ proto; capture Docker resource ops as a frozen addendum (Part B) to be added to the proto as DockerService in M1.5 (v1-additive, non-breaking); document provider mapping (mac direct-access; win/linux/tui gRPC).
 - **outcome:** DONE 🔒. CONTRACT.md frozen at v1 (Parts A colima / B docker / C install). proto ColimaService frozen; ListMachines + DockerService are v1-additive. mac keeps native direct-access provider (0-overhead); a mac gRPC client is deferred (optional, not blocking).
 - **contract-impact:** CONTRACT v1 FROZEN. Frontend agents build against Parts A+B+C.
+
+---
+
+### 2026-07-14T22:58Z · go-daemon-dev + architect · M1.5 (increment 1)
+- **intent:** Make the daemon a real gRPC server (was a compile-only hand-stub) and author the parity matrix.
+- **plan:** Add ListMachines to proto; install protoc-gen-go/-go-grpc; generate real pb.go+grpc.pb.go; delete hand stub; rewire server.go to generated registrar; bufconn integration tests; write docs/parity-matrix.md.
+- **outcome:** DONE (increment 1). Real gRPC codegen in daemon/proto/*.pb.go; server.go uses pb.RegisterColimaServiceServer; KubeExec→KubernetesExec; ListMachines handler added. `go build` green; bufconn tests PASS (Version/Status/ListMachines round-trip over the wire). parity-matrix.md authored (8 sections A–H).
+- **contract-impact:** ListMachines added to proto (v1-additive, matches CONTRACT). DockerService (Part B) + remote-SSH + WSL2 providers + model/config RPC handlers = M1.5 increment 2 (next).

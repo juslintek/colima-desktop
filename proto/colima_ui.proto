@@ -21,6 +21,7 @@ service ColimaService {
 
   // Profiles
   rpc ListProfiles(Empty) returns (ProfileList);
+  rpc ListMachines(Empty) returns (MachineList);
   rpc CreateProfile(CreateProfileRequest) returns (StatusResponse);
   rpc DeleteProfile(DeleteProfileRequest) returns (StatusResponse);
   rpc CloneProfile(CloneProfileRequest) returns (StatusResponse);
@@ -168,6 +169,21 @@ message DeleteProfileRequest {
 message CloneProfileRequest {
   string source = 1;
   string destination = 2;
+}
+
+message MachineList {
+  repeated MachineInfo machines = 1;
+}
+
+message MachineInfo {
+  string name = 1;
+  string status = 2;
+  string arch = 3;
+  int32 cpus = 4;
+  int64 memory = 5;
+  int64 disk = 6;
+  string os = 7;
+  string dir = 8;
 }
 
 // Configuration
