@@ -77,4 +77,4 @@
 | install colima + deps | installColima / DependencyManager | Onboarding | 🟡 | ⬜ | ⬜ | ⬜ | InstallPromptUITests |
 | track + auto-update deps | DependencyManager | Settings | ⬜ | ⬜ | ⬜ | ⬜ | — |
 
-`*` = RPC to be added to `proto/colima_ui.proto` in M1.5 (ListMachines, DockerService, model list). v1-additive.
+`*` Added to `proto/colima_ui.proto` in M1.5: **ListMachines** ✅ and **DockerService** ✅ (31 RPCs, Part B). model-list RPC pending. All v1-additive. Daemon serves these over gRPC (bufconn-tested); frontends wire them in M2.

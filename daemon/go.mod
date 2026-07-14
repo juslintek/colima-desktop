@@ -1,9 +1,11 @@
 module github.com/colima-desktop/daemon
 
-go 1.24.0
+go 1.25.0
 
 require (
+	github.com/Microsoft/go-winio v0.6.2
 	github.com/abiosoft/colima v0.10.1
+	golang.org/x/crypto v0.54.0
 	google.golang.org/grpc v1.64.0
 	google.golang.org/protobuf v1.34.1
 )
@@ -20,10 +22,10 @@ require (
 	github.com/rjeczalik/notify v0.9.3 // indirect
 	github.com/schollz/progressbar/v3 v3.19.0 // indirect
 	github.com/sirupsen/logrus v1.9.4 // indirect
-	golang.org/x/net v0.22.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/term v0.40.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/term v0.45.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

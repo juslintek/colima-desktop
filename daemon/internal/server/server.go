@@ -25,6 +25,7 @@ func New() *ColimaServer {
 // Register registers the ColimaService with a gRPC server (generated registrar).
 func Register(s *grpc.Server) {
 	pb.RegisterColimaServiceServer(s, New())
+	pb.RegisterDockerServiceServer(s, NewDocker())
 }
 
 func (s *ColimaServer) newApp(profile string) (app.App, error) {

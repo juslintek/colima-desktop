@@ -322,3 +322,107 @@ message KillProcessRequest {
   int32 pid = 2;
   int32 signal = 3; // default 9 (SIGKILL)
 }
+
+// ─── DockerService (CONTRACT v1 Part B) ─────────────────────────
+// JSON-passthrough surface: responses carry raw Docker Engine API JSON so
+// every frontend parses identically (mirrors the Swift DockerClient).
+service DockerService {
+  // Containers
+  rpc ListContainers(DockerScope) returns (JsonResponse);
+  rpc ContainerAction(ContainerActionRequest) returns (StatusResponse);
+  rpc CreateContainer(CreateContainerRequest) returns (JsonResponse);
+  rpc RenameContainer(RenameRequest) returns (StatusResponse);
+  rpc ContainerLogs(IdRequest) returns (JsonResponse);
+  rpc InspectContainer(IdRequest) returns (JsonResponse);
+  rpc ContainerTop(IdRequest) returns (JsonResponse);
+  rpc ContainerStats(IdRequest) returns (JsonResponse);
+  rpc ContainerChanges(IdRequest) returns (JsonResponse);
+  rpc PruneContainers(DockerScope) returns (JsonResponse);
+  // Images
+  rpc ListImages(DockerScope) returns (JsonResponse);
+  rpc PullImage(NameRequest) returns (stream ProgressEvent);
+  rpc RemoveImage(IdRequest) returns (StatusResponse);
+  rpc InspectImage(NameRequest) returns (JsonResponse);
+  rpc ImageHistory(NameRequest) returns (JsonResponse);
+  rpc TagImage(TagRequest) returns (StatusResponse);
+  rpc PushImage(NameRequest) returns (stream ProgressEvent);
+  rpc SearchImages(SearchRequest) returns (JsonResponse);
+  rpc PruneImages(DockerScope) returns (JsonResponse);
+  // Volumes
+  rpc ListVolumes(DockerScope) returns (JsonResponse);
+  rpc CreateVolume(NameRequest) returns (JsonResponse);
+  rpc RemoveVolume(NameRequest) returns (StatusResponse);
+  rpc InspectVolume(NameRequest) returns (JsonResponse);
+  rpc PruneVolumes(DockerScope) returns (JsonResponse);
+  // Networks
+  rpc ListNetworks(DockerScope) returns (JsonResponse);
+  rpc CreateNetwork(NameRequest) returns (JsonResponse);
+  rpc RemoveNetwork(IdRequest) returns (StatusResponse);
+  rpc InspectNetwork(IdRequest) returns (JsonResponse);
+  rpc ConnectNetwork(NetworkContainerRequest) returns (StatusResponse);
+  rpc DisconnectNetwork(NetworkContainerRequest) returns (StatusResponse);
+  rpc PruneNetworks(DockerScope) returns (JsonResponse);
+  // Streams
+  rpc StreamEvents(DockerScope) returns (stream JsonResponse);
+  rpc StreamLogs(IdRequest) returns (stream JsonResponse);
+  rpc StreamStats(IdRequest) returns (stream JsonResponse);
+}
+
+// profile selects which backend the daemon targets; host (optional) selects a
+// remote colima/Lima host over SSH; wsl2 selects a local WSL2/Docker engine.
+message DockerScope {
+  string profile = 1;
+  bool all = 2;
+  string host = 3;   // remote-ssh target (user@host); empty = local
+  bool wsl2 = 4;     // Windows: use local WSL2/Docker engine
+}
+message JsonResponse {
+  string json = 1;
+  string error = 2;
+}
+message IdRequest {
+  string id = 1;
+  string profile = 2;
+  string host = 3;
+  bool wsl2 = 4;
+}
+message NameRequest {
+  string name = 1;
+  string profile = 2;
+  string host = 3;
+  bool wsl2 = 4;
+}
+message ContainerActionRequest {
+  string id = 1;
+  string action = 2; // start|stop|kill|restart|pause|unpause|remove
+  string profile = 3;
+  string host = 4;
+  bool wsl2 = 5;
+}
+message CreateContainerRequest {
+  string name = 1;
+  string image = 2;
+  string profile = 3;
+  string host = 4;
+  bool wsl2 = 5;
+}
+message RenameRequest {
+  string id = 1;
+  string new_name = 2;
+  string profile = 3;
+}
+message TagRequest {
+  string name = 1;
+  string repo = 2;
+  string tag = 3;
+  string profile = 4;
+}
+message SearchRequest {
+  string term = 1;
+  string profile = 2;
+}
+message NetworkContainerRequest {
+  string network_id = 1;
+  string container_id = 2;
+  string profile = 3;
+}

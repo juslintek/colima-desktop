@@ -1404,3 +1404,1502 @@ var ColimaService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Metadata: "colima_ui.proto",
 }
+
+const (
+	DockerService_ListContainers_FullMethodName    = "/colimaui.DockerService/ListContainers"
+	DockerService_ContainerAction_FullMethodName   = "/colimaui.DockerService/ContainerAction"
+	DockerService_CreateContainer_FullMethodName   = "/colimaui.DockerService/CreateContainer"
+	DockerService_RenameContainer_FullMethodName   = "/colimaui.DockerService/RenameContainer"
+	DockerService_ContainerLogs_FullMethodName     = "/colimaui.DockerService/ContainerLogs"
+	DockerService_InspectContainer_FullMethodName  = "/colimaui.DockerService/InspectContainer"
+	DockerService_ContainerTop_FullMethodName      = "/colimaui.DockerService/ContainerTop"
+	DockerService_ContainerStats_FullMethodName    = "/colimaui.DockerService/ContainerStats"
+	DockerService_ContainerChanges_FullMethodName  = "/colimaui.DockerService/ContainerChanges"
+	DockerService_PruneContainers_FullMethodName   = "/colimaui.DockerService/PruneContainers"
+	DockerService_ListImages_FullMethodName        = "/colimaui.DockerService/ListImages"
+	DockerService_PullImage_FullMethodName         = "/colimaui.DockerService/PullImage"
+	DockerService_RemoveImage_FullMethodName       = "/colimaui.DockerService/RemoveImage"
+	DockerService_InspectImage_FullMethodName      = "/colimaui.DockerService/InspectImage"
+	DockerService_ImageHistory_FullMethodName      = "/colimaui.DockerService/ImageHistory"
+	DockerService_TagImage_FullMethodName          = "/colimaui.DockerService/TagImage"
+	DockerService_PushImage_FullMethodName         = "/colimaui.DockerService/PushImage"
+	DockerService_SearchImages_FullMethodName      = "/colimaui.DockerService/SearchImages"
+	DockerService_PruneImages_FullMethodName       = "/colimaui.DockerService/PruneImages"
+	DockerService_ListVolumes_FullMethodName       = "/colimaui.DockerService/ListVolumes"
+	DockerService_CreateVolume_FullMethodName      = "/colimaui.DockerService/CreateVolume"
+	DockerService_RemoveVolume_FullMethodName      = "/colimaui.DockerService/RemoveVolume"
+	DockerService_InspectVolume_FullMethodName     = "/colimaui.DockerService/InspectVolume"
+	DockerService_PruneVolumes_FullMethodName      = "/colimaui.DockerService/PruneVolumes"
+	DockerService_ListNetworks_FullMethodName      = "/colimaui.DockerService/ListNetworks"
+	DockerService_CreateNetwork_FullMethodName     = "/colimaui.DockerService/CreateNetwork"
+	DockerService_RemoveNetwork_FullMethodName     = "/colimaui.DockerService/RemoveNetwork"
+	DockerService_InspectNetwork_FullMethodName    = "/colimaui.DockerService/InspectNetwork"
+	DockerService_ConnectNetwork_FullMethodName    = "/colimaui.DockerService/ConnectNetwork"
+	DockerService_DisconnectNetwork_FullMethodName = "/colimaui.DockerService/DisconnectNetwork"
+	DockerService_PruneNetworks_FullMethodName     = "/colimaui.DockerService/PruneNetworks"
+	DockerService_StreamEvents_FullMethodName      = "/colimaui.DockerService/StreamEvents"
+	DockerService_StreamLogs_FullMethodName        = "/colimaui.DockerService/StreamLogs"
+	DockerService_StreamStats_FullMethodName       = "/colimaui.DockerService/StreamStats"
+)
+
+// DockerServiceClient is the client API for DockerService service.
+//
+// For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
+//
+// ─── DockerService (CONTRACT v1 Part B) ─────────────────────────
+// JSON-passthrough surface: responses carry raw Docker Engine API JSON so
+// every frontend parses identically (mirrors the Swift DockerClient).
+type DockerServiceClient interface {
+	// Containers
+	ListContainers(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	ContainerAction(ctx context.Context, in *ContainerActionRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	CreateContainer(ctx context.Context, in *CreateContainerRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	RenameContainer(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	ContainerLogs(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	InspectContainer(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	ContainerTop(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	ContainerStats(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	ContainerChanges(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	PruneContainers(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	// Images
+	ListImages(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	PullImage(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (DockerService_PullImageClient, error)
+	RemoveImage(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	InspectImage(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	ImageHistory(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	TagImage(ctx context.Context, in *TagRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	PushImage(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (DockerService_PushImageClient, error)
+	SearchImages(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	PruneImages(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	// Volumes
+	ListVolumes(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	CreateVolume(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	RemoveVolume(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	InspectVolume(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	PruneVolumes(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	// Networks
+	ListNetworks(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	CreateNetwork(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	RemoveNetwork(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	InspectNetwork(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error)
+	ConnectNetwork(ctx context.Context, in *NetworkContainerRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	DisconnectNetwork(ctx context.Context, in *NetworkContainerRequest, opts ...grpc.CallOption) (*StatusResponse, error)
+	PruneNetworks(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error)
+	// Streams
+	StreamEvents(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (DockerService_StreamEventsClient, error)
+	StreamLogs(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (DockerService_StreamLogsClient, error)
+	StreamStats(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (DockerService_StreamStatsClient, error)
+}
+
+type dockerServiceClient struct {
+	cc grpc.ClientConnInterface
+}
+
+func NewDockerServiceClient(cc grpc.ClientConnInterface) DockerServiceClient {
+	return &dockerServiceClient{cc}
+}
+
+func (c *dockerServiceClient) ListContainers(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ListContainers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ContainerAction(ctx context.Context, in *ContainerActionRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_ContainerAction_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) CreateContainer(ctx context.Context, in *CreateContainerRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_CreateContainer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) RenameContainer(ctx context.Context, in *RenameRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_RenameContainer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ContainerLogs(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ContainerLogs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) InspectContainer(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_InspectContainer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ContainerTop(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ContainerTop_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ContainerStats(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ContainerStats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ContainerChanges(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ContainerChanges_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) PruneContainers(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_PruneContainers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ListImages(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ListImages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) PullImage(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (DockerService_PullImageClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DockerService_ServiceDesc.Streams[0], DockerService_PullImage_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dockerServicePullImageClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DockerService_PullImageClient interface {
+	Recv() (*ProgressEvent, error)
+	grpc.ClientStream
+}
+
+type dockerServicePullImageClient struct {
+	grpc.ClientStream
+}
+
+func (x *dockerServicePullImageClient) Recv() (*ProgressEvent, error) {
+	m := new(ProgressEvent)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *dockerServiceClient) RemoveImage(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_RemoveImage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) InspectImage(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_InspectImage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ImageHistory(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ImageHistory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) TagImage(ctx context.Context, in *TagRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_TagImage_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) PushImage(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (DockerService_PushImageClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DockerService_ServiceDesc.Streams[1], DockerService_PushImage_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dockerServicePushImageClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DockerService_PushImageClient interface {
+	Recv() (*ProgressEvent, error)
+	grpc.ClientStream
+}
+
+type dockerServicePushImageClient struct {
+	grpc.ClientStream
+}
+
+func (x *dockerServicePushImageClient) Recv() (*ProgressEvent, error) {
+	m := new(ProgressEvent)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *dockerServiceClient) SearchImages(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_SearchImages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) PruneImages(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_PruneImages_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ListVolumes(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ListVolumes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) CreateVolume(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_CreateVolume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) RemoveVolume(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_RemoveVolume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) InspectVolume(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_InspectVolume_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) PruneVolumes(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_PruneVolumes_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ListNetworks(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_ListNetworks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) CreateNetwork(ctx context.Context, in *NameRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_CreateNetwork_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) RemoveNetwork(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_RemoveNetwork_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) InspectNetwork(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_InspectNetwork_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) ConnectNetwork(ctx context.Context, in *NetworkContainerRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_ConnectNetwork_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) DisconnectNetwork(ctx context.Context, in *NetworkContainerRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StatusResponse)
+	err := c.cc.Invoke(ctx, DockerService_DisconnectNetwork_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) PruneNetworks(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (*JsonResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(JsonResponse)
+	err := c.cc.Invoke(ctx, DockerService_PruneNetworks_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dockerServiceClient) StreamEvents(ctx context.Context, in *DockerScope, opts ...grpc.CallOption) (DockerService_StreamEventsClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DockerService_ServiceDesc.Streams[2], DockerService_StreamEvents_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dockerServiceStreamEventsClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DockerService_StreamEventsClient interface {
+	Recv() (*JsonResponse, error)
+	grpc.ClientStream
+}
+
+type dockerServiceStreamEventsClient struct {
+	grpc.ClientStream
+}
+
+func (x *dockerServiceStreamEventsClient) Recv() (*JsonResponse, error) {
+	m := new(JsonResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *dockerServiceClient) StreamLogs(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (DockerService_StreamLogsClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DockerService_ServiceDesc.Streams[3], DockerService_StreamLogs_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dockerServiceStreamLogsClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DockerService_StreamLogsClient interface {
+	Recv() (*JsonResponse, error)
+	grpc.ClientStream
+}
+
+type dockerServiceStreamLogsClient struct {
+	grpc.ClientStream
+}
+
+func (x *dockerServiceStreamLogsClient) Recv() (*JsonResponse, error) {
+	m := new(JsonResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *dockerServiceClient) StreamStats(ctx context.Context, in *IdRequest, opts ...grpc.CallOption) (DockerService_StreamStatsClient, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DockerService_ServiceDesc.Streams[4], DockerService_StreamStats_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dockerServiceStreamStatsClient{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type DockerService_StreamStatsClient interface {
+	Recv() (*JsonResponse, error)
+	grpc.ClientStream
+}
+
+type dockerServiceStreamStatsClient struct {
+	grpc.ClientStream
+}
+
+func (x *dockerServiceStreamStatsClient) Recv() (*JsonResponse, error) {
+	m := new(JsonResponse)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// DockerServiceServer is the server API for DockerService service.
+// All implementations must embed UnimplementedDockerServiceServer
+// for forward compatibility
+//
+// ─── DockerService (CONTRACT v1 Part B) ─────────────────────────
+// JSON-passthrough surface: responses carry raw Docker Engine API JSON so
+// every frontend parses identically (mirrors the Swift DockerClient).
+type DockerServiceServer interface {
+	// Containers
+	ListContainers(context.Context, *DockerScope) (*JsonResponse, error)
+	ContainerAction(context.Context, *ContainerActionRequest) (*StatusResponse, error)
+	CreateContainer(context.Context, *CreateContainerRequest) (*JsonResponse, error)
+	RenameContainer(context.Context, *RenameRequest) (*StatusResponse, error)
+	ContainerLogs(context.Context, *IdRequest) (*JsonResponse, error)
+	InspectContainer(context.Context, *IdRequest) (*JsonResponse, error)
+	ContainerTop(context.Context, *IdRequest) (*JsonResponse, error)
+	ContainerStats(context.Context, *IdRequest) (*JsonResponse, error)
+	ContainerChanges(context.Context, *IdRequest) (*JsonResponse, error)
+	PruneContainers(context.Context, *DockerScope) (*JsonResponse, error)
+	// Images
+	ListImages(context.Context, *DockerScope) (*JsonResponse, error)
+	PullImage(*NameRequest, DockerService_PullImageServer) error
+	RemoveImage(context.Context, *IdRequest) (*StatusResponse, error)
+	InspectImage(context.Context, *NameRequest) (*JsonResponse, error)
+	ImageHistory(context.Context, *NameRequest) (*JsonResponse, error)
+	TagImage(context.Context, *TagRequest) (*StatusResponse, error)
+	PushImage(*NameRequest, DockerService_PushImageServer) error
+	SearchImages(context.Context, *SearchRequest) (*JsonResponse, error)
+	PruneImages(context.Context, *DockerScope) (*JsonResponse, error)
+	// Volumes
+	ListVolumes(context.Context, *DockerScope) (*JsonResponse, error)
+	CreateVolume(context.Context, *NameRequest) (*JsonResponse, error)
+	RemoveVolume(context.Context, *NameRequest) (*StatusResponse, error)
+	InspectVolume(context.Context, *NameRequest) (*JsonResponse, error)
+	PruneVolumes(context.Context, *DockerScope) (*JsonResponse, error)
+	// Networks
+	ListNetworks(context.Context, *DockerScope) (*JsonResponse, error)
+	CreateNetwork(context.Context, *NameRequest) (*JsonResponse, error)
+	RemoveNetwork(context.Context, *IdRequest) (*StatusResponse, error)
+	InspectNetwork(context.Context, *IdRequest) (*JsonResponse, error)
+	ConnectNetwork(context.Context, *NetworkContainerRequest) (*StatusResponse, error)
+	DisconnectNetwork(context.Context, *NetworkContainerRequest) (*StatusResponse, error)
+	PruneNetworks(context.Context, *DockerScope) (*JsonResponse, error)
+	// Streams
+	StreamEvents(*DockerScope, DockerService_StreamEventsServer) error
+	StreamLogs(*IdRequest, DockerService_StreamLogsServer) error
+	StreamStats(*IdRequest, DockerService_StreamStatsServer) error
+	mustEmbedUnimplementedDockerServiceServer()
+}
+
+// UnimplementedDockerServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedDockerServiceServer struct {
+}
+
+func (UnimplementedDockerServiceServer) ListContainers(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListContainers not implemented")
+}
+func (UnimplementedDockerServiceServer) ContainerAction(context.Context, *ContainerActionRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ContainerAction not implemented")
+}
+func (UnimplementedDockerServiceServer) CreateContainer(context.Context, *CreateContainerRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateContainer not implemented")
+}
+func (UnimplementedDockerServiceServer) RenameContainer(context.Context, *RenameRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RenameContainer not implemented")
+}
+func (UnimplementedDockerServiceServer) ContainerLogs(context.Context, *IdRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ContainerLogs not implemented")
+}
+func (UnimplementedDockerServiceServer) InspectContainer(context.Context, *IdRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InspectContainer not implemented")
+}
+func (UnimplementedDockerServiceServer) ContainerTop(context.Context, *IdRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ContainerTop not implemented")
+}
+func (UnimplementedDockerServiceServer) ContainerStats(context.Context, *IdRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ContainerStats not implemented")
+}
+func (UnimplementedDockerServiceServer) ContainerChanges(context.Context, *IdRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ContainerChanges not implemented")
+}
+func (UnimplementedDockerServiceServer) PruneContainers(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PruneContainers not implemented")
+}
+func (UnimplementedDockerServiceServer) ListImages(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListImages not implemented")
+}
+func (UnimplementedDockerServiceServer) PullImage(*NameRequest, DockerService_PullImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method PullImage not implemented")
+}
+func (UnimplementedDockerServiceServer) RemoveImage(context.Context, *IdRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveImage not implemented")
+}
+func (UnimplementedDockerServiceServer) InspectImage(context.Context, *NameRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InspectImage not implemented")
+}
+func (UnimplementedDockerServiceServer) ImageHistory(context.Context, *NameRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ImageHistory not implemented")
+}
+func (UnimplementedDockerServiceServer) TagImage(context.Context, *TagRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TagImage not implemented")
+}
+func (UnimplementedDockerServiceServer) PushImage(*NameRequest, DockerService_PushImageServer) error {
+	return status.Errorf(codes.Unimplemented, "method PushImage not implemented")
+}
+func (UnimplementedDockerServiceServer) SearchImages(context.Context, *SearchRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SearchImages not implemented")
+}
+func (UnimplementedDockerServiceServer) PruneImages(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PruneImages not implemented")
+}
+func (UnimplementedDockerServiceServer) ListVolumes(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListVolumes not implemented")
+}
+func (UnimplementedDockerServiceServer) CreateVolume(context.Context, *NameRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateVolume not implemented")
+}
+func (UnimplementedDockerServiceServer) RemoveVolume(context.Context, *NameRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveVolume not implemented")
+}
+func (UnimplementedDockerServiceServer) InspectVolume(context.Context, *NameRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InspectVolume not implemented")
+}
+func (UnimplementedDockerServiceServer) PruneVolumes(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PruneVolumes not implemented")
+}
+func (UnimplementedDockerServiceServer) ListNetworks(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListNetworks not implemented")
+}
+func (UnimplementedDockerServiceServer) CreateNetwork(context.Context, *NameRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateNetwork not implemented")
+}
+func (UnimplementedDockerServiceServer) RemoveNetwork(context.Context, *IdRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RemoveNetwork not implemented")
+}
+func (UnimplementedDockerServiceServer) InspectNetwork(context.Context, *IdRequest) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InspectNetwork not implemented")
+}
+func (UnimplementedDockerServiceServer) ConnectNetwork(context.Context, *NetworkContainerRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ConnectNetwork not implemented")
+}
+func (UnimplementedDockerServiceServer) DisconnectNetwork(context.Context, *NetworkContainerRequest) (*StatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DisconnectNetwork not implemented")
+}
+func (UnimplementedDockerServiceServer) PruneNetworks(context.Context, *DockerScope) (*JsonResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PruneNetworks not implemented")
+}
+func (UnimplementedDockerServiceServer) StreamEvents(*DockerScope, DockerService_StreamEventsServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamEvents not implemented")
+}
+func (UnimplementedDockerServiceServer) StreamLogs(*IdRequest, DockerService_StreamLogsServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamLogs not implemented")
+}
+func (UnimplementedDockerServiceServer) StreamStats(*IdRequest, DockerService_StreamStatsServer) error {
+	return status.Errorf(codes.Unimplemented, "method StreamStats not implemented")
+}
+func (UnimplementedDockerServiceServer) mustEmbedUnimplementedDockerServiceServer() {}
+
+// UnsafeDockerServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to DockerServiceServer will
+// result in compilation errors.
+type UnsafeDockerServiceServer interface {
+	mustEmbedUnimplementedDockerServiceServer()
+}
+
+func RegisterDockerServiceServer(s grpc.ServiceRegistrar, srv DockerServiceServer) {
+	s.RegisterService(&DockerService_ServiceDesc, srv)
+}
+
+func _DockerService_ListContainers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ListContainers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ListContainers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ListContainers(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ContainerAction_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ContainerActionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ContainerAction(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ContainerAction_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ContainerAction(ctx, req.(*ContainerActionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_CreateContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateContainerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).CreateContainer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_CreateContainer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).CreateContainer(ctx, req.(*CreateContainerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_RenameContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RenameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).RenameContainer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_RenameContainer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).RenameContainer(ctx, req.(*RenameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ContainerLogs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ContainerLogs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ContainerLogs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ContainerLogs(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_InspectContainer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).InspectContainer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_InspectContainer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).InspectContainer(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ContainerTop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ContainerTop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ContainerTop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ContainerTop(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ContainerStats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ContainerStats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ContainerStats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ContainerStats(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ContainerChanges_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ContainerChanges(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ContainerChanges_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ContainerChanges(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_PruneContainers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).PruneContainers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_PruneContainers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).PruneContainers(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ListImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ListImages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ListImages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ListImages(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_PullImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(NameRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DockerServiceServer).PullImage(m, &dockerServicePullImageServer{ServerStream: stream})
+}
+
+type DockerService_PullImageServer interface {
+	Send(*ProgressEvent) error
+	grpc.ServerStream
+}
+
+type dockerServicePullImageServer struct {
+	grpc.ServerStream
+}
+
+func (x *dockerServicePullImageServer) Send(m *ProgressEvent) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _DockerService_RemoveImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).RemoveImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_RemoveImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).RemoveImage(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_InspectImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).InspectImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_InspectImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).InspectImage(ctx, req.(*NameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ImageHistory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ImageHistory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ImageHistory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ImageHistory(ctx, req.(*NameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_TagImage_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TagRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).TagImage(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_TagImage_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).TagImage(ctx, req.(*TagRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_PushImage_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(NameRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DockerServiceServer).PushImage(m, &dockerServicePushImageServer{ServerStream: stream})
+}
+
+type DockerService_PushImageServer interface {
+	Send(*ProgressEvent) error
+	grpc.ServerStream
+}
+
+type dockerServicePushImageServer struct {
+	grpc.ServerStream
+}
+
+func (x *dockerServicePushImageServer) Send(m *ProgressEvent) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _DockerService_SearchImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).SearchImages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_SearchImages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).SearchImages(ctx, req.(*SearchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_PruneImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).PruneImages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_PruneImages_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).PruneImages(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ListVolumes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ListVolumes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ListVolumes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ListVolumes(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_CreateVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).CreateVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_CreateVolume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).CreateVolume(ctx, req.(*NameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_RemoveVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).RemoveVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_RemoveVolume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).RemoveVolume(ctx, req.(*NameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_InspectVolume_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).InspectVolume(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_InspectVolume_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).InspectVolume(ctx, req.(*NameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_PruneVolumes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).PruneVolumes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_PruneVolumes_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).PruneVolumes(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ListNetworks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ListNetworks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ListNetworks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ListNetworks(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_CreateNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).CreateNetwork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_CreateNetwork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).CreateNetwork(ctx, req.(*NameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_RemoveNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).RemoveNetwork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_RemoveNetwork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).RemoveNetwork(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_InspectNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).InspectNetwork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_InspectNetwork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).InspectNetwork(ctx, req.(*IdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_ConnectNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NetworkContainerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).ConnectNetwork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_ConnectNetwork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).ConnectNetwork(ctx, req.(*NetworkContainerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_DisconnectNetwork_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NetworkContainerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).DisconnectNetwork(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_DisconnectNetwork_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).DisconnectNetwork(ctx, req.(*NetworkContainerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_PruneNetworks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DockerScope)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DockerServiceServer).PruneNetworks(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DockerService_PruneNetworks_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DockerServiceServer).PruneNetworks(ctx, req.(*DockerScope))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DockerService_StreamEvents_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(DockerScope)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DockerServiceServer).StreamEvents(m, &dockerServiceStreamEventsServer{ServerStream: stream})
+}
+
+type DockerService_StreamEventsServer interface {
+	Send(*JsonResponse) error
+	grpc.ServerStream
+}
+
+type dockerServiceStreamEventsServer struct {
+	grpc.ServerStream
+}
+
+func (x *dockerServiceStreamEventsServer) Send(m *JsonResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _DockerService_StreamLogs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(IdRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DockerServiceServer).StreamLogs(m, &dockerServiceStreamLogsServer{ServerStream: stream})
+}
+
+type DockerService_StreamLogsServer interface {
+	Send(*JsonResponse) error
+	grpc.ServerStream
+}
+
+type dockerServiceStreamLogsServer struct {
+	grpc.ServerStream
+}
+
+func (x *dockerServiceStreamLogsServer) Send(m *JsonResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func _DockerService_StreamStats_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(IdRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DockerServiceServer).StreamStats(m, &dockerServiceStreamStatsServer{ServerStream: stream})
+}
+
+type DockerService_StreamStatsServer interface {
+	Send(*JsonResponse) error
+	grpc.ServerStream
+}
+
+type dockerServiceStreamStatsServer struct {
+	grpc.ServerStream
+}
+
+func (x *dockerServiceStreamStatsServer) Send(m *JsonResponse) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+// DockerService_ServiceDesc is the grpc.ServiceDesc for DockerService service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var DockerService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "colimaui.DockerService",
+	HandlerType: (*DockerServiceServer)(nil),
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "ListContainers",
+			Handler:    _DockerService_ListContainers_Handler,
+		},
+		{
+			MethodName: "ContainerAction",
+			Handler:    _DockerService_ContainerAction_Handler,
+		},
+		{
+			MethodName: "CreateContainer",
+			Handler:    _DockerService_CreateContainer_Handler,
+		},
+		{
+			MethodName: "RenameContainer",
+			Handler:    _DockerService_RenameContainer_Handler,
+		},
+		{
+			MethodName: "ContainerLogs",
+			Handler:    _DockerService_ContainerLogs_Handler,
+		},
+		{
+			MethodName: "InspectContainer",
+			Handler:    _DockerService_InspectContainer_Handler,
+		},
+		{
+			MethodName: "ContainerTop",
+			Handler:    _DockerService_ContainerTop_Handler,
+		},
+		{
+			MethodName: "ContainerStats",
+			Handler:    _DockerService_ContainerStats_Handler,
+		},
+		{
+			MethodName: "ContainerChanges",
+			Handler:    _DockerService_ContainerChanges_Handler,
+		},
+		{
+			MethodName: "PruneContainers",
+			Handler:    _DockerService_PruneContainers_Handler,
+		},
+		{
+			MethodName: "ListImages",
+			Handler:    _DockerService_ListImages_Handler,
+		},
+		{
+			MethodName: "RemoveImage",
+			Handler:    _DockerService_RemoveImage_Handler,
+		},
+		{
+			MethodName: "InspectImage",
+			Handler:    _DockerService_InspectImage_Handler,
+		},
+		{
+			MethodName: "ImageHistory",
+			Handler:    _DockerService_ImageHistory_Handler,
+		},
+		{
+			MethodName: "TagImage",
+			Handler:    _DockerService_TagImage_Handler,
+		},
+		{
+			MethodName: "SearchImages",
+			Handler:    _DockerService_SearchImages_Handler,
+		},
+		{
+			MethodName: "PruneImages",
+			Handler:    _DockerService_PruneImages_Handler,
+		},
+		{
+			MethodName: "ListVolumes",
+			Handler:    _DockerService_ListVolumes_Handler,
+		},
+		{
+			MethodName: "CreateVolume",
+			Handler:    _DockerService_CreateVolume_Handler,
+		},
+		{
+			MethodName: "RemoveVolume",
+			Handler:    _DockerService_RemoveVolume_Handler,
+		},
+		{
+			MethodName: "InspectVolume",
+			Handler:    _DockerService_InspectVolume_Handler,
+		},
+		{
+			MethodName: "PruneVolumes",
+			Handler:    _DockerService_PruneVolumes_Handler,
+		},
+		{
+			MethodName: "ListNetworks",
+			Handler:    _DockerService_ListNetworks_Handler,
+		},
+		{
+			MethodName: "CreateNetwork",
+			Handler:    _DockerService_CreateNetwork_Handler,
+		},
+		{
+			MethodName: "RemoveNetwork",
+			Handler:    _DockerService_RemoveNetwork_Handler,
+		},
+		{
+			MethodName: "InspectNetwork",
+			Handler:    _DockerService_InspectNetwork_Handler,
+		},
+		{
+			MethodName: "ConnectNetwork",
+			Handler:    _DockerService_ConnectNetwork_Handler,
+		},
+		{
+			MethodName: "DisconnectNetwork",
+			Handler:    _DockerService_DisconnectNetwork_Handler,
+		},
+		{
+			MethodName: "PruneNetworks",
+			Handler:    _DockerService_PruneNetworks_Handler,
+		},
+	},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "PullImage",
+			Handler:       _DockerService_PullImage_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "PushImage",
+			Handler:       _DockerService_PushImage_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamEvents",
+			Handler:       _DockerService_StreamEvents_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamLogs",
+			Handler:       _DockerService_StreamLogs_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "StreamStats",
+			Handler:       _DockerService_StreamStats_Handler,
+			ServerStreams: true,
+		},
+	},
+	Metadata: "colima_ui.proto",
+}

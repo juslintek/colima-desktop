@@ -36,3 +36,11 @@
 - **plan:** Add ListMachines to proto; install protoc-gen-go/-go-grpc; generate real pb.go+grpc.pb.go; delete hand stub; rewire server.go to generated registrar; bufconn integration tests; write docs/parity-matrix.md.
 - **outcome:** DONE (increment 1). Real gRPC codegen in daemon/proto/*.pb.go; server.go uses pb.RegisterColimaServiceServer; KubeExec→KubernetesExec; ListMachines handler added. `go build` green; bufconn tests PASS (Version/Status/ListMachines round-trip over the wire). parity-matrix.md authored (8 sections A–H).
 - **contract-impact:** ListMachines added to proto (v1-additive, matches CONTRACT). DockerService (Part B) + remote-SSH + WSL2 providers + model/config RPC handlers = M1.5 increment 2 (next).
+
+---
+
+### 2026-07-14T23:50Z · go-daemon-dev · M1.5 (increment 2)
+- **intent:** Add DockerService (CONTRACT Part B) + local/remote-SSH/WSL2 providers to the daemon.
+- **plan:** Extend proto with DockerService (JSON-passthrough) + messages; regenerate; write internal/docker client (HTTP over unix socket) + transport selection (local unix / remote-SSH via x/crypto/ssh+agent / WSL2 npipe via winio on Windows); implement all handlers; register; bufconn tests; windows cross-compile check.
+- **outcome:** DONE. DockerService serves 31 RPCs (containers/images/volumes/networks CRUD + prune + inspect + logs/top/stats/changes + StreamEvents/Logs/Stats). Providers: local (real), remote-SSH (x/crypto/ssh + agent auth, InsecureIgnoreHostKey), WSL2 (windows-only winio npipe; !windows returns clear error). `go build` + `GOOS=windows go build` both green. bufconn tests: ListContainers + ContainerAction round-trip PASS.
+- **contract-impact:** DockerService added to proto/colima_ui.proto — fulfills CONTRACT v1 Part B (v1-additive, ColimaService unchanged). Residual thin ColimaService handlers (profiles/config/template/model/runtime) still return generated Unimplemented defaults — tracked as M1.5 follow-up (low-risk CLI wrappers).
