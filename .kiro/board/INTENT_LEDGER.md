@@ -44,3 +44,13 @@
 - **plan:** Extend proto with DockerService (JSON-passthrough) + messages; regenerate; write internal/docker client (HTTP over unix socket) + transport selection (local unix / remote-SSH via x/crypto/ssh+agent / WSL2 npipe via winio on Windows); implement all handlers; register; bufconn tests; windows cross-compile check.
 - **outcome:** DONE. DockerService serves 31 RPCs (containers/images/volumes/networks CRUD + prune + inspect + logs/top/stats/changes + StreamEvents/Logs/Stats). Providers: local (real), remote-SSH (x/crypto/ssh + agent auth, InsecureIgnoreHostKey), WSL2 (windows-only winio npipe; !windows returns clear error). `go build` + `GOOS=windows go build` both green. bufconn tests: ListContainers + ContainerAction round-trip PASS.
 - **contract-impact:** DockerService added to proto/colima_ui.proto — fulfills CONTRACT v1 Part B (v1-additive, ColimaService unchanged). Residual thin ColimaService handlers (profiles/config/template/model/runtime) still return generated Unimplemented defaults — tracked as M1.5 follow-up (low-risk CLI wrappers).
+
+---
+
+### 2026-07-15T00:02Z · tui-dev · M2.8 (increment 1)
+- **intent:** Stand up the TUI (Bubble Tea, Go) reusing the daemon's gRPC client against the frozen CONTRACT.
+- **plan:** Create `tui/` Go module (replace → ../daemon for proto); a client wrapper over ColimaService+DockerService; a Bubble Tea app with tabbed views (Dashboard/Containers/Images/Volumes/Networks/Profiles) reading live daemon data. Build must be green; teatest later.
+- **files-to-touch:** `tui/**` (disjoint; owned by tui-dev).
+- **outcome:** (pending)
+
+- **outcome (M2.8 inc.1):** DONE. tui/ Go module builds+vets clean. gRPC client wrapper over ColimaService+DockerService (Dial unix socket). Bubble Tea tabbed UI: Dashboard/Containers/Images/Volumes/Networks/Profiles/Machines, live daemon data, ←/→/1-7 nav, r refresh, q quit. Both daemon + tui binaries compile. Next (inc.2): wire remaining Docker surfaces + teatest golden tests.
