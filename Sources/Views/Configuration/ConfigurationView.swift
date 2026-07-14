@@ -830,7 +830,6 @@ struct ConfigurationView: View {
         }
     }
 
-    @ViewBuilder
     private func resourceBar(label: String, value: Double, total: Double, unit: String) -> some View {
         let unused = total - value
         let ratio = value / total
