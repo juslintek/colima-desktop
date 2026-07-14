@@ -154,6 +154,8 @@ schemes:
     test:
       config: Debug
       gatherCoverageData: true
+      coverageTargets:
+        - ColimaDesktopKit
       commandLineArguments:
         "--backend-mock": true
       targets:

@@ -83,3 +83,11 @@ sparkle-keys:
 
 appcast:
 	scripts/sparkle-appcast.sh
+
+# === Verification scoreboard (exit criteria) ===
+.PHONY: verify coverage
+verify:
+	bash scripts/verify.sh
+
+coverage:
+	COV_MIN=0 bash scripts/verify.sh
