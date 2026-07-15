@@ -85,8 +85,15 @@ jobs:
       - name: Generate changelog notes for this tag
         run: |
           PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
-          RANGE=""; [ -n "$PREV" ] && RANGE="${PREV}..${TAG}"
-          VERSION="$TAG" bash scripts/changelog.sh "$RANGE" > /tmp/notes.md
+          if [ -n "$PREV" ]; then
+            VERSION="$TAG" bash scripts/changelog.sh "${PREV}..${TAG}" > /tmp/notes.md
+          elif [ -f CHANGELOG.md ]; then
+            # first release: use the committed changelog (drop the top preamble)
+            awk '/^## /{p=1} p' CHANGELOG.md > /tmp/notes.md
+          else
+            VERSION="$TAG" bash scripts/changelog.sh > /tmp/notes.md
+          fi
+          [ -s /tmp/notes.md ] || echo "Release $TAG" > /tmp/notes.md
           echo "## Release notes for $TAG" >> "$GITHUB_STEP_SUMMARY"
           cat /tmp/notes.md >> "$GITHUB_STEP_SUMMARY"
 
