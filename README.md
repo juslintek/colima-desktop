@@ -9,8 +9,15 @@ Manage container VMs, Docker, Kubernetes, profiles, and AI workloads across macO
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux%20%7C%20TUI-blue)
 ![Status](https://img.shields.io/badge/status-pre--v1-orange)
+[![Website](https://img.shields.io/badge/website-colima--desktop-6366f1)](https://juslintek.github.io/colima-desktop/)
 
 </div>
+
+## Links
+
+- **Website:** https://juslintek.github.io/colima-desktop/
+- **Downloads:** [Releases](https://github.com/juslintek/colima-desktop/releases)
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md)
 
 ## Why Colima Desktop?
 

@@ -67,3 +67,9 @@
 - **outcome:** Windows WinUI 3 scaffold (windows/: csproj with WindowsAppSDK+grpc-dotnet+Grpc.Tools, DaemonClient.cs, App, README) and Linux GTK4 scaffold (linux/: Cargo.toml gtk4-rs+tonic, build.rs proto codegen, client.rs, main.rs with 13 surfaces, README). Proto copied into each. CI workflow .github/workflows/frontends.yml builds daemon+tui (mac/linux/win), windows-winui (windows-latest), linux-gtk4 (ubuntu-latest), macos-kit tests (macos-latest).
 - **honesty:** windows/ and linux/ CANNOT build on this macOS host — they are verified by the native CI runners (integration gate honored off-host). They are canonical scaffolds (gRPC client + surface skeleton + build docs), not yet full-surface implementations.
 - **contract-impact:** none (clients consume frozen CONTRACT v1).
+
+---
+
+### 2026-07-15T08:05Z · devops + docs · release + pages pipelines
+- **outcome:** DONE. (1) scripts/changelog.sh — conventional-commits → Keep-a-Changelog markdown; generated CHANGELOG.md (122 lines). (2) release.yml enhanced: generates tag changelog as release notes (--notes-file), publishes DMG **and** a zipped precompiled .app; DMG/notarize/appcast steps already present. (3) .github/workflows/pages.yml — deploys site/ to GitHub Pages (auto-enable). (4) site/index.html — landing page (hero, features, platform matrix, install, live changelog fetched from raw CHANGELOG.md). README links website + changelog.
+- **note:** Pages URL https://juslintek.github.io/colima-desktop/ goes live after the pages workflow runs on push. Release assets build when a vX.Y.Z tag is pushed.

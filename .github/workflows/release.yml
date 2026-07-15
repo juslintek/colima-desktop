@@ -82,15 +82,37 @@ jobs:
           NOTARY_PROFILE: ColimaDesktopNotary
         run: scripts/package.sh
 
-      - name: Create / update GitHub Release
+      - name: Generate changelog notes for this tag
+        run: |
+          PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
+          RANGE=""; [ -n "$PREV" ] && RANGE="${PREV}..${TAG}"
+          VERSION="$TAG" bash scripts/changelog.sh "$RANGE" > /tmp/notes.md
+          echo "## Release notes for $TAG" >> "$GITHUB_STEP_SUMMARY"
+          cat /tmp/notes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Package raw .app bundle (zip)
+        run: |
+          APP=$(find build dist -maxdepth 8 -name 'Colima Desktop.app' 2>/dev/null | head -1)
+          if [ -n "$APP" ]; then
+            ditto -c -k --keepParent "$APP" "dist/ColimaDesktop-${TAG#v}-macos.app.zip"
+            echo "zipped $APP"
+          else
+            echo "no .app found to zip (DMG still published)"
+          fi
+
+      - name: Create / update GitHub Release (with changelog + precompiled assets)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           DMG="dist/Colima Desktop-${TAG#v}.dmg"
+          ASSETS=("$DMG")
+          APPZIP="dist/ColimaDesktop-${TAG#v}-macos.app.zip"
+          [ -f "$APPZIP" ] && ASSETS+=("$APPZIP")
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$DMG" --clobber
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            gh release edit "$TAG" --notes-file /tmp/notes.md
           else
-            gh release create "$TAG" "$DMG" --title "$TAG" --generate-notes
+            gh release create "$TAG" "${ASSETS[@]}" --title "$TAG" --notes-file /tmp/notes.md
           fi
 
       - name: Generate + publish Sparkle appcast (enables auto-update)

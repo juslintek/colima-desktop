@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Colima Desktop — free native UI for Colima</title>
+<meta name="description" content="A free, open-source, native desktop & terminal UI for Colima. Manage container VMs, Docker, Kubernetes, profiles, and AI workloads across macOS, Windows, and Linux — a genuine OrbStack alternative." />
+<meta property="og:title" content="Colima Desktop" />
+<meta property="og:description" content="Free, native, open-source UI for Colima — the OrbStack alternative." />
+<meta property="og:type" content="website" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    ink: '#0b1020', panel: '#131a2e', line: '#243049', brand: '#6366f1', brand2: '#22d3ee', ok: '#34d399' } } } };
+</script>
+<style>
+  body { background: radial-gradient(1200px 600px at 80% -10%, #1b2547 0%, #0b1020 55%); }
+  .card { background: linear-gradient(180deg,#141c33,#111829); }
+  .glow { box-shadow: 0 0 0 1px #243049, 0 20px 60px -20px rgba(99,102,241,.45); }
+  #changelog h2 { font-size:1.1rem; font-weight:700; margin:1.2rem 0 .3rem; color:#c7d2fe; }
+  #changelog h3 { font-size:.95rem; font-weight:600; margin:.8rem 0 .2rem; color:#93c5fd; }
+  #changelog ul { list-style:disc; padding-left:1.2rem; color:#94a3b8; font-size:.86rem; line-height:1.5; }
+  #changelog code { color:#67e8f9; font-size:.8rem; }
+</style>
+</head>
+<body class="text-slate-200 font-sans antialiased">
+<!-- Nav -->
+<header class="sticky top-0 z-30 backdrop-blur border-b border-line/60 bg-ink/70">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between">
+    <a href="#" class="flex items-center gap-2.5 font-semibold">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5Z" stroke="#6366f1" stroke-width="1.6"/><path d="M3 7l9 5 9-5M12 12v10" stroke="#22d3ee" stroke-width="1.6"/></svg>
+      Colima Desktop
+    </a>
+    <nav class="flex items-center gap-6 text-sm text-slate-400">
+      <a href="#features" class="hover:text-white">Features</a>
+      <a href="#platforms" class="hover:text-white">Platforms</a>
+      <a href="#install" class="hover:text-white">Install</a>
+      <a href="#changelog" class="hover:text-white">Changelog</a>
+      <a href="https://github.com/juslintek/colima-desktop" class="rounded-lg bg-brand/90 hover:bg-brand text-white px-3 py-1.5">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="max-w-6xl mx-auto px-5 pt-20 pb-16 text-center">
+  <span class="inline-flex items-center gap-2 text-xs text-brand2 border border-line rounded-full px-3 py-1 mb-6">Free &amp; open source · MIT</span>
+  <h1 class="text-5xl sm:text-6xl font-extrabold tracking-tight text-white">A native UI for <span class="text-transparent bg-clip-text bg-gradient-to-r from-brand to-brand2">Colima</span>.</h1>
+  <p class="mt-6 text-lg text-slate-400 max-w-2xl mx-auto">Manage container VMs, Docker, Kubernetes, profiles, and AI workloads across macOS, Windows, and Linux — plus a full-featured TUI. A genuine, free alternative to OrbStack.</p>
+  <div class="mt-9 flex items-center justify-center gap-3">
+    <a href="https://github.com/juslintek/colima-desktop/releases" class="rounded-xl bg-brand hover:bg-indigo-500 text-white font-medium px-5 py-3 glow">Download for macOS</a>
+    <a href="#install" class="rounded-xl border border-line hover:border-slate-500 px-5 py-3 text-slate-200">All platforms</a>
+  </div>
+  <div class="mt-14 max-w-4xl mx-auto card rounded-2xl glow p-4 text-left">
+    <pre class="text-[13px] leading-6 text-slate-300 overflow-x-auto"><code>              ┌──────────────────────────────────────────────┐
+   SwiftUI ──▶│                                              │
+   WinUI 3 ──▶│   colima-daemon  (Go · gRPC: colima_ui.proto)│──▶ colima / limactl / kubectl
+   GTK4    ──▶│   providers: local · remote-SSH · WSL2/Docker│──▶ Docker API (socket / npipe)
+   TUI     ──▶│                                              │
+              └──────────────────────────────────────────────┘</code></pre>
+  </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="max-w-6xl mx-auto px-5 py-16">
+  <h2 class="text-2xl font-bold text-white text-center">Everything <code class="text-brand2">colima</code> can do — from a UI.</h2>
+  <div class="mt-10 grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="card rounded-xl p-5 border border-line/60"><h3 class="font-semibold text-white">Native everywhere</h3><p class="text-sm text-slate-400 mt-1">SwiftUI on macOS, WinUI 3 on Windows, GTK4 on Linux, Bubble Tea in the terminal. No Electron, zero overhead.</p></div>
+    <div class="card rounded-xl p-5 border border-line/60"><h3 class="font-semibold text-white">One backend brain</h3><p class="text-sm text-slate-400 mt-1">A shared Go daemon (gRPC) drives every frontend identically from a single frozen contract.</p></div>
+    <div class="card rounded-xl p-5 border border-line/60"><h3 class="font-semibold text-white">Full CLI parity</h3><p class="text-sm text-slate-400 mt-1">VM lifecycle, profiles, Docker, Kubernetes (k3s), configuration, networking, runtimes, and AI models.</p></div>
+    <div class="card rounded-xl p-5 border border-line/60"><h3 class="font-semibold text-white">Turnkey</h3><p class="text-sm text-slate-400 mt-1">Auto-installs and auto-updates Colima and its dependencies on first launch (Sparkle on macOS).</p></div>
+    <div class="card rounded-xl p-5 border border-line/60"><h3 class="font-semibold text-white">Remote + local</h3><p class="text-sm text-slate-400 mt-1">Drive a local machine or a remote colima/Lima host over SSH; on Windows, local WSL2/Docker too.</p></div>
+    <div class="card rounded-xl p-5 border border-line/60"><h3 class="font-semibold text-white">AI workloads</h3><p class="text-sm text-slate-400 mt-1">Pull, run, and serve models via <code class="text-brand2">colima model</code> with krunkit GPU acceleration.</p></div>
+  </div>
+</section>
+
+<!-- Platforms -->
+<section id="platforms" class="max-w-6xl mx-auto px-5 py-16">
+  <h2 class="text-2xl font-bold text-white text-center">Four frontends, one core.</h2>
+  <div class="mt-8 overflow-hidden rounded-xl border border-line/60">
+    <table class="w-full text-sm">
+      <thead class="bg-panel text-slate-300"><tr><th class="text-left p-3">Platform</th><th class="text-left p-3">Stack</th><th class="text-left p-3">Backend</th><th class="text-left p-3">Status</th></tr></thead>
+      <tbody class="divide-y divide-line/60 text-slate-400">
+        <tr><td class="p-3 text-white">macOS</td><td class="p-3">SwiftUI + AppKit</td><td class="p-3">local colima + Docker socket</td><td class="p-3 text-ok">shipping</td></tr>
+        <tr><td class="p-3 text-white">Terminal</td><td class="p-3">Bubble Tea (Go)</td><td class="p-3">daemon gRPC</td><td class="p-3 text-ok">shipping</td></tr>
+        <tr><td class="p-3 text-white">Windows</td><td class="p-3">WinUI 3 (WinRT)</td><td class="p-3">remote-SSH + WSL2/Docker</td><td class="p-3 text-brand2">in progress</td></tr>
+        <tr><td class="p-3 text-white">Linux</td><td class="p-3">GTK4 (gtk4-rs)</td><td class="p-3">local colima</td><td class="p-3 text-brand2">in progress</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Install -->
+<section id="install" class="max-w-6xl mx-auto px-5 py-16">
+  <h2 class="text-2xl font-bold text-white text-center">Install</h2>
+  <div class="mt-8 grid md:grid-cols-2 gap-4">
+    <div class="card rounded-xl p-5 border border-line/60">
+      <h3 class="font-semibold text-white mb-2">macOS</h3>
+      <p class="text-sm text-slate-400 mb-3">Download the DMG from Releases, or build from source:</p>
+      <pre class="bg-ink rounded-lg p-3 text-[13px] text-slate-300 overflow-x-auto"><code>brew install xcodegen
+xcodegen generate
+xcodebuild build -scheme ColimaDesktop \
+  -destination 'platform=macOS'</code></pre>
+    </div>
+    <div class="card rounded-xl p-5 border border-line/60">
+      <h3 class="font-semibold text-white mb-2">Terminal (TUI)</h3>
+      <pre class="bg-ink rounded-lg p-3 text-[13px] text-slate-300 overflow-x-auto"><code># start the shared daemon
+go run ./daemon/cmd --socket /tmp/colima-desktop.sock &
+# run the TUI
+cd tui && go run . --socket /tmp/colima-desktop.sock</code></pre>
+    </div>
+  </div>
+</section>
+
+<!-- Changelog (live) -->
+<section id="changelog" class="max-w-4xl mx-auto px-5 py-16">
+  <div class="flex items-center justify-between">
+    <h2 class="text-2xl font-bold text-white">Changelog</h2>
+    <a href="https://github.com/juslintek/colima-desktop/releases" class="text-sm text-brand2 hover:underline">All releases →</a>
+  </div>
+  <div id="changelog" class="mt-6 card rounded-xl p-6 border border-line/60">Loading changelog…</div>
+</section>
+
+<footer class="border-t border-line/60 mt-10">
+  <div class="max-w-6xl mx-auto px-5 py-10 text-sm text-slate-500 flex flex-wrap items-center justify-between gap-3">
+    <span>MIT © Linas Jusys and Colima Desktop contributors.</span>
+    <span>Built for <a class="text-brand2 hover:underline" href="https://github.com/abiosoft/colima">Colima</a> · not affiliated with OrbStack.</span>
+  </div>
+</footer>
+
+<script>
+  const RAW = 'https://raw.githubusercontent.com/juslintek/colima-desktop/main/CHANGELOG.md';
+  fetch(RAW).then(r => r.ok ? r.text() : Promise.reject()).then(md => {
+    document.getElementById('changelog').innerHTML = marked.parse(md.replace(/^# Changelog[\s\S]*?\n##/, '##'));
+  }).catch(() => {
+    document.getElementById('changelog').innerHTML = '<p class="text-slate-400 text-sm">See the <a class="text-brand2" href="https://github.com/juslintek/colima-desktop/blob/main/CHANGELOG.md">CHANGELOG on GitHub</a>.</p>';
+  });
+</script>
+</body>
+</html>
