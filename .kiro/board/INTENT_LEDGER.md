@@ -83,3 +83,11 @@
 - **agents:** tests(swift-test-engineer→Tests/, M3.11) · daemon(go-daemon-dev→daemon/, GetConfig/SetConfig/GetTemplate/SetTemplate) · windows(windows-native-dev→windows/, M4.12+M4.13) · linux(linux-native-dev→linux/, M4.12+M4.13) · tui(tui-dev→tui/, M4.12+onboarding) · docs(default→docs/+CONTRIBUTING, M3.10 gap-report + OSS docs).
 - **orchestrator role:** monitors via /Volumes/Projects/cd-agents/monitor.sh; merges each completed branch to main, runs verify, pushes. Subagents commit to their branch only (no push, no main, disjoint paths). Board files + proto + README reserved to orchestrator to avoid conflicts.
 - **blocked-by-env:** live per-platform UI explorers (M3.9) + Windows/.NET & Linux/GTK compilation are not runnable on this macOS host — validated via CI (frontends.yml) and coherence review instead.
+
+---
+
+### 2026-07-16T22:20Z · orchestrator · merge wave 1 (3/6 tasks landed green)
+- **merged+pushed:** daemon (915cebc: config_server.go GetConfig/SetConfig/GetTemplate/SetTemplate + 13 bufconn tests, go build/win-build/test green) · docs (9d15bb9: CONTRIBUTING + docs/{INSTALL,ARCHITECTURE,DEVELOPMENT}.md + docs/parity/overview.md + docs/gap-report.md) · tui (e2e3a13: 11 CONTRACT surfaces + onboarding + 56 go tests green).
+- **merge policy enforced:** path-scoped checkout of each agent's owned prefix only (git checkout agent/<x> -- <prefix>), never a full branch merge — so stray writes some agents made to main's board ledger are discarded and history stays orchestrator-controlled. Each merge re-verified on main before push.
+- **still running:** tests (swift-test-engineer: 5 new test files staged incl DockerClientLogicTests/ColimaConfigTests + ViewInspector suites; found a real fromYAML mount round-trip bug) · windows (native-dev: MVVM views/viewmodels/DependencyManager/converters — its new files landed in main's working tree, disjoint windows/, to be harvested) · linux (native-dev: gtk4 views/ + dependency_manager.rs in its worktree).
+- **next:** harvest+verify+merge tests, windows, linux; then M5.14 all-green verify.sh + tag.
