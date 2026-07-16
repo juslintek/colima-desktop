@@ -1,5 +1,6 @@
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Compiles proto/colima_ui.proto into a Rust gRPC client (ColimaService + DockerService).
+    // Compile proto/colima_ui.proto → Rust gRPC client stubs (ColimaService + DockerService).
+    // build_server(false) — we are a client only.
     tonic_build::configure()
         .build_server(false)
         .compile(&["proto/colima_ui.proto"], &["proto"])?;

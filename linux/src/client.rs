@@ -1,43 +1,57 @@
-// tonic gRPC client wrapper for the colima-desktop daemon.
-pub mod colimaui {
+// tonic gRPC client wrapper — ColimaService + DockerService.
+//
+// All methods return Results so callers can display errors in the UI.
+
+pub mod proto {
     tonic::include_proto!("colimaui");
 }
-use colimaui::colima_service_client::ColimaServiceClient;
-use colimaui::docker_service_client::DockerServiceClient;
-use colimaui::{DockerScope, Empty, StatusRequest};
 
-pub struct Daemon {
-    pub colima: ColimaServiceClient<tonic::transport::Channel>,
-    pub docker: DockerServiceClient<tonic::transport::Channel>,
+pub use proto::{
+    colima_service_client::ColimaServiceClient,
+    docker_service_client::DockerServiceClient,
+    CloneProfileRequest, ContainerActionRequest, CreateContainerRequest,
+    CreateProfileRequest, DeleteProfileRequest, DeleteRequest, DockerScope,
+    Empty, IdRequest, KillProcessRequest, KubeExecRequest, ModelRequest,
+    ModelRunRequest, ModelServeRequest, NameRequest, NetworkContainerRequest,
+    PruneRequest, ProfileRequest, RenameRequest, RestartRequest, SearchRequest,
+    SetConfigRequest, StartRequest, StatusRequest, StopRequest,
+    SwitchRuntimeRequest, TagRequest,
+};
+
+use tonic::transport::Channel;
+
+/// Shared connection to the colima-desktop daemon over a Unix socket or TCP.
+#[derive(Clone)]
+pub struct DaemonClient {
+    pub colima: ColimaServiceClient<Channel>,
+    pub docker: DockerServiceClient<Channel>,
 }
 
-impl Daemon {
-    /// Connect to the daemon over its TCP endpoint (local colima).
-    pub async fn connect(addr: String) -> Result<Self, tonic::transport::Error> {
-        let ch = tonic::transport::Channel::from_shared(addr)
-            .unwrap()
-            .connect()
-            .await?;
+impl DaemonClient {
+    /// Connect via a `http://` or `unix:///` endpoint string.
+    pub async fn connect(endpoint: impl Into<String>) -> Result<Self, tonic::transport::Error> {
+        let ep = endpoint.into();
+        let channel = if ep.starts_with("unix://") {
+            // Unix domain socket (preferred on Linux)
+            let path = ep.trim_start_matches("unix://").to_owned();
+            tonic::transport::Endpoint::try_from("http://localhost")
+                .expect("static endpoint is valid")
+                .connect_with_connector(tower::service_fn(move |_| {
+                    let p = path.clone();
+                    async move {
+                        Ok::<_, std::io::Error>(
+                            tokio::net::UnixStream::connect(p).await?,
+                        )
+                    }
+                }))
+                .await?
+        } else {
+            Channel::from_shared(ep).unwrap().connect().await?
+        };
+
         Ok(Self {
-            colima: ColimaServiceClient::new(ch.clone()),
-            docker: DockerServiceClient::new(ch),
+            colima: ColimaServiceClient::new(channel.clone()),
+            docker: DockerServiceClient::new(channel),
         })
-    }
-
-    pub async fn status(&mut self, profile: &str) -> Result<colimaui::VmStatus, tonic::Status> {
-        Ok(self
-            .colima
-            .status(StatusRequest { profile: profile.into(), extended: false })
-            .await?
-            .into_inner())
-    }
-
-    pub async fn containers(&mut self, profile: &str) -> Result<String, tonic::Status> {
-        let r = self
-            .docker
-            .list_containers(DockerScope { profile: profile.into(), all: true, host: String::new(), wsl2: false })
-            .await?
-            .into_inner();
-        Ok(r.json)
     }
 }

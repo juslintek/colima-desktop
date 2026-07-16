@@ -1,13 +1,33 @@
 [package]
 name = "colima-desktop-linux"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
+
+[[bin]]
+name = "colima-desktop"
+path = "src/main.rs"
 
 [dependencies]
 gtk = { package = "gtk4", version = "0.9" }
-tonic = "0.12"
+adw = { package = "libadwaita", version = "0.7" }
+glib = "0.20"
+gio = "0.20"
+tonic = { version = "0.12", features = ["tls", "tls-roots"] }
 prost = "0.13"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "net"] }
+tokio-stream = "0.1"
+tower = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+which = "6"
+reqwest = { version = "0.12", features = ["json", "stream"], default-features = false, optional = true }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+futures = "0.3"
 
 [build-dependencies]
 tonic-build = "0.12"
+
+[features]
+default = []
+install-helper = ["reqwest"]
