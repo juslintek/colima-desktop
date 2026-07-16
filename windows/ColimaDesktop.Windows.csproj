@@ -23,4 +23,7 @@
   <ItemGroup>
     <Protobuf Include="Proto/colima_ui.proto" GrpcServices="Client" />
   </ItemGroup>
+  <!-- WinUI XamlPreCompile (intermediatexaml pass) must not run before Grpc.Tools
+       generates the Colimaui types, else x:Bind ViewModels fail to compile. -->
+  <Target Name="ProtoBeforeXaml" BeforeTargets="XamlPreCompile;CoreCompile" DependsOnTargets="Protobuf_Compile" />
 </Project>

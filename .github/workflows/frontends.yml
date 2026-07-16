@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev protobuf-compiler
+      - run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev protobuf-compiler
       - uses: dtolnay/rust-toolchain@stable
       - run: cd linux && cargo build --release
   macos-kit:

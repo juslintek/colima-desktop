@@ -3,6 +3,7 @@ syntax = "proto3";
 package colimaui;
 
 option go_package = "github.com/colima-desktop/daemon/proto";
+option csharp_namespace = "Colimaui";
 
 // ColimaService wraps the Colima CLI operations via gRPC.
 service ColimaService {
