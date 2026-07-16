@@ -11,8 +11,9 @@ import (
 )
 
 func main() {
-	socket := flag.String("socket", "/tmp/colima-desktop.sock", "daemon unix socket")
-	profile := flag.String("profile", "default", "colima profile")
+	socket     := flag.String("socket", "/tmp/colima-desktop.sock", "daemon unix socket")
+	profile    := flag.String("profile", "default", "colima profile")
+	onboarding := flag.Bool("onboarding", false, "show dependency onboarding screen on startup")
 	flag.Parse()
 
 	cli, err := client.Dial(*socket)
@@ -22,7 +23,15 @@ func main() {
 	}
 	defer cli.Close()
 
-	if _, err := tea.NewProgram(ui.New(cli, *profile), tea.WithAltScreen()).Run(); err != nil {
+	var m tea.Model
+	if *onboarding {
+		ob := ui.NewOnboardingModel()
+		m = ui.NewWithOnboarding(cli, *profile, ob)
+	} else {
+		m = ui.New(cli, *profile)
+	}
+
+	if _, err := tea.NewProgram(m, tea.WithAltScreen()).Run(); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

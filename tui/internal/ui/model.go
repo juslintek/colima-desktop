@@ -13,29 +13,49 @@ import (
 
 // DataSource is the subset of the daemon client the UI needs (interface enables testing).
 type DataSource interface {
+	// ColimaService
 	Status(profile string) (*pb.VMStatus, error)
 	Profiles() (*pb.ProfileList, error)
 	Machines() (*pb.MachineList, error)
+	GetConfig(profile string) (*pb.ColimaConfig, error)
+	KubernetesStatus(profile string) (*pb.VMStatus, error)
+
+	// DockerService
 	Containers(profile string) (string, error)
 	Images(profile string) (string, error)
+	Volumes(profile string) (string, error)
+	Networks(profile string) (string, error)
 }
 
-// Tabs mirror the desktop app surfaces.
-var Tabs = []string{"Dashboard", "Containers", "Images", "Volumes", "Networks", "Profiles", "Machines"}
-
+// Model is the root Bubble Tea model for the TUI.
 type Model struct {
-	cli     DataSource
-	profile string
-	tab     int
-	width   int
-	height  int
-	status  string
-	body    string
-	err     string
+	cli        DataSource
+	profile    string
+	tab        int
+	width      int
+	height     int
+	status     string
+	body       string
+	err        string
+	showHelp   bool
+	onboarding *OnboardingModel // non-nil when dependency check is needed
 }
 
+// New creates a new Model. If onboarding is non-nil it is shown first.
 func New(cli DataSource, profile string) Model {
-	return Model{cli: cli, profile: profile, status: "connecting…", body: "Loading…"}
+	return Model{
+		cli:     cli,
+		profile: profile,
+		status:  "connecting…",
+		body:    "Loading…",
+	}
+}
+
+// NewWithOnboarding creates a Model that first shows the onboarding screen.
+func NewWithOnboarding(cli DataSource, profile string, ob *OnboardingModel) Model {
+	m := New(cli, profile)
+	m.onboarding = ob
+	return m
 }
 
 // messages
@@ -46,7 +66,12 @@ type bodyMsg struct {
 	err  string
 }
 
-func (m Model) Init() tea.Cmd { return tea.Batch(m.loadStatus, m.loadTab(m.tab)) }
+func (m Model) Init() tea.Cmd {
+	if m.onboarding != nil {
+		return m.onboarding.Init()
+	}
+	return tea.Batch(m.loadStatus, m.loadTab(m.tab))
+}
 
 func (m Model) loadStatus() tea.Msg {
 	st, err := m.cli.Status(m.profile)
@@ -63,48 +88,316 @@ func (m Model) loadStatus() tea.Msg {
 
 func (m Model) loadTab(tab int) tea.Cmd {
 	return func() tea.Msg {
-		switch Tabs[tab] {
-		case "Containers":
+		switch tab {
+		case TabDashboard:
+			return bodyMsg{tab, dashboardBody(), ""}
+
+		case TabContainers:
 			raw, err := m.cli.Containers(m.profile)
 			if err != nil {
 				return bodyMsg{tab, "", err.Error()}
 			}
-			return renderJSON(tab, raw, []string{"Names", "Image", "State", "Status"})
-		case "Images":
+			return renderJSONList(tab, raw, "Names", "Image", "State")
+
+		case TabImages:
 			raw, err := m.cli.Images(m.profile)
 			if err != nil {
 				return bodyMsg{tab, "", err.Error()}
 			}
-			return renderJSON(tab, raw, []string{"RepoTags", "Id", "Size"})
-		case "Profiles":
+			return renderJSONList(tab, raw, "RepoTags", "Id", "Size")
+
+		case TabVolumes:
+			raw, err := m.cli.Volumes(m.profile)
+			if err != nil {
+				return bodyMsg{tab, "", err.Error()}
+			}
+			return renderJSONList(tab, raw, "Name", "Driver", "Mountpoint")
+
+		case TabNetworks:
+			raw, err := m.cli.Networks(m.profile)
+			if err != nil {
+				return bodyMsg{tab, "", err.Error()}
+			}
+			return renderJSONList(tab, raw, "Name", "Driver", "Scope")
+
+		case TabKubernetes:
+			st, err := m.cli.KubernetesStatus(m.profile)
+			if err != nil {
+				return bodyMsg{tab, "", err.Error()}
+			}
+			enabled := "disabled"
+			if st.Kubernetes {
+				enabled = "enabled"
+			}
+			body := fmt.Sprintf(
+				"Kubernetes: %s\nProfile:    %s\nRunning:    %v\nRuntime:    %s\n\n"+
+					"Actions:  [s] start   [x] stop   [r] reset",
+				enabled, m.profile, st.Running, st.Runtime)
+			return bodyMsg{tab, body, ""}
+
+		case TabConfig:
+			cfg, err := m.cli.GetConfig(m.profile)
+			if err != nil {
+				return bodyMsg{tab, "", err.Error()}
+			}
+			return bodyMsg{tab, renderConfig(cfg), ""}
+
+		case TabRuntime:
+			st, err := m.cli.Status(m.profile)
+			if err != nil {
+				return bodyMsg{tab, "", err.Error()}
+			}
+			body := fmt.Sprintf(
+				"Runtime:    %s\nProfile:    %s\nVM type:    %s\nArch:       %s\n\n"+
+					"Actions:  [d] docker   [c] containerd   [i] incus   [u] update",
+				st.Runtime, m.profile, st.Driver, st.Arch)
+			return bodyMsg{tab, body, ""}
+
+		case TabAI:
+			return bodyMsg{tab, aiWorkloadsBody(m.profile), ""}
+
+		case TabProfiles:
 			pl, err := m.cli.Profiles()
 			if err != nil {
 				return bodyMsg{tab, "", err.Error()}
 			}
-			var b strings.Builder
-			for _, p := range pl.Profiles {
-				fmt.Fprintf(&b, "• %-16s %-10s %s cpu=%d\n", p.Name, p.Status, p.Arch, p.Cpus)
-			}
-			return bodyMsg{tab, orEmpty(b.String(), "No profiles"), ""}
-		case "Machines":
+			return bodyMsg{tab, renderProfiles(pl), ""}
+
+		case TabMachines:
 			ml, err := m.cli.Machines()
 			if err != nil {
 				return bodyMsg{tab, "", err.Error()}
 			}
-			var b strings.Builder
-			for _, x := range ml.Machines {
-				fmt.Fprintf(&b, "• %-16s %-10s %s cpu=%d\n", x.Name, x.Status, x.Arch, x.Cpus)
-			}
-			return bodyMsg{tab, orEmpty(b.String(), "No machines"), ""}
-		case "Dashboard":
-			return bodyMsg{tab, "Colima Desktop — TUI\n\nUse ←/→ or 1-7 to switch tabs, q to quit.\n\nBacked live by the colima-desktop daemon (gRPC).", ""}
+			return bodyMsg{tab, renderMachines(ml), ""}
+
 		default:
-			return bodyMsg{tab, Tabs[tab] + ": (wired via daemon DockerService)", ""}
+			return bodyMsg{tab, Tabs[tab] + ": (not wired)", ""}
 		}
 	}
 }
 
-func renderJSON(tab int, raw string, _ []string) tea.Msg {
+func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Delegate to onboarding model until it signals complete.
+	if m.onboarding != nil {
+		switch msg := msg.(type) {
+		case OnboardingDoneMsg:
+			m.onboarding = nil
+			return m, tea.Batch(m.loadStatus, m.loadTab(m.tab))
+		case tea.KeyMsg:
+			if msg.String() == "ctrl+c" {
+				return m, tea.Quit
+			}
+		}
+		newOb, cmd := m.onboarding.Update(msg)
+		ob := newOb.(OnboardingModel)
+		m.onboarding = &ob
+		return m, cmd
+	}
+
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width, m.height = msg.Width, msg.Height
+
+	case statusMsg:
+		m.status = msg.text
+
+	case bodyMsg:
+		if msg.tab == m.tab {
+			m.body, m.err = msg.text, msg.err
+		}
+
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "ctrl+c":
+			return m, tea.Quit
+		case "?":
+			m.showHelp = !m.showHelp
+			return m, nil
+		case "right", "l":
+			m.tab = (m.tab + 1) % len(Tabs)
+			m.body, m.err = "Loading…", ""
+			return m, m.loadTab(m.tab)
+		case "left", "h":
+			m.tab = (m.tab - 1 + len(Tabs)) % len(Tabs)
+			m.body, m.err = "Loading…", ""
+			return m, m.loadTab(m.tab)
+		case "r":
+			m.body, m.err = "Loading…", ""
+			return m, tea.Batch(m.loadStatus, m.loadTab(m.tab))
+		}
+		// 1-9 and 0 shortcut keys for tabs 1-10 (11th tab = 0)
+		if len(msg.String()) == 1 {
+			ch := msg.String()[0]
+			if ch >= '1' && ch <= '9' {
+				idx := int(ch-'1')
+				if idx < len(Tabs) {
+					m.tab = idx
+					m.body, m.err = "Loading…", ""
+					return m, m.loadTab(m.tab)
+				}
+			}
+			if ch == '0' && len(Tabs) >= 10 {
+				m.tab = 9
+				m.body, m.err = "Loading…", ""
+				return m, m.loadTab(m.tab)
+			}
+		}
+	}
+	return m, nil
+}
+
+// ─── styles ──────────────────────────────────────────────────────────────────
+
+var (
+	activeTabStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212")).Padding(0, 1)
+	dimTabStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 1)
+	barStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	errStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	helpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("243")).Italic(true)
+	titleStyle     = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
+)
+
+// View renders the full TUI screen.
+func (m Model) View() string {
+	if m.onboarding != nil {
+		return m.onboarding.View()
+	}
+
+	// Header: tab bar (two rows for 11 tabs)
+	var row1, row2 []string
+	for i, t := range Tabs {
+		label := fmt.Sprintf("%s", t)
+		if i < 9 {
+			label = fmt.Sprintf("%d %s", i+1, t)
+		} else if i == 9 {
+			label = fmt.Sprintf("0 %s", t)
+		}
+		if i == m.tab {
+			s := activeTabStyle.Render(label)
+			if i <= 5 {
+				row1 = append(row1, s)
+			} else {
+				row2 = append(row2, s)
+			}
+		} else {
+			s := dimTabStyle.Render(label)
+			if i <= 5 {
+				row1 = append(row1, s)
+			} else {
+				row2 = append(row2, s)
+			}
+		}
+	}
+	header := strings.Join(row1, "") + "\n" + strings.Join(row2, "")
+
+	divider := barStyle.Render(strings.Repeat("─", max(60, m.width-2)))
+
+	body := m.body
+	if m.err != "" {
+		body = errStyle.Render("error: " + m.err)
+	}
+
+	helpLine := barStyle.Render("←/→ tabs · 1-0 jump · r refresh · ? help · q quit")
+	if m.showHelp {
+		helpLine = helpView()
+	}
+
+	footerStatus := barStyle.Render(m.status)
+
+	return fmt.Sprintf("%s\n%s\n\n%s\n\n%s\n%s",
+		header, divider, body, divider, footerStatus+"  "+helpLine)
+}
+
+func helpView() string {
+	lines := []string{
+		"Keybindings:",
+		"  ←/→  h/l     navigate tabs",
+		"  1-9 / 0       jump to tab 1-10",
+		"  r              refresh current tab",
+		"  ?              toggle help",
+		"  q  ctrl+c     quit",
+		"",
+		"Tabs:",
+		"  1 Dashboard    2 Containers   3 Images",
+		"  4 Volumes      5 Networks     6 Kubernetes",
+		"  7 Configuration 8 Runtime     9 AI Workloads",
+		"  0 Profiles    (→) Machines",
+	}
+	return helpStyle.Render(strings.Join(lines, "\n"))
+}
+
+// ─── body renderers ──────────────────────────────────────────────────────────
+
+func dashboardBody() string {
+	return titleStyle.Render("Colima Desktop — TUI") + "\n\n" +
+		"Surfaces available:\n" +
+		"  Dashboard · Containers · Images · Volumes · Networks\n" +
+		"  Kubernetes · Configuration · Runtime · AI Workloads\n" +
+		"  Profiles · Machines\n\n" +
+		"Backed live by the colima-desktop daemon (gRPC).\n" +
+		"Use ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\n" +
+		"Press ? for full help."
+}
+
+func aiWorkloadsBody(profile string) string {
+	return fmt.Sprintf(
+		"AI Workloads — profile: %s\n\n"+
+			"Actions:\n"+
+			"  [s]  model setup      (stream install progress)\n"+
+			"  [r]  model run        (interactive inference)\n"+
+			"  [v]  model serve      (start OpenAI-compatible API)\n"+
+			"  [x]  model stop       (stop serving)\n\n"+
+			"Backend: colima model subcommand via daemon gRPC.\n"+
+			"Supports docker runner and ramalama runner.",
+		profile)
+}
+
+func renderProfiles(pl *pb.ProfileList) string {
+	if pl == nil || len(pl.Profiles) == 0 {
+		return "No profiles found."
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%-20s %-12s %-10s %s\n", "Name", "Status", "Arch", "CPU")
+	fmt.Fprintf(&b, "%s\n", strings.Repeat("─", 55))
+	for _, p := range pl.Profiles {
+		fmt.Fprintf(&b, "%-20s %-12s %-10s %d\n", p.Name, p.Status, p.Arch, p.Cpus)
+	}
+	return b.String()
+}
+
+func renderMachines(ml *pb.MachineList) string {
+	if ml == nil || len(ml.Machines) == 0 {
+		return "No machines found."
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "%-20s %-12s %-10s %s\n", "Name", "Status", "Arch", "CPU")
+	fmt.Fprintf(&b, "%s\n", strings.Repeat("─", 55))
+	for _, x := range ml.Machines {
+		fmt.Fprintf(&b, "%-20s %-12s %-10s %d\n", x.Name, x.Status, x.Arch, x.Cpus)
+	}
+	return b.String()
+}
+
+func renderConfig(cfg *pb.ColimaConfig) string {
+	if cfg == nil {
+		return "No configuration available."
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "CPU:         %d\n", cfg.Cpu)
+	fmt.Fprintf(&b, "Memory:      %.1f GiB\n", cfg.Memory)
+	fmt.Fprintf(&b, "Disk:        %d GiB\n", cfg.Disk)
+	fmt.Fprintf(&b, "Arch:        %s\n", cfg.Arch)
+	fmt.Fprintf(&b, "VM Type:     %s\n", cfg.VmType)
+	fmt.Fprintf(&b, "Runtime:     %s\n", cfg.Runtime)
+	fmt.Fprintf(&b, "Mount Type:  %s\n", cfg.MountType)
+	if cfg.Kubernetes != nil {
+		fmt.Fprintf(&b, "Kubernetes:  enabled=%v  version=%s\n", cfg.Kubernetes.Enabled, cfg.Kubernetes.Version)
+	}
+	return b.String()
+}
+
+// renderJSONList parses a JSON array and renders a compact list.
+func renderJSONList(tab int, raw string, keys ...string) tea.Msg {
 	if raw == "" {
 		return bodyMsg{tab, "(empty)", ""}
 	}
@@ -112,69 +405,22 @@ func renderJSON(tab int, raw string, _ []string) tea.Msg {
 	if err := json.Unmarshal([]byte(raw), &arr); err != nil {
 		return bodyMsg{tab, raw, ""}
 	}
+	if len(arr) == 0 {
+		return bodyMsg{tab, "(none)", ""}
+	}
 	var b strings.Builder
 	for _, it := range arr {
-		name := firstString(it, "Names", "RepoTags", "Name", "Id")
-		fmt.Fprintf(&b, "• %s\n", name)
-	}
-	return bodyMsg{tab, orEmpty(b.String(), "(none)"), ""}
-}
-
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.WindowSizeMsg:
-		m.width, m.height = msg.Width, msg.Height
-	case statusMsg:
-		m.status = msg.text
-	case bodyMsg:
-		if msg.tab == m.tab {
-			m.body, m.err = msg.text, msg.err
+		name := firstString(it, keys...)
+		extra := ""
+		if len(keys) > 1 {
+			second := firstString(it, keys[1:]...)
+			if second != name {
+				extra = "  " + second
+			}
 		}
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c":
-			return m, tea.Quit
-		case "right", "l":
-			m.tab = (m.tab + 1) % len(Tabs)
-			return m, m.loadTab(m.tab)
-		case "left", "h":
-			m.tab = (m.tab - 1 + len(Tabs)) % len(Tabs)
-			return m, m.loadTab(m.tab)
-		case "r":
-			return m, tea.Batch(m.loadStatus, m.loadTab(m.tab))
-		}
-		if len(msg.String()) == 1 && msg.String() >= "1" && msg.String() <= "7" {
-			m.tab = int(msg.String()[0] - '1')
-			return m, m.loadTab(m.tab)
-		}
+		fmt.Fprintf(&b, "• %s%s\n", name, extra)
 	}
-	return m, nil
-}
-
-var (
-	activeTab = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212")).Padding(0, 1)
-	dimTab    = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 1)
-	bar       = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-	errStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
-)
-
-func (m Model) View() string {
-	var tabs []string
-	for i, t := range Tabs {
-		if i == m.tab {
-			tabs = append(tabs, activeTab.Render(fmt.Sprintf("%d %s", i+1, t)))
-		} else {
-			tabs = append(tabs, dimTab.Render(fmt.Sprintf("%d %s", i+1, t)))
-		}
-	}
-	header := strings.Join(tabs, " ")
-	body := m.body
-	if m.err != "" {
-		body = errStyle.Render("error: " + m.err)
-	}
-	return fmt.Sprintf("%s\n%s\n\n%s\n\n%s",
-		header, bar.Render(strings.Repeat("─", 60)), body,
-		bar.Render(m.status+"   [←/→ tabs · r refresh · q quit]"))
+	return bodyMsg{tab, b.String(), ""}
 }
 
 func orEmpty(s, fallback string) string {
@@ -200,4 +446,11 @@ func firstString(m map[string]any, keys ...string) string {
 		}
 	}
 	return "(unnamed)"
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

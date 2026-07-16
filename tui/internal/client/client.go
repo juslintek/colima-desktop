@@ -34,11 +34,14 @@ func Dial(socket string) (*Client, error) {
 	}, nil
 }
 
+// Close releases the gRPC connection.
 func (c *Client) Close() error { return c.conn.Close() }
 
 func ctx() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 15*time.Second)
 }
+
+// ─── ColimaService methods ───────────────────────────────────────────────────
 
 // Status returns the current VM status for the profile.
 func (c *Client) Status(profile string) (*pb.VMStatus, error) {
@@ -61,6 +64,23 @@ func (c *Client) Machines() (*pb.MachineList, error) {
 	return c.Colima.ListMachines(cx, &pb.Empty{})
 }
 
+// GetConfig fetches the colima configuration for a profile.
+func (c *Client) GetConfig(profile string) (*pb.ColimaConfig, error) {
+	cx, cancel := ctx()
+	defer cancel()
+	return c.Colima.GetConfig(cx, &pb.ProfileRequest{Profile: profile})
+}
+
+// KubernetesStatus returns the VM status (which includes the kubernetes field)
+// for the given profile — used to display Kubernetes state.
+func (c *Client) KubernetesStatus(profile string) (*pb.VMStatus, error) {
+	cx, cancel := ctx()
+	defer cancel()
+	return c.Colima.Status(cx, &pb.StatusRequest{Profile: profile})
+}
+
+// ─── DockerService methods ───────────────────────────────────────────────────
+
 // Containers returns raw Docker JSON for the profile.
 func (c *Client) Containers(profile string) (string, error) {
 	cx, cancel := ctx()
@@ -80,6 +100,34 @@ func (c *Client) Images(profile string) (string, error) {
 	cx, cancel := ctx()
 	defer cancel()
 	r, err := c.Docker.ListImages(cx, &pb.DockerScope{Profile: profile})
+	if err != nil {
+		return "", err
+	}
+	if r.Error != "" {
+		return "", &apiError{r.Error}
+	}
+	return r.Json, nil
+}
+
+// Volumes returns raw Docker JSON for volumes in the profile.
+func (c *Client) Volumes(profile string) (string, error) {
+	cx, cancel := ctx()
+	defer cancel()
+	r, err := c.Docker.ListVolumes(cx, &pb.DockerScope{Profile: profile})
+	if err != nil {
+		return "", err
+	}
+	if r.Error != "" {
+		return "", &apiError{r.Error}
+	}
+	return r.Json, nil
+}
+
+// Networks returns raw Docker JSON for networks in the profile.
+func (c *Client) Networks(profile string) (string, error) {
+	cx, cancel := ctx()
+	defer cancel()
+	r, err := c.Docker.ListNetworks(cx, &pb.DockerScope{Profile: profile})
 	if err != nil {
 		return "", err
 	}
