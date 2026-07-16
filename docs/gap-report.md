@@ -203,3 +203,26 @@ Ordered by impact (how much CLI functionality is blocked):
 
 5. **Testing** — only the macOS frontend has comprehensive test suites (unit,
    integration, snapshot, UI). TUI has 1 test file. Windows and Linux have 0 tests.
+
+## CI status (2026-07-17, frontends.yml)
+
+Green: daemon (macos/ubuntu/windows), tui (macos/ubuntu/windows), macos-kit (build + 1964 unit/integration tests + 35 live RealBackend e2e, coverage 74.2%).
+
+Two frontend cross-compile jobs remain RED after two rounds of fixes (each needs a native
+dev environment for efficient iteration — cannot be built on the macOS CI author host):
+
+### windows-winui
+- FIXED this iteration: gRPC codegen (`Colimaui` types) via `csharp_namespace` + `Protobuf_Compile`
+  BeforeTargets `XamlPreCompile`/`CoreCompile`; `ReadAllAsync` via global `<Using Include="Grpc.Core" />`.
+- REMAINING: `MSB3073` — WinUI `XamlCompiler.exe` exits code 1 (x:Bind validation). The C# now
+  compiles; the XAML compiler needs a Windows machine to surface the specific `XLS*` binding error
+  and iterate. Likely an `x:Bind` type/path mismatch in one or more `Views/*.xaml`.
+
+### linux-gtk4
+- FIXED this iteration: `libadwaita-1-dev` CI dep; tonic 0.12/hyper 1.x Unix connector via
+  `hyper_util::rt::TokioIo`.
+- REMAINING: `E0277 *mut c_void cannot be sent between threads` — the views capture GTK widgets
+  (`!Send`) into `AppHandle::rt.spawn(async move …)` (tokio requires `Send`). Correct fix
+  (pervasive, ~11 view files): spawn ONLY the RPC (Send data) on the tokio runtime, send the
+  plain result over an `async-channel`, and update widgets in a main-thread receiver via
+  `glib::spawn_future_local` / `idle_add_local`. Do not capture widgets into the spawned future.
