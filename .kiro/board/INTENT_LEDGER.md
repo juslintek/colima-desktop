@@ -113,3 +113,8 @@
 - **Kit coverage 59.1% → 70.72%; total tests 419 → 1048, all green on host.**
 - **LESSON (add to LESSONS/board):** a coverage subagent HUNG its whole test run because one generated test called AppState.exportContainer, which invokes NSSavePanel().runModal() — a modal that blocks forever in a headless/CI test. Orchestrator killed the stuck agent, salvaged its 3 uncommitted files from the worktree FS, bisected the hang to the ContainersView file, removed the single offending Export test, and merged the rest green. RULE: view/action tests must never invoke NSSavePanel/NSOpenPanel/runModal (or any modal) — cover such actions by asserting the pre-modal guard only.
 - **next (iters 3-5):** more coverage waves toward 100% (remaining big gaps: ServiceProvider 1.6%, DaemonClient 24%, KubernetesView, MonitoringView, GuidedSetupWizard residuals, App.swift, Mock* views); M5.14 verify.sh green sweep; M5.15 v1 tag gated on criteria.
+
+---
+
+### 2026-07-16T23:30Z · orchestrator · iteration 3: coverage wave 3 (70.7%→target higher)
+- Launched 4 subagents (prefix-namespaced): cov3cfg(Configuration/Kubernetes/Containers residuals) · cov3vw(GuidedSetup/Dashboard/AIWorkloads/Monitoring/Machines) · cov3svc(DockerClient/DaemonClient/ServiceProvider/ColimaConfig/App/AppDelegate) · cov3rest(21 remaining lower-cov views). Reinforced rules: no modal-triggering tests (NSSavePanel hang lesson), commit your work, run builds in foreground.
