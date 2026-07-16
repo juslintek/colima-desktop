@@ -75,3 +75,11 @@
 - **note:** Pages URL https://juslintek.github.io/colima-desktop/ goes live after the pages workflow runs on push. Release assets build when a vX.Y.Z tag is pushed.
 
 - **push/pages outcome:** Pushed to origin/main (purged an accidental 645MB coordination.json from history via git filter-repo). GitHub Pages ENABLED (build_type=workflow); landing page LIVE at https://juslintek.github.io/colima-desktop/ (HTTP 200). Release workflow dispatched for v0.1.0 (builds DMG + precompiled .app + changelog release notes). frontends + test CI workflows running on the push.
+
+---
+
+### 2026-07-16T22:06Z · orchestrator · multi-agent parallel execution launched
+- **strategy:** Converted remaining PLAN tasks into parallel subagent GOALS. Launched 6 autonomous `kiro-cli` subagents, each in an ISOLATED git worktree on branch `agent/<name>` (off 15abcf0), scoped to a disjoint OWNERSHIP path so merges are conflict-free. Model override `claude-sonnet-4.6` (agent configs pinned an unavailable `claude-sonnet-4-6`).
+- **agents:** tests(swift-test-engineer→Tests/, M3.11) · daemon(go-daemon-dev→daemon/, GetConfig/SetConfig/GetTemplate/SetTemplate) · windows(windows-native-dev→windows/, M4.12+M4.13) · linux(linux-native-dev→linux/, M4.12+M4.13) · tui(tui-dev→tui/, M4.12+onboarding) · docs(default→docs/+CONTRIBUTING, M3.10 gap-report + OSS docs).
+- **orchestrator role:** monitors via /Volumes/Projects/cd-agents/monitor.sh; merges each completed branch to main, runs verify, pushes. Subagents commit to their branch only (no push, no main, disjoint paths). Board files + proto + README reserved to orchestrator to avoid conflicts.
+- **blocked-by-env:** live per-platform UI explorers (M3.9) + Windows/.NET & Linux/GTK compilation are not runnable on this macOS host — validated via CI (frontends.yml) and coherence review instead.
