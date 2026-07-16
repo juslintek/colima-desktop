@@ -105,3 +105,11 @@
 ### 2026-07-16T22:45Z · orchestrator · iteration 2: coverage wave 2 + fromYAML fix
 - Launched 4 subagents (isolated worktrees, prefix-namespaced NEW test files to avoid Tests/ collisions): covconfig(ConfigurationView/KubernetesView/ContainersView) · covviews(GuidedSetupWizard/Monitoring/AIWorkloads/Machines/Dashboard) · covrest(all remaining low-cov views + services) · fixyaml(swiftui-dev: fix ColimaConfig.fromYAML mount/list parse bug + update ColimaConfigTests). Baseline Kit 59.1%.
 - Then orchestrator does M5.14 (verify.sh sweep) + M5.15 (tag) after merges.
+
+---
+
+### 2026-07-16T23:20Z · orchestrator · iteration 2 outcome: coverage 59%→70.7%, fromYAML fixed
+- **merged+pushed:** fixyaml(ed5047c: ColimaConfig.fromYAML list-item parse fix + tests) · covviews+covrest(1ad080a: +491 tests) · covconfig(fc690fd: +138 tests, salvaged after agent hung).
+- **Kit coverage 59.1% → 70.72%; total tests 419 → 1048, all green on host.**
+- **LESSON (add to LESSONS/board):** a coverage subagent HUNG its whole test run because one generated test called AppState.exportContainer, which invokes NSSavePanel().runModal() — a modal that blocks forever in a headless/CI test. Orchestrator killed the stuck agent, salvaged its 3 uncommitted files from the worktree FS, bisected the hang to the ContainersView file, removed the single offending Export test, and merged the rest green. RULE: view/action tests must never invoke NSSavePanel/NSOpenPanel/runModal (or any modal) — cover such actions by asserting the pre-modal guard only.
+- **next (iters 3-5):** more coverage waves toward 100% (remaining big gaps: ServiceProvider 1.6%, DaemonClient 24%, KubernetesView, MonitoringView, GuidedSetupWizard residuals, App.swift, Mock* views); M5.14 verify.sh green sweep; M5.15 v1 tag gated on criteria.
