@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.ConfigurationPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="700">
+            <TextBlock Text="Configuration" Style="{ThemeResource TitleTextBlockStyle}"
+                       AutomationProperties.Name="ConfigurationTitle" />
+
+            <InfoBar AutomationProperties.Name="ConfigErrorBanner"
+                     IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                     Severity="Error"
+                     Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                     Title="Error" />
+
+            <InfoBar AutomationProperties.Name="ConfigStatusBanner"
+                     IsOpen="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource NonEmptyToBoolConverter}}"
+                     Severity="Informational"
+                     Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                     Title="Status" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Load Config"
+                        AutomationProperties.Name="BtnLoadConfig"
+                        Command="{x:Bind ViewModel.LoadCommand}"
+                        Style="{ThemeResource AccentButtonStyle}" />
+                <Button Content="Save Config"
+                        AutomationProperties.Name="BtnSaveConfig"
+                        Command="{x:Bind ViewModel.SaveConfigCommand}" />
+                <Button Content="Load Template"
+                        AutomationProperties.Name="BtnLoadTemplate"
+                        Command="{x:Bind ViewModel.LoadTemplateCommand}" />
+                <Button Content="Save Template"
+                        AutomationProperties.Name="BtnSaveTemplate"
+                        Command="{x:Bind ViewModel.SaveTemplateCommand}" />
+                <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                              AutomationProperties.Name="ConfigLoading"
+                              Width="24" Height="24" />
+            </StackPanel>
+
+            <!-- CPU / Memory / Disk -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Resources" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="ResourcesHeader" />
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="CPUs" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelCpu" />
+                        <NumberBox Grid.Row="0" Grid.Column="1"
+                                   AutomationProperties.Name="FieldCpu"
+                                   Value="{x:Bind ViewModel.Cpu, Mode=TwoWay}"
+                                   Minimum="1" Maximum="64" SpinButtonPlacementMode="Compact" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Memory (GiB)" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelMemory" />
+                        <NumberBox Grid.Row="1" Grid.Column="1"
+                                   AutomationProperties.Name="FieldMemory"
+                                   Value="{x:Bind ViewModel.Memory, Mode=TwoWay}"
+                                   Minimum="0.5" Maximum="512" SmallChange="0.5" SpinButtonPlacementMode="Compact" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Disk (GiB)" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelDisk" />
+                        <NumberBox Grid.Row="2" Grid.Column="1"
+                                   AutomationProperties.Name="FieldDisk"
+                                   Value="{x:Bind ViewModel.Disk, Mode=TwoWay}"
+                                   Minimum="20" Maximum="2000" SpinButtonPlacementMode="Compact" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Runtime / VM Type / Arch -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="VM Settings" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="VMSettingsHeader" />
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Runtime" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelRuntime" />
+                        <ComboBox Grid.Row="0" Grid.Column="1"
+                                  AutomationProperties.Name="FieldRuntime"
+                                  SelectedValue="{x:Bind ViewModel.Runtime, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="docker" Tag="docker" />
+                            <ComboBoxItem Content="containerd" Tag="containerd" />
+                            <ComboBoxItem Content="incus" Tag="incus" />
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="VM Type" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelVmType" />
+                        <ComboBox Grid.Row="1" Grid.Column="1"
+                                  AutomationProperties.Name="FieldVmType"
+                                  SelectedValue="{x:Bind ViewModel.VmType, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="vz" Tag="vz" />
+                            <ComboBoxItem Content="qemu" Tag="qemu" />
+                            <ComboBoxItem Content="krunkit" Tag="krunkit" />
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Architecture" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelArch" />
+                        <ComboBox Grid.Row="2" Grid.Column="1"
+                                  AutomationProperties.Name="FieldArch"
+                                  SelectedValue="{x:Bind ViewModel.Arch, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="aarch64" Tag="aarch64" />
+                            <ComboBoxItem Content="x86_64" Tag="x86_64" />
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Mount Type" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelMountType" />
+                        <ComboBox Grid.Row="3" Grid.Column="1"
+                                  AutomationProperties.Name="FieldMountType"
+                                  SelectedValue="{x:Bind ViewModel.MountType, Mode=TwoWay}"
+                                  HorizontalAlignment="Stretch">
+                            <ComboBoxItem Content="virtiofs" Tag="virtiofs" />
+                            <ComboBoxItem Content="9p" Tag="9p" />
+                            <ComboBoxItem Content="sshfs" Tag="sshfs" />
+                        </ComboBox>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Rosetta" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelRosetta" />
+                        <ToggleSwitch Grid.Row="4" Grid.Column="1"
+                                      AutomationProperties.Name="FieldRosetta"
+                                      IsOn="{x:Bind ViewModel.Rosetta, Mode=TwoWay}"
+                                      OnContent="Enabled" OffContent="Disabled" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Kubernetes -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Kubernetes" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="ConfigK8sHeader" />
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto" RowSpacing="8">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Enable k3s" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelK8sEnabled" />
+                        <ToggleSwitch Grid.Row="0" Grid.Column="1"
+                                      AutomationProperties.Name="FieldK8sEnabled"
+                                      IsOn="{x:Bind ViewModel.KubernetesEnabled, Mode=TwoWay}"
+                                      OnContent="Enabled" OffContent="Disabled" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Version" VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelK8sVersion" />
+                        <TextBox Grid.Row="1" Grid.Column="1"
+                                 AutomationProperties.Name="FieldK8sVersion"
+                                 PlaceholderText="e.g. v1.35.0+k3s1"
+                                 Text="{x:Bind ViewModel.KubernetesVersion, Mode=TwoWay}" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

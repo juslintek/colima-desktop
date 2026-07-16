@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.KubernetesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16">
+            <TextBlock Text="Kubernetes" Style="{ThemeResource TitleTextBlockStyle}"
+                       AutomationProperties.Name="KubernetesTitle" />
+
+            <InfoBar AutomationProperties.Name="KubernetesErrorBanner"
+                     IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                     Severity="Error"
+                     Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                     Title="Error" />
+
+            <!-- Status -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Cluster Status" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="K8sStatusHeader" />
+                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                                  AutomationProperties.Name="K8sLoading" />
+                    <TextBlock AutomationProperties.Name="K8sStatusEnabled"
+                               Text="{x:Bind ViewModel.VmStatus.Kubernetes, Mode=OneWay, FallbackValue='Unknown'}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Controls -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Cluster Controls" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="K8sControlsHeader" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button Content="Start"
+                                AutomationProperties.Name="BtnK8sStart"
+                                Command="{x:Bind ViewModel.StartKubernetesCommand}"
+                                Style="{ThemeResource AccentButtonStyle}" />
+                        <Button Content="Stop"
+                                AutomationProperties.Name="BtnK8sStop"
+                                Command="{x:Bind ViewModel.StopKubernetesCommand}" />
+                        <Button Content="Reset"
+                                AutomationProperties.Name="BtnK8sReset"
+                                Command="{x:Bind ViewModel.ResetKubernetesCommand}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- kubectl exec -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="kubectl exec" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="K8sExecHeader" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBox AutomationProperties.Name="FieldKubectlCommand"
+                                 PlaceholderText="kubectl args (e.g. get pods -n default)"
+                                 Width="400"
+                                 Text="{x:Bind ViewModel.KubectlCommand, Mode=TwoWay}" />
+                        <Button Content="Run"
+                                AutomationProperties.Name="BtnKubectlExec"
+                                Command="{x:Bind ViewModel.ExecKubectlCommand}"
+                                Style="{ThemeResource AccentButtonStyle}" />
+                    </StackPanel>
+                    <TextBlock AutomationProperties.Name="K8sExitCode"
+                               Text="{x:Bind ViewModel.KubectlExitCode, Mode=OneWay, Converter={StaticResource IntToExitCodeConverter}}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <ScrollViewer Height="200">
+                        <TextBlock AutomationProperties.Name="K8sExecOutput"
+                                   Text="{x:Bind ViewModel.KubectlOutput, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

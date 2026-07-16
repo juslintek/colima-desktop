@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.VolumesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
+        <TextBlock Grid.Row="0" Text="Volumes" Style="{ThemeResource TitleTextBlockStyle}"
+                   AutomationProperties.Name="VolumesTitle" />
+
+        <InfoBar Grid.Row="0" Margin="0,40,0,0"
+                 AutomationProperties.Name="VolumesErrorBanner"
+                 IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                 Severity="Error"
+                 Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                 Title="Error" />
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Refresh"
+                    AutomationProperties.Name="BtnRefreshVolumes"
+                    Command="{x:Bind ViewModel.LoadCommand}" />
+            <Button Content="Prune"
+                    AutomationProperties.Name="BtnPruneVolumes"
+                    Command="{x:Bind ViewModel.PruneVolumesCommand}" />
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                          AutomationProperties.Name="VolumesLoading"
+                          Width="24" Height="24" />
+        </StackPanel>
+
+        <!-- Volume List + Detail -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Grid.Column="0"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Volume List (JSON)" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="VolumeListHeader" />
+                    <ScrollViewer Height="350">
+                        <TextBlock AutomationProperties.Name="VolumeListJson"
+                                   Text="{x:Bind ViewModel.RawJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Detail" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="VolumeDetailHeader" />
+                    <ScrollViewer Height="350">
+                        <TextBlock AutomationProperties.Name="VolumeDetailJson"
+                                   Text="{x:Bind ViewModel.DetailJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Actions -->
+        <Border Grid.Row="3"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="8" Padding="16"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldNewVolumeName"
+                             PlaceholderText="New volume name"
+                             Width="240"
+                             Text="{x:Bind ViewModel.NewVolumeName, Mode=TwoWay}" />
+                    <Button Content="Create"
+                            AutomationProperties.Name="BtnCreateVolume"
+                            Command="{x:Bind ViewModel.CreateVolumeCommand}"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox x:Name="VolumeNameBox"
+                             AutomationProperties.Name="FieldVolumeId"
+                             PlaceholderText="Volume name"
+                             Width="240" />
+                    <Button Content="Remove"  AutomationProperties.Name="BtnRemoveVolume"  Click="RemoveVolume_Click" />
+                    <Button Content="Inspect" AutomationProperties.Name="BtnInspectVolume" Click="InspectVolume_Click" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

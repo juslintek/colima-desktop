@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.ImagesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
+        <TextBlock Grid.Row="0" Text="Images" Style="{ThemeResource TitleTextBlockStyle}"
+                   AutomationProperties.Name="ImagesTitle" />
+
+        <InfoBar Grid.Row="0" Margin="0,40,0,0"
+                 AutomationProperties.Name="ImagesErrorBanner"
+                 IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                 Severity="Error"
+                 Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                 Title="Error" />
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Refresh"
+                    AutomationProperties.Name="BtnRefreshImages"
+                    Command="{x:Bind ViewModel.LoadCommand}" />
+            <Button Content="Prune"
+                    AutomationProperties.Name="BtnPruneImages"
+                    Command="{x:Bind ViewModel.PruneImagesCommand}" />
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                          AutomationProperties.Name="ImagesLoading"
+                          Width="24" Height="24" />
+        </StackPanel>
+
+        <!-- Image List + Detail -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Grid.Column="0"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Image List (JSON)" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="ImageListHeader" />
+                    <ScrollViewer Height="400">
+                        <TextBlock AutomationProperties.Name="ImageListJson"
+                                   Text="{x:Bind ViewModel.RawJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Detail" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="ImageDetailHeader" />
+                    <ScrollViewer Height="350">
+                        <TextBlock AutomationProperties.Name="ImageDetailJson"
+                                   Text="{x:Bind ViewModel.DetailJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Action Panel -->
+        <Border Grid.Row="3"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="8" Padding="16"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <!-- Pull -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldPullImageName"
+                             PlaceholderText="Image to pull (e.g. nginx:latest)"
+                             Width="280"
+                             Text="{x:Bind ViewModel.PullImageName, Mode=TwoWay}" />
+                    <Button Content="Pull"
+                            AutomationProperties.Name="BtnPullImage"
+                            Command="{x:Bind ViewModel.PullImageCommand}"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+                <!-- Search -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldSearchImages"
+                             PlaceholderText="Search term"
+                             Width="240"
+                             Text="{x:Bind ViewModel.SearchTerm, Mode=TwoWay}" />
+                    <Button Content="Search"
+                            AutomationProperties.Name="BtnSearchImages"
+                            Command="{x:Bind ViewModel.SearchImagesCommand}" />
+                </StackPanel>
+                <!-- Image actions by ID/name -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox x:Name="ImageIdBox"
+                             AutomationProperties.Name="FieldImageId"
+                             PlaceholderText="Image ID or name"
+                             Width="240" />
+                    <Button Content="Remove"  AutomationProperties.Name="BtnRemoveImage"  Click="RemoveImage_Click" />
+                    <Button Content="Inspect" AutomationProperties.Name="BtnInspectImage" Click="InspectImage_Click" />
+                    <Button Content="History" AutomationProperties.Name="BtnImageHistory" Click="ImageHistory_Click" />
+                    <Button Content="Push"    AutomationProperties.Name="BtnPushImage"    Click="PushImage_Click" />
+                </StackPanel>
+                <!-- Tag -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldTagName" PlaceholderText="Source image" Width="160"
+                             Text="{x:Bind ViewModel.TagName, Mode=TwoWay}" />
+                    <TextBox AutomationProperties.Name="FieldTagRepo" PlaceholderText="Repo" Width="160"
+                             Text="{x:Bind ViewModel.TagRepo, Mode=TwoWay}" />
+                    <TextBox AutomationProperties.Name="FieldTagTag"  PlaceholderText="Tag" Width="100"
+                             Text="{x:Bind ViewModel.TagTag, Mode=TwoWay}" />
+                    <Button Content="Tag" AutomationProperties.Name="BtnTagImage"
+                            Command="{x:Bind ViewModel.TagImageCommand}" />
+                </StackPanel>
+                <!-- Progress -->
+                <StackPanel Spacing="4"
+                            Visibility="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <TextBlock AutomationProperties.Name="ImageProgressMessage"
+                               Text="{x:Bind ViewModel.ProgressMessage, Mode=OneWay}" />
+                    <ProgressBar AutomationProperties.Name="ImageProgressBar"
+                                 Value="{x:Bind ViewModel.ProgressValue, Mode=OneWay}" Maximum="1" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

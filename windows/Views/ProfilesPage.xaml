@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.ProfilesPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
+        <TextBlock Grid.Row="0" Text="Profiles" Style="{ThemeResource TitleTextBlockStyle}"
+                   AutomationProperties.Name="ProfilesTitle" />
+
+        <InfoBar Grid.Row="0" Margin="0,40,0,0"
+                 AutomationProperties.Name="ProfilesErrorBanner"
+                 IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                 Severity="Error"
+                 Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                 Title="Error" />
+
+        <InfoBar Grid.Row="0" Margin="0,80,0,0"
+                 AutomationProperties.Name="ProfilesStatusBanner"
+                 IsOpen="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource NonEmptyToBoolConverter}}"
+                 Severity="Informational"
+                 Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                 Title="Status" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Refresh"
+                    AutomationProperties.Name="BtnRefreshProfiles"
+                    Command="{x:Bind ViewModel.LoadCommand}" />
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                          AutomationProperties.Name="ProfilesLoading"
+                          Width="24" Height="24" />
+        </StackPanel>
+
+        <!-- Profile List -->
+        <Border Grid.Row="2"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="8" Padding="12"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <StackPanel Spacing="8">
+                <TextBlock Text="Profiles" Style="{ThemeResource SubtitleTextBlockStyle}"
+                           AutomationProperties.Name="ProfileListHeader" />
+                <ItemsRepeater AutomationProperties.Name="ProfileList"
+                               ItemsSource="{x:Bind ViewModel.Profiles.Profiles, Mode=OneWay}">
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnDefinitions="*,Auto,Auto,Auto" Padding="4,8"
+                                  BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
+                                  BorderThickness="0,0,0,1">
+                                <TextBlock Grid.Column="0" Text="{Binding Name}"
+                                           VerticalAlignment="Center"
+                                           AutomationProperties.Name="ProfileName" />
+                                <TextBlock Grid.Column="1" Text="{Binding Status}"
+                                           Width="80" VerticalAlignment="Center"
+                                           AutomationProperties.Name="ProfileStatus" />
+                                <Button Grid.Column="2" Content="Select"
+                                        AutomationProperties.Name="BtnSelectProfile"
+                                        Click="SelectProfile_Click" Tag="{Binding Name}"
+                                        Margin="4,0" />
+                                <Button Grid.Column="3" Content="Delete"
+                                        AutomationProperties.Name="BtnDeleteProfile"
+                                        Click="DeleteProfile_Click" Tag="{Binding Name}"
+                                        Margin="4,0" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </StackPanel>
+        </Border>
+
+        <!-- Create / Clone -->
+        <Border Grid.Row="3"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="8" Padding="16"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <!-- Create -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldNewProfileName"
+                             PlaceholderText="New profile name"
+                             Width="240"
+                             Text="{x:Bind ViewModel.NewProfileName, Mode=TwoWay}" />
+                    <Button Content="Create"
+                            AutomationProperties.Name="BtnCreateProfile"
+                            Command="{x:Bind ViewModel.CreateProfileCommand}"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+                <!-- Clone -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldCloneSource"
+                             PlaceholderText="Source profile"
+                             Width="200"
+                             Text="{x:Bind ViewModel.CloneSource, Mode=TwoWay}" />
+                    <TextBlock Text="→" VerticalAlignment="Center" />
+                    <TextBox AutomationProperties.Name="FieldCloneDestination"
+                             PlaceholderText="Destination name"
+                             Width="200"
+                             Text="{x:Bind ViewModel.CloneDestination, Mode=TwoWay}" />
+                    <Button Content="Clone"
+                            AutomationProperties.Name="BtnCloneProfile"
+                            Command="{x:Bind ViewModel.CloneProfileCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

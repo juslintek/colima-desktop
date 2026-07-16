@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.NetworksPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
+        <TextBlock Grid.Row="0" Text="Networks" Style="{ThemeResource TitleTextBlockStyle}"
+                   AutomationProperties.Name="NetworksTitle" />
+
+        <InfoBar Grid.Row="0" Margin="0,40,0,0"
+                 AutomationProperties.Name="NetworksErrorBanner"
+                 IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                 Severity="Error"
+                 Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                 Title="Error" />
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Refresh"
+                    AutomationProperties.Name="BtnRefreshNetworks"
+                    Command="{x:Bind ViewModel.LoadCommand}" />
+            <Button Content="Prune"
+                    AutomationProperties.Name="BtnPruneNetworks"
+                    Command="{x:Bind ViewModel.PruneNetworksCommand}" />
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                          AutomationProperties.Name="NetworksLoading"
+                          Width="24" Height="24" />
+        </StackPanel>
+
+        <!-- Network List + Detail -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Grid.Column="0"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Network List (JSON)" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="NetworkListHeader" />
+                    <ScrollViewer Height="350">
+                        <TextBlock AutomationProperties.Name="NetworkListJson"
+                                   Text="{x:Bind ViewModel.RawJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Detail" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="NetworkDetailHeader" />
+                    <ScrollViewer Height="350">
+                        <TextBlock AutomationProperties.Name="NetworkDetailJson"
+                                   Text="{x:Bind ViewModel.DetailJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Actions -->
+        <Border Grid.Row="3"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="8" Padding="16"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <!-- Create -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldNewNetworkName"
+                             PlaceholderText="New network name"
+                             Width="240"
+                             Text="{x:Bind ViewModel.NewNetworkName, Mode=TwoWay}" />
+                    <Button Content="Create"
+                            AutomationProperties.Name="BtnCreateNetwork"
+                            Command="{x:Bind ViewModel.CreateNetworkCommand}"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+                <!-- Remove / Inspect -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox x:Name="NetworkIdBox"
+                             AutomationProperties.Name="FieldNetworkId"
+                             PlaceholderText="Network ID"
+                             Width="240" />
+                    <Button Content="Remove"  AutomationProperties.Name="BtnRemoveNetwork"  Click="RemoveNetwork_Click" />
+                    <Button Content="Inspect" AutomationProperties.Name="BtnInspectNetwork" Click="InspectNetwork_Click" />
+                </StackPanel>
+                <!-- Connect / Disconnect -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldConnectNetworkId"
+                             PlaceholderText="Network ID"
+                             Width="200"
+                             Text="{x:Bind ViewModel.ConnectNetworkId, Mode=TwoWay}" />
+                    <TextBox AutomationProperties.Name="FieldConnectContainerId"
+                             PlaceholderText="Container ID"
+                             Width="200"
+                             Text="{x:Bind ViewModel.ConnectContainerId, Mode=TwoWay}" />
+                    <Button Content="Connect"    AutomationProperties.Name="BtnConnectNetwork"
+                            Command="{x:Bind ViewModel.ConnectNetworkCommand}" />
+                    <Button Content="Disconnect" AutomationProperties.Name="BtnDisconnectNetwork"
+                            Command="{x:Bind ViewModel.DisconnectNetworkCommand}" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

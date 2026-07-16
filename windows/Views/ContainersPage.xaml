@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.ContainersPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
+
+        <TextBlock Grid.Row="0" Text="Containers" Style="{ThemeResource TitleTextBlockStyle}"
+                   AutomationProperties.Name="ContainersTitle" />
+
+        <InfoBar Grid.Row="0" Margin="0,40,0,0"
+                 AutomationProperties.Name="ContainersErrorBanner"
+                 IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                 Severity="Error"
+                 Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                 Title="Error" />
+
+        <!-- Toolbar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Refresh"
+                    AutomationProperties.Name="BtnRefreshContainers"
+                    Command="{x:Bind ViewModel.LoadCommand}" />
+            <Button Content="Prune stopped"
+                    AutomationProperties.Name="BtnPruneContainers"
+                    Command="{x:Bind ViewModel.PruneContainersCommand}" />
+            <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                          AutomationProperties.Name="ContainersLoading"
+                          Width="24" Height="24" />
+        </StackPanel>
+
+        <!-- Container List (raw JSON viewer; real parsing is done in a full release) -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+            <Border Grid.Column="0"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Container List (JSON)" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="ContainerListHeader" />
+                    <ScrollViewer Height="400">
+                        <TextBlock AutomationProperties.Name="ContainerListJson"
+                                   Text="{x:Bind ViewModel.RawJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="12"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Detail / Logs" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="ContainerDetailHeader" />
+                    <ScrollViewer Height="200">
+                        <TextBlock AutomationProperties.Name="ContainerDetailJson"
+                                   Text="{x:Bind ViewModel.DetailJson, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                    <TextBlock Text="Logs" Style="{ThemeResource CaptionTextBlockStyle}"
+                               AutomationProperties.Name="ContainerLogsHeader" />
+                    <ScrollViewer Height="150">
+                        <TextBlock AutomationProperties.Name="ContainerLogsText"
+                                   Text="{x:Bind ViewModel.LogsText, Mode=OneWay}"
+                                   FontFamily="Cascadia Code, Consolas, monospace"
+                                   TextWrapping="Wrap" FontSize="11" />
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Action Panel -->
+        <Border Grid.Row="3"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="8" Padding="16"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+            <StackPanel Spacing="12">
+                <!-- Container ID input for actions -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox x:Name="ContainerIdBox"
+                             AutomationProperties.Name="FieldContainerId"
+                             PlaceholderText="Container ID or name"
+                             Width="240" />
+                    <Button Content="Start"   AutomationProperties.Name="BtnContainerStart"   Click="ContainerAction_Click" Tag="start" />
+                    <Button Content="Stop"    AutomationProperties.Name="BtnContainerStop"    Click="ContainerAction_Click" Tag="stop" />
+                    <Button Content="Kill"    AutomationProperties.Name="BtnContainerKill"    Click="ContainerAction_Click" Tag="kill" />
+                    <Button Content="Restart" AutomationProperties.Name="BtnContainerRestart" Click="ContainerAction_Click" Tag="restart" />
+                    <Button Content="Pause"   AutomationProperties.Name="BtnContainerPause"   Click="ContainerAction_Click" Tag="pause" />
+                    <Button Content="Unpause" AutomationProperties.Name="BtnContainerUnpause" Click="ContainerAction_Click" Tag="unpause" />
+                    <Button Content="Remove"  AutomationProperties.Name="BtnContainerRemove"  Click="ContainerAction_Click" Tag="remove" />
+                    <Button Content="Inspect" AutomationProperties.Name="BtnContainerInspect" Click="InspectContainer_Click" />
+                    <Button Content="Top"     AutomationProperties.Name="BtnContainerTop"     Click="TopContainer_Click" />
+                    <Button Content="Stats"   AutomationProperties.Name="BtnContainerStats"   Click="StatsContainer_Click" />
+                    <Button Content="Changes" AutomationProperties.Name="BtnContainerChanges" Click="ChangesContainer_Click" />
+                    <Button Content="Logs"    AutomationProperties.Name="BtnContainerLogs"    Click="LogsContainer_Click" />
+                </StackPanel>
+                <!-- Create container -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox AutomationProperties.Name="FieldNewContainerName"
+                             PlaceholderText="New container name"
+                             Width="160"
+                             Text="{x:Bind ViewModel.NewContainerName, Mode=TwoWay}" />
+                    <TextBox AutomationProperties.Name="FieldNewContainerImage"
+                             PlaceholderText="Image (e.g. nginx:latest)"
+                             Width="200"
+                             Text="{x:Bind ViewModel.NewContainerImage, Mode=TwoWay}" />
+                    <Button Content="Create"
+                            AutomationProperties.Name="BtnCreateContainer"
+                            Command="{x:Bind ViewModel.CreateContainerCommand}" />
+                </StackPanel>
+                <!-- Rename container -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBox x:Name="RenameIdBox"
+                             AutomationProperties.Name="FieldRenameContainerId"
+                             PlaceholderText="Container ID to rename"
+                             Width="200" />
+                    <TextBox AutomationProperties.Name="FieldRenameNewName"
+                             PlaceholderText="New name"
+                             Width="160"
+                             Text="{x:Bind ViewModel.RenameNewName, Mode=TwoWay}" />
+                    <Button Content="Rename"
+                            AutomationProperties.Name="BtnRenameContainer"
+                            Click="RenameContainer_Click" />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Page>

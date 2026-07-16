@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:services="using:ColimaDesktop.Windows.Services"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="20" MaxWidth="700">
+            <TextBlock Text="Settings &amp; Dependencies" Style="{ThemeResource TitleTextBlockStyle}"
+                       AutomationProperties.Name="SettingsTitle" />
+
+            <InfoBar AutomationProperties.Name="SettingsStatusBanner"
+                     IsOpen="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource NonEmptyToBoolConverter}}"
+                     Severity="Informational"
+                     Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                     Title="Status" />
+
+            <!-- ── Backend Connection ─────────────────────────────── -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="20"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="16">
+                    <TextBlock Text="Backend Connection" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="ConnectionHeader" />
+
+                    <!-- Mode toggle -->
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="Backend mode:" AutomationProperties.Name="LabelBackendMode" />
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <RadioButton Content="Local WSL2 / Docker"
+                                         AutomationProperties.Name="RadioLocalWSL2"
+                                         IsChecked="{x:Bind ViewModel.ConnectionSettings.UseWsl2, Mode=OneWay}"
+                                         Click="RadioLocalWSL2_Click" />
+                            <RadioButton Content="Remote SSH / gRPC"
+                                         AutomationProperties.Name="RadioRemoteSSH"
+                                         Click="RadioRemoteSSH_Click" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- WSL2 host -->
+                    <Grid ColumnDefinitions="140,*" RowSpacing="8">
+                        <TextBlock Grid.Column="0" Text="Local (WSL2) address:"
+                                   VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelWsl2Host" />
+                        <TextBox Grid.Column="1"
+                                 AutomationProperties.Name="FieldWsl2Host"
+                                 PlaceholderText="http://127.0.0.1:50051"
+                                 Text="{x:Bind ViewModel.ConnectionSettings.Wsl2Host, Mode=TwoWay}" />
+                    </Grid>
+
+                    <!-- Remote SSH host -->
+                    <Grid ColumnDefinitions="140,*" RowSpacing="8">
+                        <TextBlock Grid.Column="0" Text="Remote address:"
+                                   VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelRemoteHost" />
+                        <TextBox Grid.Column="1"
+                                 AutomationProperties.Name="FieldRemoteHost"
+                                 PlaceholderText="http://remote-host:50051"
+                                 Text="{x:Bind ViewModel.ConnectionSettings.RemoteHost, Mode=TwoWay}" />
+                    </Grid>
+
+                    <!-- SSH target -->
+                    <Grid ColumnDefinitions="140,*" RowSpacing="8">
+                        <TextBlock Grid.Column="0" Text="SSH target:"
+                                   VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelSshTarget" />
+                        <TextBox Grid.Column="1"
+                                 AutomationProperties.Name="FieldSshTarget"
+                                 PlaceholderText="user@host"
+                                 Text="{x:Bind ViewModel.ConnectionSettings.SshTarget, Mode=TwoWay}" />
+                    </Grid>
+
+                    <!-- Active profile -->
+                    <Grid ColumnDefinitions="140,*" RowSpacing="8">
+                        <TextBlock Grid.Column="0" Text="Active profile:"
+                                   VerticalAlignment="Center"
+                                   AutomationProperties.Name="LabelActiveProfile" />
+                        <TextBox Grid.Column="1"
+                                 AutomationProperties.Name="FieldActiveProfile"
+                                 PlaceholderText="default"
+                                 Text="{x:Bind ViewModel.ConnectionSettings.ActiveProfile, Mode=TwoWay}" />
+                    </Grid>
+
+                    <Button Content="Apply Connection"
+                            AutomationProperties.Name="BtnApplyConnection"
+                            Command="{x:Bind ViewModel.ApplyConnectionSettingsCommand}"
+                            Style="{ThemeResource AccentButtonStyle}" />
+                </StackPanel>
+            </Border>
+
+            <!-- ── Dependencies ──────────────────────────────────── -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="20"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="16">
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="Dependencies" Style="{ThemeResource SubtitleTextBlockStyle}"
+                                   AutomationProperties.Name="DepsHeader" />
+                        <Button Content="Check All"
+                                AutomationProperties.Name="BtnCheckDeps"
+                                Command="{x:Bind ViewModel.LoadCommand}" />
+                        <Button Content="Check for Updates"
+                                AutomationProperties.Name="BtnCheckUpdates"
+                                Command="{x:Bind ViewModel.CheckForUpdatesCommand}" />
+                        <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.IsChecking, Mode=OneWay}"
+                                      AutomationProperties.Name="DepsChecking"
+                                      Width="24" Height="24" />
+                    </StackPanel>
+
+                    <!-- Overall status -->
+                    <InfoBar AutomationProperties.Name="DepsOverallStatus"
+                             IsOpen="True"
+                             Severity="{x:Bind ViewModel.DependencyManager.IsReady, Mode=OneWay, Converter={StaticResource BoolToSeverityConverter}}"
+                             Message="{x:Bind ViewModel.DependencyManager.OverallStatus, Mode=OneWay}"
+                             Title="Overall" IsClosable="False" />
+
+                    <!-- WSL2 -->
+                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            CornerRadius="4" Padding="12"
+                            AutomationProperties.Name="DepCardWSL2">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="WSL2" FontWeight="SemiBold"
+                                           AutomationProperties.Name="DepNameWSL2" />
+                                <TextBlock Text="{x:Bind ViewModel.DependencyManager.Dependencies[0].StatusMessage, Mode=OneWay}"
+                                           AutomationProperties.Name="DepStatusWSL2"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                <TextBlock AutomationProperties.Name="DepVersionWSL2"
+                                           Text="{x:Bind ViewModel.DependencyManager.Dependencies[0].InstalledVersion, Mode=OneWay}"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE73E;"
+                                          AutomationProperties.Name="DepCheckWSL2"
+                                          Foreground="Green"
+                                          Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[0].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Button Content="Install WSL2"
+                                        AutomationProperties.Name="BtnInstallWSL2"
+                                        Command="{x:Bind ViewModel.InstallWsl2Command}"
+                                        Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[0].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+                                <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.Dependencies[0].IsInstalling, Mode=OneWay}"
+                                             AutomationProperties.Name="DepInstallingWSL2"
+                                             Width="20" Height="20" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Docker -->
+                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            CornerRadius="4" Padding="12"
+                            AutomationProperties.Name="DepCardDocker">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Docker" FontWeight="SemiBold"
+                                           AutomationProperties.Name="DepNameDocker" />
+                                <TextBlock Text="{x:Bind ViewModel.DependencyManager.Dependencies[1].StatusMessage, Mode=OneWay}"
+                                           AutomationProperties.Name="DepStatusDocker"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                <TextBlock AutomationProperties.Name="DepVersionDocker"
+                                           Text="{x:Bind ViewModel.DependencyManager.Dependencies[1].InstalledVersion, Mode=OneWay}"
+                                           FontSize="12" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE73E;"
+                                          AutomationProperties.Name="DepCheckDocker"
+                                          Foreground="Green"
+                                          Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[1].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Button Content="Install Docker"
+                                        AutomationProperties.Name="BtnInstallDocker"
+                                        Command="{x:Bind ViewModel.InstallDockerCommand}"
+                                        Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[1].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+                                <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.Dependencies[1].IsInstalling, Mode=OneWay}"
+                                             AutomationProperties.Name="DepInstallingDocker"
+                                             Width="20" Height="20" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Daemon -->
+                    <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
+                            CornerRadius="4" Padding="12"
+                            AutomationProperties.Name="DepCardDaemon">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="colima-daemon" FontWeight="SemiBold"
+                                           AutomationProperties.Name="DepNameDaemon" />
+                                <TextBlock Text="{x:Bind ViewModel.DependencyManager.Dependencies[2].StatusMessage, Mode=OneWay}"
+                                           AutomationProperties.Name="DepStatusDaemon"
+                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                                <TextBlock AutomationProperties.Name="DepVersionDaemon"
+                                           Text="{x:Bind ViewModel.DependencyManager.Dependencies[2].InstalledVersion, Mode=OneWay}"
+                                           FontSize="12" />
+                                <HyperlinkButton Content="Update available"
+                                                 AutomationProperties.Name="DepUpdateAvailableDaemon"
+                                                 Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[2].UpdateAvailable, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                 Command="{x:Bind ViewModel.InstallDaemonCommand}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE73E;"
+                                          AutomationProperties.Name="DepCheckDaemon"
+                                          Foreground="Green"
+                                          Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[2].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                <Button Content="Install Daemon"
+                                        AutomationProperties.Name="BtnInstallDaemon"
+                                        Command="{x:Bind ViewModel.InstallDaemonCommand}"
+                                        Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[2].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+                                <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.Dependencies[2].IsInstalling, Mode=OneWay}"
+                                             AutomationProperties.Name="DepInstallingDaemon"
+                                             Width="20" Height="20" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

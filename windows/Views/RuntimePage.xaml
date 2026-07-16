@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ColimaDesktop.Windows.Views.RuntimePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="600">
+            <TextBlock Text="Runtime Controls" Style="{ThemeResource TitleTextBlockStyle}"
+                       AutomationProperties.Name="RuntimeTitle" />
+
+            <InfoBar AutomationProperties.Name="RuntimeErrorBanner"
+                     IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                     Severity="Error"
+                     Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                     Title="Error" />
+
+            <InfoBar AutomationProperties.Name="RuntimeStatusBanner"
+                     IsOpen="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource NonEmptyToBoolConverter}}"
+                     Severity="Informational"
+                     Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
+                     Title="Status" />
+
+            <!-- Switch Runtime -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Switch Runtime" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="SwitchRuntimeHeader" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ComboBox AutomationProperties.Name="FieldTargetRuntime"
+                                  SelectedValue="{x:Bind ViewModel.TargetRuntime, Mode=TwoWay}"
+                                  Width="200">
+                            <ComboBoxItem Content="docker" Tag="docker" />
+                            <ComboBoxItem Content="containerd" Tag="containerd" />
+                            <ComboBoxItem Content="incus" Tag="incus" />
+                        </ComboBox>
+                        <Button Content="Switch Runtime"
+                                AutomationProperties.Name="BtnSwitchRuntime"
+                                Command="{x:Bind ViewModel.SwitchRuntimeCommand}"
+                                Style="{ThemeResource AccentButtonStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Update / Prune -->
+            <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="8" Padding="16"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
+                <StackPanel Spacing="12">
+                    <TextBlock Text="Maintenance" Style="{ThemeResource SubtitleTextBlockStyle}"
+                               AutomationProperties.Name="MaintenanceHeader" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="Update Runtime"
+                                AutomationProperties.Name="BtnUpdateRuntime"
+                                Command="{x:Bind ViewModel.UpdateRuntimeCommand}" />
+                        <Button Content="Update Colima"
+                                AutomationProperties.Name="BtnUpdateColima"
+                                Command="{x:Bind ViewModel.UpdateColimaCommand}" />
+                        <Button Content="Prune"
+                                AutomationProperties.Name="BtnPrune"
+                                Command="{x:Bind ViewModel.PruneCommand}"
+                                CommandParameter="{x:Null}" />
+                        <Button Content="Prune All"
+                                AutomationProperties.Name="BtnPruneAll"
+                                Click="PruneAll_Click" />
+                    </StackPanel>
+                    <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
+                                  AutomationProperties.Name="RuntimeLoading" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
