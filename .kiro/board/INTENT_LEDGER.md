@@ -99,3 +99,9 @@
 - **agent location behavior observed:** daemon/docs/tui/linux committed to their own worktree branches (isolated, correct). windows committed directly to main's windows/ (disjoint, well-formed, accepted). Enforced review by confirming every merged range touched ONLY the owner's path prefix (git diff --name-only | grep -v prefix → NONE).
 - **still running:** tests (swift-test-engineer, ~23min, 3 commits on agent/tests; writing DockerClientLogicTests/ColimaConfigTests + ConfigurationView/Containers/Kubernetes ViewInspector suites; fixing a fromYAML mount round-trip bug it found). To harvest+verify(on-host xcodebuild)+merge next.
 - **remaining program:** M3.11 finish (tests merge) → M5.14 (verify.sh all-green sweep) → M5.15 (tag v-next to exercise release pipeline). PLAN M2.6/2.7/2.8 now DONE via M4.12/M4.13 work; M3.10 gap-report DONE.
+
+---
+
+### 2026-07-16T22:45Z · orchestrator · iteration 2: coverage wave 2 + fromYAML fix
+- Launched 4 subagents (isolated worktrees, prefix-namespaced NEW test files to avoid Tests/ collisions): covconfig(ConfigurationView/KubernetesView/ContainersView) · covviews(GuidedSetupWizard/Monitoring/AIWorkloads/Machines/Dashboard) · covrest(all remaining low-cov views + services) · fixyaml(swiftui-dev: fix ColimaConfig.fromYAML mount/list parse bug + update ColimaConfigTests). Baseline Kit 59.1%.
+- Then orchestrator does M5.14 (verify.sh sweep) + M5.15 (tag) after merges.
