@@ -91,3 +91,11 @@
 - **merge policy enforced:** path-scoped checkout of each agent's owned prefix only (git checkout agent/<x> -- <prefix>), never a full branch merge — so stray writes some agents made to main's board ledger are discarded and history stays orchestrator-controlled. Each merge re-verified on main before push.
 - **still running:** tests (swift-test-engineer: 5 new test files staged incl DockerClientLogicTests/ColimaConfigTests + ViewInspector suites; found a real fromYAML mount round-trip bug) · windows (native-dev: MVVM views/viewmodels/DependencyManager/converters — its new files landed in main's working tree, disjoint windows/, to be harvested) · linux (native-dev: gtk4 views/ + dependency_manager.rs in its worktree).
 - **next:** harvest+verify+merge tests, windows, linux; then M5.14 all-green verify.sh + tag.
+
+---
+
+### 2026-07-16T22:40Z · orchestrator · merge wave 1 complete (5/6), tests in progress
+- **landed+pushed to origin/main:** daemon(915cebc) · docs(9d15bb9) · tui(e2e3a13) · linux(79bf75e) · windows(0f8c910..e716b4a, 52 files/+4140, all windows/-scoped). HEAD=e716b4a.
+- **agent location behavior observed:** daemon/docs/tui/linux committed to their own worktree branches (isolated, correct). windows committed directly to main's windows/ (disjoint, well-formed, accepted). Enforced review by confirming every merged range touched ONLY the owner's path prefix (git diff --name-only | grep -v prefix → NONE).
+- **still running:** tests (swift-test-engineer, ~23min, 3 commits on agent/tests; writing DockerClientLogicTests/ColimaConfigTests + ConfigurationView/Containers/Kubernetes ViewInspector suites; fixing a fromYAML mount round-trip bug it found). To harvest+verify(on-host xcodebuild)+merge next.
+- **remaining program:** M3.11 finish (tests merge) → M5.14 (verify.sh all-green sweep) → M5.15 (tag v-next to exercise release pipeline). PLAN M2.6/2.7/2.8 now DONE via M4.12/M4.13 work; M3.10 gap-report DONE.
