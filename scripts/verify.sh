@@ -20,7 +20,8 @@ if command -v xcodebuild >/dev/null 2>&1; then
   BLOG=$(mktemp)
   xcodebuild build -scheme "$SCHEME" -destination "$DEST" -derivedDataPath "$DD" >"$BLOG" 2>&1
   bstat=$?
-  warns=$(grep "warning:" "$BLOG" 2>/dev/null | grep -vE "appintentsmetadataprocessor|Metadata extraction skipped" | grep -c "warning:" || echo 0)
+  warns=$(grep "warning:" "$BLOG" 2>/dev/null | grep -vE "appintentsmetadataprocessor|Metadata extraction skipped" | grep -c "warning:")
+  warns=$(printf %s "${warns:-0}" | tr -dc 0-9); warns=${warns:-0}
   if [ $bstat -eq 0 ] && [ "$warns" -eq 0 ]; then line "macOS build (0 warnings)" "PASS"; else line "macOS build (0 warnings)" "FAIL ($warns warnings)"; fail=1; fi
 
   # ---- macOS: unit+integration ----
