@@ -198,12 +198,7 @@ struct ColimaConfigFromYAMLTests {
         #expect(c.memory == 16.0)
     }
 
-    // KNOWN BUG: fromYAML cannot parse mount entries. The `parseKV` helper matches
-    // `"- location: ~"` as a key-value pair (key="- location", value="~") before the
-    // `trimmed.hasPrefix("- ")` list-item branch is reached, so mount entries are silently
-    // skipped. The toYAML serialization is correct; only parsing is broken.
-    // This test documents the current broken behavior. Update when the parser is fixed.
-    @Test("parses mount entries from mounts section — KNOWN BUG: returns empty (parseKV eats list items)")
+    @Test("parses mount entries from mounts section")
     func mountSection() {
         let yaml = """
         mounts:
@@ -213,10 +208,13 @@ struct ColimaConfigFromYAMLTests {
             writable: false
         """
         let c = ColimaConfig.fromYAML(yaml)
-        // Bug: parseKV matches "- location: ~" as key="- location", bypassing list-item handler.
-        // Expected behavior once fixed: c.mounts.count == 2
-        #expect(c.mounts.count == 0, "Known bug: fromYAML skips mount list items due to parseKV eagerness")
+        #expect(c.mounts.count == 2)
+        #expect(c.mounts[0].location == "~")
+        #expect(c.mounts[0].writable == true)
+        #expect(c.mounts[1].location == "/tmp/colima")
+        #expect(c.mounts[1].writable == false)
     }
+    @Test("empty YAML returns defaults")
     func emptyYAML() {
         let c = ColimaConfig.fromYAML("")
         #expect(c.cpu == 2)
@@ -493,13 +491,8 @@ struct ColimaConfigRoundTripTests {
         #expect(parsed.network.gatewayAddress == original.network.gatewayAddress)
     }
 
-    // KNOWN BUG (flagged, not hidden): ColimaConfig.fromYAML silently drops all mount entries.
-    // Root cause: parseKV("- location: ~") matches key="- location" (with leading "- "), so
-    // the `else if trimmed.hasPrefix("- ")` list-item branch is NEVER reached for mount items.
-    // The toYAML serialization IS correct. Only the parser is broken.
-    // This test documents the current broken behavior and must NOT be removed until fixed.
-    @Test("mount round-trip is currently broken — fromYAML drops all mount entries (known parser bug)")
-    func mountRoundTripBroken() {
+    @Test("mounts survive fromYAML -> toYAML -> fromYAML round-trip")
+    func mountRoundTrip() {
         var original = ColimaConfig()
         original.mounts = [
             ColimaConfig.Mount(location: "~", writable: true),
@@ -507,15 +500,15 @@ struct ColimaConfigRoundTripTests {
         ]
         let yaml = original.toYAML()
         let parsed = ColimaConfig.fromYAML(yaml)
-        // KNOWN BUG: parsed.mounts.count == 0 instead of 2.
-        // When fixed: replace with #expect(parsed.mounts.count == 2) etc.
-        #expect(parsed.mounts.count == 0, "Known bug: parseKV eagerness causes mount entries to be silently dropped")
+        #expect(parsed.mounts.count == 2)
+        #expect(parsed.mounts[0].location == "~")
+        #expect(parsed.mounts[0].writable == true)
+        #expect(parsed.mounts[1].location == "/data")
+        #expect(parsed.mounts[1].writable == false)
     }
 
-    @Test("mounts round-trip is broken due to parseKV bug in fromYAML (see ColimaConfigFromYAMLTests.mountSection)")
+    @Test("mounts parsed correctly by fromYAML")
     func mountMinimalParsing() {
-        // The parseKV helper eagerly matches "- location: ~" as key="- location" value="~",
-        // so the list-item handler is never reached and mounts are always silently dropped.
         let yaml = """
         mounts:
           - location: ~
@@ -524,8 +517,11 @@ struct ColimaConfigRoundTripTests {
             writable: false
         """
         let parsed = ColimaConfig.fromYAML(yaml)
-        // Bug documented: expected 2, actual 0. Remove this assertion when the parser is fixed.
-        #expect(parsed.mounts.count == 0, "Known bug: mount entries not parsed by fromYAML")
+        #expect(parsed.mounts.count == 2)
+        #expect(parsed.mounts[0].location == "~")
+        #expect(parsed.mounts[0].writable == true)
+        #expect(parsed.mounts[1].location == "/data")
+        #expect(parsed.mounts[1].writable == false)
     }
 }
 

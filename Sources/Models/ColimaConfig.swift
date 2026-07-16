@@ -295,8 +295,15 @@ extension ColimaConfig {
     // MARK: - Helpers
 
     private static func parseKV(_ s: String) -> (String, String)? {
+        // Never interpret YAML list items (lines starting with "- ") as key-value pairs.
+        // Without this guard, "- location: ~" would be parsed as key="- location", value="~",
+        // silently bypassing the list-item handler and dropping all mount/provision/dns entries.
+        guard !s.hasPrefix("- ") else { return nil }
         guard let colonIdx = s.firstIndex(of: ":") else { return nil }
         let key = String(s[s.startIndex..<colonIdx]).trimmingCharacters(in: .whitespaces)
+        // Key must not be empty and must not contain spaces (which would indicate this isn't
+        // a simple key: value pair but something else like a bare string with a colon).
+        guard !key.isEmpty, !key.contains(" ") else { return nil }
         let afterColon = s.index(after: colonIdx)
         guard afterColon < s.endIndex else { return nil }
         let value = String(s[afterColon...]).trimmingCharacters(in: .whitespaces)
