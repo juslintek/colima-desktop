@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="ColimaDesktop.Windows.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ColimaDesktop.Windows"
+    xmlns:views="using:ColimaDesktop.Windows.Views"
+    Title="Colima Desktop">
+
+    <NavigationView
+        x:Name="NavView"
+        AutomationProperties.Name="MainNavigation"
+        IsBackButtonVisible="Collapsed"
+        SelectionFollowsFocus="Enabled"
+        OpenPaneLength="200"
+        SelectionChanged="NavView_SelectionChanged"
+        Loaded="NavView_Loaded">
+
+        <NavigationView.MenuItems>
+            <NavigationViewItem
+                x:Name="NavDashboard"
+                Content="Dashboard"
+                Tag="Dashboard"
+                AutomationProperties.Name="NavDashboard">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE80F;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavContainers"
+                Content="Containers"
+                Tag="Containers"
+                AutomationProperties.Name="NavContainers">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE7B8;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavImages"
+                Content="Images"
+                Tag="Images"
+                AutomationProperties.Name="NavImages">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xEB9F;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavVolumes"
+                Content="Volumes"
+                Tag="Volumes"
+                AutomationProperties.Name="NavVolumes">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xEDA2;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavNetworks"
+                Content="Networks"
+                Tag="Networks"
+                AutomationProperties.Name="NavNetworks">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE968;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavMachines"
+                Content="Machines"
+                Tag="Machines"
+                AutomationProperties.Name="NavMachines">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE7F4;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavKubernetes"
+                Content="Kubernetes"
+                Tag="Kubernetes"
+                AutomationProperties.Name="NavKubernetes">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE81E;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavConfiguration"
+                Content="Configuration"
+                Tag="Configuration"
+                AutomationProperties.Name="NavConfiguration">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE713;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavRuntime"
+                Content="Runtime"
+                Tag="Runtime"
+                AutomationProperties.Name="NavRuntime">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE756;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavAIWorkloads"
+                Content="AI Workloads"
+                Tag="AIWorkloads"
+                AutomationProperties.Name="NavAIWorkloads">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE99A;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavProfiles"
+                Content="Profiles"
+                Tag="Profiles"
+                AutomationProperties.Name="NavProfiles">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE748;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem
+                x:Name="NavMonitoring"
+                Content="Monitoring"
+                Tag="Monitoring"
+                AutomationProperties.Name="NavMonitoring">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE9D9;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
+
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem
+                x:Name="NavSettings"
+                Content="Settings &amp; Deps"
+                Tag="Settings"
+                AutomationProperties.Name="NavSettings">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE713;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
+        <!-- Content frame -->
+        <Frame x:Name="ContentFrame" AutomationProperties.Name="ContentFrame" />
+    </NavigationView>
+</Window>
