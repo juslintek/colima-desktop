@@ -20,11 +20,11 @@
 | M2.6 | Windows WinUI 3 GUI | windows-native-dev | M0.4 | `windows/` | DONE |
 | M2.7 | Linux GTK4 GUI | linux-native-dev | M0.4 | `linux/` | DONE |
 | M2.8 | TUI Bubble Tea | tui-dev | M0.4 | `tui/` | DONE |
-| M3.9 | Per-platform explorers → ground-truth.json | *-ui-explorer | M2.* | `exploration/` | TODO |
-| M3.10 | Gap analysis → gap-report.md | architect + reviewer | M3.9 | `exploration/` | TODO |
-| M3.11 | Repair 129 failures + missing tests → 100% cov | swift-test-engineer | M3.10 | `Tests/` | TODO |
-| M4.12 | CLI-parity gaps on every frontend | crossplatform-parity-auditor | M1.5, M2.* | per-frontend | TODO |
-| M4.13 | DependencyManager per platform | devops + native-devs | M2.* | per-frontend | TODO |
+| M3.9 | Per-platform explorers → ground-truth.json | *-ui-explorer | M2.* | `exploration/` | BLOCKED (needs live GUI+AX/UIA/AT-SPI session; not runnable headless — see docs/gap-report.md) |
+| M3.10 | Gap analysis → gap-report.md | architect + reviewer | M3.9 | `docs/gap-report.md` | DONE |
+| M3.11 | Tests → coverage | swift-test-engineer | M3.10 | `Tests/` | WIP (Kit 59.1%, 419 tests green; toward 100%) |
+| M4.12 | CLI-parity gaps on every frontend | native-devs | M1.5, M2.* | per-frontend | DONE (tui 11 surfaces; win/linux full surfaces) |
+| M4.13 | DependencyManager per platform | native-devs | M2.* | per-frontend | DONE (win winget, linux pkg-mgr, tui probe) |
 | M5.14 | Loop until verify.sh all-green | integration agent | all | — | TODO |
 | M5.15 | Full OSS docs suite + release workflows + tag v1 | docs agent | M5.14 | `README`, `docs/`, `.github/` | TODO |
 
