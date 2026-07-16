@@ -39,9 +39,8 @@ impl DaemonClient {
                 .connect_with_connector(tower::service_fn(move |_| {
                     let p = path.clone();
                     async move {
-                        Ok::<_, std::io::Error>(
-                            tokio::net::UnixStream::connect(p).await?,
-                        )
+                        let stream = tokio::net::UnixStream::connect(p).await?;
+                        Ok::<_, std::io::Error>(hyper_util::rt::TokioIo::new(stream))
                     }
                 }))
                 .await?
