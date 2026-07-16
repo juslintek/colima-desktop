@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:converters="using:ColimaDesktop.Windows.Converters">
+
+    <converters:BoolToVisibilityConverter       x:Key="BoolToVisibilityConverter" />
+    <converters:BoolToInverseVisibilityConverter x:Key="BoolToInverseVisibilityConverter" />
+    <converters:NullToVisibilityConverter        x:Key="NullToVisibilityConverter" />
+    <converters:BoolToStatusConverter            x:Key="BoolToStatusConverter" />
+    <converters:NonEmptyToBoolConverter          x:Key="NonEmptyToBoolConverter" />
+    <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter" />
+    <converters:PercentConverter                 x:Key="PercentConverter" />
+    <converters:BytesToMBConverter               x:Key="BytesToMBConverter" />
+    <converters:IntToExitCodeConverter           x:Key="IntToExitCodeConverter" />
+    <converters:BoolToSeverityConverter          x:Key="BoolToSeverityConverter" />
+</ResourceDictionary>
