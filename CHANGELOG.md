@@ -1,18 +1,23 @@
-# Changelog
-
-All notable changes to Colima Desktop. Format follows [Keep a Changelog](https://keepachangelog.com); commits follow [Conventional Commits](https://www.conventionalcommits.org).
-
-## v0.1.0 (pre-release) — 2026-07-15
+## v0.2.0 — 2026-07-17
 
 ### Features
 
-- Windows WinUI 3 + Linux GTK4 scaffolds + CI (`11d83f9`)
-- complete ColimaService handlers + testable TUI (M1.5 residual, M2.8 inc.2) (`dfd1474`)
-- TUI (Bubble Tea) foundation over the daemon gRPC core (`05e3f4d`)
-- DockerService + local/remote-SSH/WSL2 providers (`0f3d80e`)
-- real gRPC daemon (generated stubs) + parity matrix (`fd7c08e`)
-- FREEZE CONTRACT v1 — unlocks parallel M1/M2 (`10423ca`)
-- coverage wiring + verify.sh scoreboard (`2042b93`)
+- add 13 XAML views (Dashboard, Containers, Images, Volumes, Networks, Machines, Kubernetes, Configuration, Runtime, AIWorkloads, Profiles, Monitoring, Settings) with AutomationProperties.Name on all interactive controls (`8a828fa`)
+- add value converters (BoolToVisibility, NullToVisibility, BytesToMB, etc.) + ConverterResources.xaml (`6f4f384`)
+- add 13 ViewModels covering all CONTRACT v1 Parts A+B+C surfaces (`6a26399`)
+- DaemonClient full CONTRACT v1 coverage; ConnectionSettings; DependencyManager (WSL2/Docker/daemon detect+install) (`39a4827`)
+- add App.xaml, MainWindow NavigationView shell, app manifest (`0f8c910`)
+- full GTK4 CLI-parity + DependencyManager + AT-SPI (M4.12, M4.13) (`79bf75e`)
+- full 11-surface parity + dependency onboarding + 56 tests (`e2e3a13`)
+- implement GetConfig/SetConfig/GetTemplate/SetTemplate (`915cebc`)
+- release changelog + precompiled .app, GitHub Pages landing site (`7d561b2`)
+- Windows WinUI 3 + Linux GTK4 scaffolds + CI (`fff3ccd`)
+- complete ColimaService handlers + testable TUI (M1.5 residual, M2.8 inc.2) (`32e2b88`)
+- TUI (Bubble Tea) foundation over the daemon gRPC core (`f487c7c`)
+- DockerService + local/remote-SSH/WSL2 providers (`5d9f594`)
+- real gRPC daemon (generated stubs) + parity matrix (`ca9ae59`)
+- FREEZE CONTRACT v1 — unlocks parallel M1/M2 (`9c7ae4f`)
+- coverage wiring + verify.sh scoreboard (`a2a8d00`)
 - app icon (isometric cube) wired into app + DMG (`9c0638e`)
 - detect missing Colima and prompt to install it (`66b38d8`)
 - wire all views to real backend — config YAML, Docker API, kubectl (`2b6bf2e`)
@@ -45,7 +50,10 @@ All notable changes to Colima Desktop. Format follows [Keep a Changelog](https:/
 
 ### Fixes
 
-- 0 macOS source build warnings (pristine pass) (`ba01836`)
+- correct build-warning count (grep -c  (`| echo produced '0\n0')|ce1d1ef`)
+- correct ColimaConfig.fromYAML list-item parsing (mounts/provision/dns) (`ed5047c`)
+- populate first-release notes from committed CHANGELOG.md (`2c5418a`)
+- 0 macOS source build warnings (pristine pass) (`62a1d8e`)
 - extract ColimaDesktopKit framework — fixes Xcode-26 test hang (`df6b8fc`)
 - eliminate mock/hardcoded data in real code paths (`ce94bf4`)
 - deliver Sparkle keys via merged INFOPLIST_FILE (`e469278`)
@@ -87,7 +95,15 @@ All notable changes to Colima Desktop. Format follows [Keep a Changelog](https:/
 
 ### Tests
 
-- unit coverage for NavigationItem + AIModelInfo.parse (`75daaef`)
+- cov3svc — DockerClient 32→53%, DaemonClient, ColimaConfig 96.8%, AppDelegate (`6ba3be6`)
+- coverage wave 3 (cov3cfg+cov3rest) — +552 tests, 1740 total green (`e76ad25`)
+- cov3vw — GuidedSetupWizard/Dashboard/AIWorkloads/Monitoring branches (+ tests) (`b965bfd`)
+- salvage covconfig — Configuration/Kubernetes/Containers view tests (`fc690fd`)
+- coverage wave 2 — +491 tests (views + services), 910 total green (`1ad080a`)
+- +419 tests, Kit coverage 14%→59% (DockerClient, ColimaConfig, ViewInspector suites) (`925e4d9`)
+- AppState detail/sheet + profile action coverage (+9 tests) (`15abcf0`)
+- AppState action + refresh coverage (+18 tests) (`fdb608d`)
+- unit coverage for NavigationItem + AIModelInfo.parse (`0bcb187`)
 - deterministic DockerClient error paths + expanded status-menu coverage (`a832ecf`)
 - comprehensive opt-in real-backend suite (35 tests) (`38356b3`)
 - canonical RealE2E support helper + opt-in gating + Makefile target (`6d4a137`)
@@ -100,6 +116,10 @@ All notable changes to Colima Desktop. Format follows [Keep a Changelog](https:/
 
 ### Documentation
 
+- iteration 3 outcome + evidence-based coverage ceiling analysis (`c858567`)
+- update README with full build docs, architecture, CONTRACT coverage table (`e716b4a`)
+- OSS docs suite + gap-report (M3.10, M5.15) (`9d15bb9`)
+- record pages live + release pipeline dispatch (`46a0582`)
 - truth table (7996 combos) + real-backend exploration of every view (`f956af2`)
 - record final cleanup proof (desktop-e2e deleted, default intact) (`f9779ae`)
 - real-mode execution board — matrix, recipe, findings, results (`24f4a67`)
@@ -113,6 +133,13 @@ All notable changes to Colima Desktop. Format follows [Keep a Changelog](https:/
 
 ### Chores & CI
 
+- iteration 3 coverage wave 3 launched (`32c8a9d`)
+- iteration 2 outcome + NSSavePanel-hang lesson (`bc7d23f`)
+- iteration 2 coverage wave launched (`886cf3f`)
+- PLAN status update after wave-1 merges (M3.10/M4.12/M4.13 done, M3.11 WIP 59%) (`235d05a`)
+- merge wave 1 complete (5/6); tests agent in progress (`9f73878`)
+- record merge wave 1 (daemon/docs/tui landed) (`f059390`)
+- record multi-agent parallel execution launch (`08b0e92`)
 - program board substrate + seed README/LICENSE (`95a915b`)
 - set Sparkle EdDSA public key for auto-update (`1784906`)
 - GitHub releases + auto-update hosting (App Store deferred) (`b97baae`)
