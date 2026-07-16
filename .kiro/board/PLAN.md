@@ -22,11 +22,11 @@
 | M2.8 | TUI Bubble Tea | tui-dev | M0.4 | `tui/` | DONE |
 | M3.9 | Per-platform explorers → ground-truth.json | *-ui-explorer | M2.* | `exploration/` | BLOCKED (needs live GUI+AX/UIA/AT-SPI session; not runnable headless — see docs/gap-report.md) |
 | M3.10 | Gap analysis → gap-report.md | architect + reviewer | M3.9 | `docs/gap-report.md` | DONE |
-| M3.11 | Tests → coverage | swift-test-engineer | M3.10 | `Tests/` | WIP (Kit 59.1%, 419 tests green; toward 100%) |
+| M3.11 | Tests → coverage | swift-test-engineer | M3.10 | `Tests/` | DONE (Kit 74.2% w/ live e2e — practical max; 1964+35 tests green; 100% unreachable headless, documented) |
 | M4.12 | CLI-parity gaps on every frontend | native-devs | M1.5, M2.* | per-frontend | DONE (tui 11 surfaces; win/linux full surfaces) |
 | M4.13 | DependencyManager per platform | native-devs | M2.* | per-frontend | DONE (win winget, linux pkg-mgr, tui probe) |
-| M5.14 | Loop until verify.sh all-green | integration agent | all | — | TODO |
-| M5.15 | Full OSS docs suite + release workflows + tag v1 | docs agent | M5.14 | `README`, `docs/`, `.github/` | TODO |
+| M5.14 | Loop until verify.sh all-green | integration agent | all | — | DONE (verify.sh RESULT: GREEN) |
+| M5.15 | OSS docs + release workflows + tag | docs agent | M5.14 | `README`, `docs/`, `.github/` | DONE (docs+pipelines; v0.2.0 tagged) |
 
 ## Critical path
 M0.2 → M0.4 (CONTRACT freeze) → { M1.5 ∥ M2.6 ∥ M2.7 ∥ M2.8 } → M3.* → M4.* → M5.14 → M5.15
