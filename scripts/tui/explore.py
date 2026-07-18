@@ -5,7 +5,7 @@ scripts/tui/explore.py — TUI PTY Ground-Truth Capture for Colima Desktop TUI.
 Drives the real TUI binary in a pseudo-terminal with deterministic terminal
 dimensions. Responds to Bubble Tea's initial terminal-capability queries
 (background colour, cursor position) so the TUI unblocks and renders. Then
-sends number-key / arrow navigation to traverse all 11 tabs and captures the
+sends number-key / arrow navigation to traverse all 12 tabs and captures the
 rendered ANSI frame at each surface.
 
 Output:
@@ -18,7 +18,7 @@ Falls back to model-direct (go run driver.go inside tui/) when PTY fails.
 Run from repo root:
     python3 scripts/tui/explore.py
 
-Exit 0 when all 11 surfaces are non-empty and distinct.
+Exit 0 when all 12 surfaces are non-empty and distinct.
 """
 
 import fcntl
@@ -49,7 +49,9 @@ SCREENSHOTS_DIR = OUT_DIR / "screenshots"
 TERM_COLS = 120
 TERM_ROWS = 40
 
-# 11 surfaces: (name, nav-key)
+# 12 surfaces: (name, nav-key)
+# Tabs 0-9 have digit shortcuts (1-9, 0). Tabs 10-11 (Machines, Monitoring)
+# have no digit shortcut — reached by right-arrow from Profiles (tab 9).
 TABS = [
     ("Dashboard",      "1"),
     ("Containers",     "2"),
@@ -61,7 +63,8 @@ TABS = [
     ("Runtime",        "8"),
     ("AI Workloads",   "9"),
     ("Profiles",       "0"),
-    ("Machines",       "\x1b[C"),  # right-arrow (→): key for tab 10
+    ("Machines",       "\x1b[C"),  # right-arrow (→) from Profiles
+    ("Monitoring",     "\x1b[C"),  # right-arrow (→) from Machines
 ]
 
 # ─── ANSI processing ──────────────────────────────────────────────────────────
@@ -169,8 +172,8 @@ def reconstruct_screen(frames_raw: list[bytes], rows: int, cols: int) -> list[st
 
 def capture_via_pty(binary: Path) -> Optional[list[str]]:
     """
-    Spawn the TUI binary in a real PTY, navigate all 11 tabs,
-    capture raw ANSI frames. Returns list[str] of 11 frames or None.
+    Spawn the TUI binary in a real PTY, navigate all 12 tabs,
+    capture raw ANSI frames. Returns list[str] of 12 frames or None.
     """
     import pty
 
@@ -223,11 +226,11 @@ def capture_via_pty(binary: Path) -> Optional[list[str]]:
 
         # ── Phase 3: navigate each tab and capture ────────────────────────────
         # For tab 0 (Dashboard), use the initial render (key '1' still navigates to it).
-        keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "\x1b[C"]
+        keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "\x1b[C", "\x1b[C"]
         expected_labels = [
             "Dashboard", "Containers", "Images", "Volumes", "Networks",
             "Kubernetes", "Configuration", "Runtime", "AI Workloads",
-            "Profiles", "Machines",
+            "Profiles", "Machines", "Monitoring",
         ]
 
         for i, (key, expected) in enumerate(zip(keys, expected_labels)):
@@ -297,8 +300,8 @@ def capture_via_pty(binary: Path) -> Optional[list[str]]:
         print(f"  PTY error: {error}", file=sys.stderr)
         return None if not frames else frames
 
-    if len(frames) < 11:
-        print(f"  PTY: only got {len(frames)}/11 frames", file=sys.stderr)
+    if len(frames) < 12:
+        print(f"  PTY: only got {len(frames)}/12 frames", file=sys.stderr)
         return None
 
     return frames
@@ -310,7 +313,7 @@ def capture_via_pty(binary: Path) -> Optional[list[str]]:
 
 
 def capture_via_model_direct() -> Optional[list[str]]:
-    """Run Go driver inside tui/ module, get 11 deterministic View() frames."""
+    """Run Go driver inside tui/ module, get 12 deterministic View() frames."""
     # driver_explore.go lives in tui/ with //go:build ignore
     driver_path = TUI_DIR / "driver_explore.go"
     if not driver_path.exists():
@@ -338,7 +341,7 @@ def capture_via_model_direct() -> Optional[list[str]]:
 
     try:
         frames = json.loads(stdout)
-        if isinstance(frames, list) and len(frames) >= 11:
+        if isinstance(frames, list) and len(frames) >= 12:
             print(f"  model-direct: {len(frames)} frames captured ✓", file=sys.stderr)
             return frames
         else:
@@ -414,7 +417,7 @@ def main() -> int:
               file=sys.stderr, flush=True)
         try:
             pty_frames = capture_via_pty(binary)
-            if pty_frames and len(pty_frames) >= 11:
+            if pty_frames and len(pty_frames) >= 12:
                 print(f"  PTY: {len(pty_frames)} frames ✓", file=sys.stderr)
             else:
                 print("  PTY: insufficient frames", file=sys.stderr)
@@ -450,7 +453,7 @@ def main() -> int:
         frames = []
 
     # Overwrite screenshots with PTY frames when available (real rendering)
-    pty_screenshot_frames = pty_frames if pty_frames and len(pty_frames) >= 11 else None
+    pty_screenshot_frames = pty_frames if pty_frames and len(pty_frames) >= 12 else None
 
     # ── 4. Build surfaces ─────────────────────────────────────────────────────
     surfaces = []
@@ -514,7 +517,7 @@ def main() -> int:
     # ── 5. Assemble ground-truth ──────────────────────────────────────────────
     all_nonempty = all(s["nonempty"] for s in surfaces)
     all_distinct = all(s["distinct_from_prev"] for s in surfaces)
-    validation_pass = all_nonempty and all_distinct and len(surfaces) == 11
+    validation_pass = all_nonempty and all_distinct and len(surfaces) == 12
 
     go_ver = subprocess.run(["go", "version"], capture_output=True).stdout.decode().strip()
 
@@ -543,7 +546,7 @@ def main() -> int:
     # ── 6. Summary ────────────────────────────────────────────────────────────
     print(f"\n✓ ground-truth.json → {out_path}", file=sys.stderr, flush=True)
     print(f"  method:       {capture_method}", file=sys.stderr)
-    print(f"  surfaces:     {len(surfaces)}/11", file=sys.stderr)
+    print(f"  surfaces:     {len(surfaces)}/12", file=sys.stderr)
     print(f"  all-nonempty: {all_nonempty}", file=sys.stderr)
     print(f"  all-distinct: {all_distinct}", file=sys.stderr)
     print(f"  validation:   {'PASS ✓' if validation_pass else 'FAIL ✗'}", file=sys.stderr)

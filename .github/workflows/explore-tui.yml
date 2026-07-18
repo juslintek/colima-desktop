@@ -42,10 +42,10 @@ jobs:
           with open("exploration/tui/ground-truth.json") as f:
               gt = json.load(f)
           assert gt["validation_pass"], f"validation_pass is False: errors={gt['errors']}"
-          assert gt["total_surfaces"] == 11, f"expected 11 surfaces, got {gt['total_surfaces']}"
+          assert gt["total_surfaces"] == 12, f"expected 12 surfaces, got {gt['total_surfaces']}"
           assert gt["all_nonempty"], "not all surfaces are nonempty"
           assert gt["all_distinct"], "not all surfaces have distinct fingerprints"
-          print(f"✓ {gt['total_surfaces']}/11 surfaces, all nonempty, all distinct")
+          print(f"✓ {gt['total_surfaces']}/12 surfaces, all nonempty, all distinct")
           print(f"  method: {gt['capture_method']}")
           for s in gt["surfaces"]:
               print(f"  [{s['index']:2d}] {s['name']:15s}  fp={s['content_fingerprint'][:12]}  nonempty={s['nonempty']}  distinct={s['distinct_from_prev']}")
