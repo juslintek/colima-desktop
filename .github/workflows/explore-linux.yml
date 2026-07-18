@@ -7,7 +7,7 @@ name: explore-linux
 # Dashboard and recorded Dashboard content under a different label (mislabeled).
 # Fix:
 #   - Dashboard (index 0) = initial state, no click.
-#   - Indices 1..10: ALL AT-SPI doAction/component-extent strategies bypassed.
+#   - Indices 1..11: ALL AT-SPI doAction/component-extent strategies bypassed.
 #     Navigation is ONLY via xdotool positional grid:
 #       abs_x = win_x + 100
 #       abs_y = win_y + 23 + 38*i   (i = 0-based surface index)

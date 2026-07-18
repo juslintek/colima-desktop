@@ -50,8 +50,8 @@ TERM_COLS = 120
 TERM_ROWS = 40
 
 # 12 surfaces: (name, nav-key)
-# Tabs 0-9 have digit shortcuts (1-9, 0). Tabs 10-11 (Machines, Monitoring)
-# have no digit shortcut — reached by right-arrow from Profiles (tab 9).
+# Tabs 0-9 have digit shortcuts (1-9 + 0). Tabs 10-11 (Machines, Monitoring)
+# lack digit shortcuts — reached via right-arrow from tab 9 (Profiles).
 TABS = [
     ("Dashboard",      "1"),
     ("Containers",     "2"),
@@ -63,8 +63,8 @@ TABS = [
     ("Runtime",        "8"),
     ("AI Workloads",   "9"),
     ("Profiles",       "0"),
-    ("Machines",       "\x1b[C"),  # right-arrow (→) from Profiles
-    ("Monitoring",     "\x1b[C"),  # right-arrow (→) from Machines
+    ("Machines",       "\x1b[C"),  # right-arrow (→): tab 10 from Profiles
+    ("Monitoring",     "\x1b[C"),  # right-arrow (→): tab 11 from Machines
 ]
 
 # ─── ANSI processing ──────────────────────────────────────────────────────────

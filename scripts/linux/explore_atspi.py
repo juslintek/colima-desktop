@@ -54,7 +54,7 @@ Pass 5 note (role=unknown):
         3. DFS for "sidebar_scroll" then first child with >= 5 children
         4. Score-based: find node whose children names overlap known sidebar labels
     * Navigation strategies A/B/C/D are superseded by pass 8 grid nav — see below.
-  - Requires 11 non-empty captures (all sidebar surfaces) + all 11 fps unique.
+  - Requires 12 non-empty captures (all sidebar surfaces) + all 12 fps unique.
   - dump_tree_diagnostic() emits bounded tree (depth<=6) on first activation miss.
 
 Pass 6 note (identical fingerprints — doAction(0) false-accept):
@@ -89,7 +89,7 @@ Pass 8 note (mislabeled captures — deterministic xdotool grid, AT-SPI nav remo
   - Fix (pass 8):
     1. Dashboard (index 0) is the INITIAL state. No click is sent. fp_before is
        recorded as the baseline.
-    2. For every index 1..10, ALL AT-SPI doAction / component-coordinate
+    2. For every index 1..11, ALL AT-SPI doAction / component-coordinate
        strategies are BYPASSED entirely. Navigation uses ONLY the verified Xvfb
        positional grid via xdotool:
            abs_x = win_x + 100
@@ -101,8 +101,8 @@ Pass 8 note (mislabeled captures — deterministic xdotool grid, AT-SPI nav remo
        Falls back to (0,0) if xdotool search fails (Xvfb default placement).
     4. After each click, fingerprint must differ from the PREVIOUS surface's fp.
        Surface fails if fingerprint unchanged.
-    5. After all 11 captures, ALL 11 content fingerprints must be UNIQUE
-       (frozenset cardinality == 11). Any duplicate = run fails.
+    5. After all 12 captures, ALL 12 content fingerprints must be UNIQUE
+       (frozenset cardinality == 12). Any duplicate = run fails.
     6. AT-SPI tree traversal and screenshots are preserved unchanged (read-only
        AT-SPI use is reliable; only AT-SPI-driven click-navigation was broken).
 """
@@ -843,7 +843,7 @@ def navigate_to_surface_grid(
     ALL sidebar rows map to the same wrong coords (Dashboard's position), so even
     a correct name-match ends up clicking Dashboard for every even-indexed surface.
 
-    This function is the ONLY navigation path used for indices 1..10.
+    This function is the ONLY navigation path used for indices 1..11.
     Dashboard (index 0) is never passed here — it is the initial state.
 
     Grid formula (from Xvfb 1280×800 screenshot evidence, run 29643261452):
@@ -854,7 +854,7 @@ def navigate_to_surface_grid(
       Stage A — xdotool search + getwindowgeometry (dynamic; handles any WM placement)
       Stage B — (0, 0) fixed fallback (Xvfb default; window at top-left)
 
-    Fingerprint check: fp_before must be provided (not None for indices 1..10).
+    Fingerprint check: fp_before must be provided (not None for indices 1..11).
     Accepts only if _get_content_fingerprint(app_acc) != fp_before after the click.
     Returns (True, "xdotool_grid:index=N") on success, (False, "") on failure.
     """
@@ -1115,7 +1115,7 @@ def main() -> int:
         # ── Pass 8: deterministic surface traversal ──────────────────────
         #
         # Dashboard (index 0) is the INITIAL state — no click sent.
-        # For every index 1..10, navigation is EXCLUSIVELY via xdotool positional
+        # For every index 1..11, navigation is EXCLUSIVELY via xdotool positional
         # grid (navigate_to_surface_grid). All AT-SPI doAction / component-extent
         # strategies are bypassed because run 29643626991 proved they produce
         # mislabeled captures: AT-SPI extents for all sidebar rows map to the same
@@ -1224,7 +1224,7 @@ def main() -> int:
             print("ERROR: zero elements collected", file=sys.stderr)
 
         # ── All-unique fingerprints guard (pass 8) ───────────────────────
-        # Require ALL 11 content fingerprints to be unique.  Any duplicate means
+        # Require ALL 12 content fingerprints to be unique.  Any duplicate means
         # two surfaces captured the same content — a mislabeled navigation.
         # (Distinct element-count fps are unreliable — we use content fps here.)
         nonempty_surfaces = [s for s in surfaces_data if s["element_count"] > 0]
