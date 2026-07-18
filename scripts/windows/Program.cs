@@ -174,9 +174,9 @@ internal static class Program
                 var (navId, label) = NavigationItems[i];
                 var surfaceKey = navId.Replace("Nav", "").ToLowerInvariant();
 
-                Console.WriteLine($"[explorer] → Navigating to: {label}");
+                Console.WriteLine($"[explorer] → Surface {i+1}/13: {label}");
 
-                // Check whether app is still alive before each nav attempt
+                // Check whether app is still alive before each surface attempt
                 try
                 {
                     var alive = Process.GetProcessById(app.ProcessId);
@@ -194,6 +194,24 @@ internal static class Program
                         surfaces.Add(EmptySurface(nid.Replace("Nav","").ToLowerInvariant(), lbl, err));
                     }
                     break;
+                }
+
+                // Re-resolve the main window each iteration to avoid stale UIA element handles.
+                // UIA COM objects become invalid after layout changes; always re-fetch before use.
+                try
+                {
+                    var freshWindows = app.GetAllTopLevelWindows(automation);
+                    var freshWindow  = freshWindows.FirstOrDefault(w =>
+                    {
+                        try { return !string.IsNullOrEmpty(w.Title); }
+                        catch { return false; }
+                    });
+                    if (freshWindow != null)
+                        mainWindow = freshWindow;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[explorer]   Re-resolve mainWindow failed ({ex.Message}) — using cached reference");
                 }
 
                 // Re-detect error dialog (could appear after initial window opens)
@@ -217,7 +235,38 @@ internal static class Program
 
                 try
                 {
-                    // Find nav item by AutomationId (x:Name in XAML)
+                    // Dashboard (index 0) is the initial selected page — capture it directly
+                    // without attempting navigation.  Navigating to an already-selected item
+                    // in WinUI3 NavigationView can reset content; skip and just record state.
+                    if (i == 0)
+                    {
+                        Console.WriteLine($"[explorer]   Dashboard: capturing initial selected page (no navigation)");
+                        Thread.Sleep(500); // ensure content is stable
+
+                        var elements0 = new List<ElementRecord>();
+                        TraverseElement(mainWindow, elements0, 0, label);
+
+                        string? screenshotPath0 = null;
+                        if (screenshotDir != null)
+                        {
+                            screenshotPath0 = Path.Combine(screenshotDir, $"{(i + 1):D4}-{surfaceKey}.png");
+                            TakeScreenshot(mainWindow, screenshotPath0);
+                        }
+
+                        Console.WriteLine($"[explorer]   {label}: {elements0.Count} elements");
+                        surfaces.Add(new SurfaceResult
+                        {
+                            Surface        = surfaceKey,
+                            SurfaceLabel   = label,
+                            ElementCount   = elements0.Count,
+                            Elements       = elements0,
+                            Errors         = [],
+                            ScreenshotPath = screenshotPath0,
+                        });
+                        continue;
+                    }
+
+                    // Find nav item by AutomationId (x:Name in XAML) using the fresh window ref
                     var navItem = WaitForElement(mainWindow, cf, navId, label, ElementFindTimeout);
                     if (navItem == null)
                     {
@@ -228,9 +277,11 @@ internal static class Program
                         continue;
                     }
 
-                    // Invoke navigation — prefer automation patterns over mouse to handle
-                    // offscreen items (zero bounding rect → NoClickablePointException).
-                    string? navErr = NavigateToItem(navItem, label);
+                    // Navigate using proven strategy:
+                    //   Visible items  → Click() directly (proven 10/13 in pass 5)
+                    //   Offscreen items → ScrollIntoView → re-resolve → Click()
+                    //                    → SelectionItem/LegacyIA fallback only if still unclickable
+                    string? navErr = NavigateToItem(navItem, label, mainWindow, app, automation, cf);
                     if (navErr != null)
                     {
                         Console.WriteLine($"[explorer] WARN: {navErr}");
@@ -240,7 +291,21 @@ internal static class Program
                     }
                     Thread.Sleep((int)NavigationSettle.TotalMilliseconds);
 
-                    // Traverse full window tree
+                    // Re-resolve window after navigation settle to get fresh UIA state
+                    try
+                    {
+                        var postNavWindows = app.GetAllTopLevelWindows(automation);
+                        var postNavWindow  = postNavWindows.FirstOrDefault(w =>
+                        {
+                            try { return !string.IsNullOrEmpty(w.Title); }
+                            catch { return false; }
+                        });
+                        if (postNavWindow != null)
+                            mainWindow = postNavWindow;
+                    }
+                    catch { /* keep current ref */ }
+
+                    // Traverse full window tree using fresh window reference
                     var elements = new List<ElementRecord>();
                     TraverseElement(mainWindow, elements, 0, label);
 
@@ -491,109 +556,162 @@ internal static class Program
     }
 
     /// <summary>
-    /// Navigate to a WinUI 3 NavigationViewItem using automation patterns,
-    /// avoiding Mouse.Click which throws NoClickablePointException when the item
-    /// has a zero bounding rectangle (i.e., is offscreen / scrolled out of view).
+    /// Navigate to a WinUI 3 NavigationViewItem.
     ///
-    /// Strategy (in priority order):
-    ///   1. ScrollIntoView via ScrollItemPattern (brings item into the visible pane area)
-    ///   2. SelectionItemPattern.Select()  — proper UIA way to select a list item
-    ///   3. LegacyIAccessiblePattern.DoDefaultAction()  — generic MSAA fallback
-    ///   4. Keyboard: set focus + press Enter/Space
-    ///   5. Mouse click (last resort — only works if bounding rect is nonzero)
+    /// Proven strategy (restored from pass 5 / run 29642368125 which achieved 10/13):
+    ///
+    ///   VISIBLE item (IsOffscreen=false AND nonzero rect):
+    ///     1. Click() — direct mouse click; proven reliable for all on-screen items.
+    ///
+    ///   OFFSCREEN item (IsOffscreen=true OR zero bounding rect):
+    ///     1. ScrollItemPattern.ScrollIntoView() — bring into the NavigationView pane.
+    ///     2. Re-resolve mainWindow + nav item from live UIA tree (stale handles after scroll).
+    ///     3. Click() — now that the item is on-screen, click it.
+    ///     4. If still NoClickablePointException → SelectionItemPattern.Select() fallback.
+    ///     5. LegacyIAccessiblePattern.DoDefaultAction() fallback.
+    ///
+    /// NOTE: SelectionItemPattern.Select() is NOT tried first for visible items because
+    /// WinUI 3 NavigationView does not raise the SelectionChanged event via UIA's
+    /// SelectionItemPattern — it requires an actual click or pointer input to trigger
+    /// frame navigation.  Using Select() first was the root cause of the pass-5b
+    /// regression (run 29642873532: 1/13 captured).
     ///
     /// Returns null on success, or an error string on failure.
     /// </summary>
-    private static string? NavigateToItem(AutomationElement navItem, string label)
+    private static string? NavigateToItem(
+        AutomationElement navItem,
+        string label,
+        Window mainWindow,
+        Application app,
+        UIA3Automation automation,
+        FlaUI.Core.Conditions.ConditionFactory cf)
     {
-        // Step 1: ScrollIntoView if the item is offscreen (zero rect or IsOffscreen flag)
+        // Capture the automation ID string eagerly before any scroll/layout change
+        // makes the COM object stale (reading properties on stale refs throws).
+        var navAutomationId = SafeGet(() => navItem.AutomationId ?? "", "");
+
         bool isOffscreen = SafeGet(() => navItem.IsOffscreen, false);
         var  rect        = SafeGetRect(navItem);
         bool zeroRect    = rect == null || (rect.Width == 0 && rect.Height == 0);
 
-        if (isOffscreen || zeroRect)
+        if (!isOffscreen && !zeroRect)
         {
-            Console.WriteLine($"[explorer]   '{label}' is offscreen (rect={rect?.Width}×{rect?.Height}) — attempting ScrollIntoView");
+            // ── VISIBLE ITEM: Click directly ──────────────────────────────
             try
             {
-                var scrollItem = navItem.Patterns.ScrollItem;
-                if (scrollItem.IsSupported)
-                {
-                    scrollItem.Pattern.ScrollIntoView();
-                    Thread.Sleep(400); // allow NavigationView pane to animate scroll
-                    Console.WriteLine($"[explorer]   ScrollIntoView succeeded for '{label}'");
-                }
-                else
-                {
-                    Console.WriteLine($"[explorer]   ScrollItemPattern not supported for '{label}' — continuing with other patterns");
-                }
+                navItem.Click();
+                Console.WriteLine($"[explorer]   Click() succeeded for '{label}'");
+                return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[explorer]   ScrollIntoView failed for '{label}': {ex.Message}");
-                // Not fatal — continue to next strategy
+                Console.WriteLine($"[explorer]   Click() failed for visible '{label}': {ex.GetType().Name}: {ex.Message}");
+                // Fall through to offscreen handling in case rect was stale
             }
         }
 
-        // Step 2: SelectionItemPattern.Select() — the canonical way to select a nav item
+        // ── OFFSCREEN ITEM (or click failed): ScrollIntoView → re-resolve → Click ──
+        Console.WriteLine($"[explorer]   '{label}' offscreen or click failed (offscreen={isOffscreen}, rect={rect?.Width}×{rect?.Height}) — ScrollIntoView");
+
         try
         {
-            var selectionItem = navItem.Patterns.SelectionItem;
+            var scrollItem = navItem.Patterns.ScrollItem;
+            if (scrollItem.IsSupported)
+            {
+                scrollItem.Pattern.ScrollIntoView();
+                Thread.Sleep(600); // wait for NavigationView pane scroll animation
+                Console.WriteLine($"[explorer]   ScrollIntoView succeeded for '{label}'");
+            }
+            else
+            {
+                Console.WriteLine($"[explorer]   ScrollItemPattern not supported for '{label}'");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[explorer]   ScrollIntoView failed for '{label}': {ex.Message}");
+            // Not fatal — item may still be clickable after partial scroll
+        }
+
+        // Re-resolve window and nav item to get fresh UIA handles after layout change
+        Window? freshWindow = null;
+        try
+        {
+            var freshWindows = app.GetAllTopLevelWindows(automation);
+            freshWindow = freshWindows.FirstOrDefault(w =>
+            {
+                try { return !string.IsNullOrEmpty(w.Title); }
+                catch { return false; }
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[explorer]   Re-resolve window failed for '{label}': {ex.Message}");
+        }
+
+        // Re-resolve nav item from fresh window handle using the captured automation ID
+        AutomationElement? freshNavItem = null;
+        if (freshWindow != null)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(navAutomationId))
+                    freshNavItem = freshWindow.FindFirstDescendant(cf.ByAutomationId(navAutomationId));
+                freshNavItem ??= freshWindow.FindFirstDescendant(cf.ByName(label));
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[explorer]   Re-resolve nav item failed for '{label}': {ex.Message}");
+            }
+        }
+
+        var itemToClick = freshNavItem ?? navItem;
+
+        // Attempt Click on the (possibly freshly resolved) item
+        try
+        {
+            itemToClick.Click();
+            Console.WriteLine($"[explorer]   Click() after ScrollIntoView succeeded for '{label}'");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[explorer]   Click() after ScrollIntoView failed for '{label}': {ex.GetType().Name}: {ex.Message}");
+        }
+
+        // ── FALLBACK 1: SelectionItemPattern.Select() ─────────────────────
+        try
+        {
+            var selectionItem = itemToClick.Patterns.SelectionItem;
             if (selectionItem.IsSupported)
             {
                 selectionItem.Pattern.Select();
-                Console.WriteLine($"[explorer]   SelectionItemPattern.Select() succeeded for '{label}'");
-                return null; // success
+                Console.WriteLine($"[explorer]   SelectionItemPattern.Select() fallback succeeded for '{label}'");
+                return null;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[explorer]   SelectionItemPattern.Select() failed for '{label}': {ex.Message}");
+            Console.WriteLine($"[explorer]   SelectionItemPattern.Select() fallback failed for '{label}': {ex.Message}");
         }
 
-        // Step 3: LegacyIAccessiblePattern.DoDefaultAction() — MSAA fallback
+        // ── FALLBACK 2: LegacyIAccessiblePattern.DoDefaultAction() ────────
         try
         {
-            var legacyIa = navItem.Patterns.LegacyIAccessible;
+            var legacyIa = itemToClick.Patterns.LegacyIAccessible;
             if (legacyIa.IsSupported)
             {
                 legacyIa.Pattern.DoDefaultAction();
-                Console.WriteLine($"[explorer]   LegacyIAccessiblePattern.DoDefaultAction() succeeded for '{label}'");
-                return null; // success
+                Console.WriteLine($"[explorer]   LegacyIAccessiblePattern.DoDefaultAction() fallback succeeded for '{label}'");
+                return null;
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[explorer]   LegacyIAccessiblePattern.DoDefaultAction() failed for '{label}': {ex.Message}");
+            Console.WriteLine($"[explorer]   LegacyIAccessiblePattern.DoDefaultAction() fallback failed for '{label}': {ex.Message}");
         }
 
-        // Step 4: Keyboard — focus the element and press Enter
-        try
-        {
-            navItem.Focus();
-            Thread.Sleep(200);
-            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RETURN);
-            Thread.Sleep(200);
-            Console.WriteLine($"[explorer]   Keyboard Enter succeeded for '{label}'");
-            return null; // success
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[explorer]   Keyboard Enter failed for '{label}': {ex.Message}");
-        }
-
-        // Step 5: Mouse click — last resort (only works when bounding rect is nonzero)
-        try
-        {
-            navItem.Click();
-            Console.WriteLine($"[explorer]   Mouse.Click() succeeded for '{label}'");
-            return null; // success
-        }
-        catch (Exception ex)
-        {
-            // All strategies exhausted
-            return $"All navigation strategies failed for '{label}': {ex.GetType().Name}: {ex.Message}";
-        }
+        return $"All navigation strategies failed for '{label}'";
     }
 
     private static void TraverseElement(

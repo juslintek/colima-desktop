@@ -28,12 +28,18 @@
       "fix_applied": "Added global <Using Include=\"Grpc.Core\" /> to csproj so ReadAllAsync extension from Grpc.Core namespace resolves without per-file using directives."
     },
     {
-      "pass": 4,
-      "run_id": "29641947428",
-      "error": "WindowsAppSDK SelfContained platform AnyCPU: MSBuild $(Platform) property defaults to AnyCPU because <Platform> was never set in the csproj PropertyGroup. The existing <RuntimeIdentifier>win-x64</RuntimeIdentifier>, <PlatformTarget>x64</PlatformTarget>, and <Platforms>x64</Platforms> properties do NOT override the internal $(Platform) evaluation target that gates WindowsAppSDK SelfContained resolution.",
-      "fix_applied": "Added <Platform>x64</Platform> to csproj PropertyGroup (alongside existing RuntimeIdentifier/PlatformTarget/Platforms). Added -p:Platform=x64 -p:PlatformTarget=x64 to both dotnet restore and dotnet publish steps in .github/workflows/explore-windows.yml. This ensures MSBuild $(Platform) is x64 at every evaluation point, not just the RID/target-framework level."
+      "pass": 5,
+      "run_id": "29642368125",
+      "result": "10/13 surfaces captured. Dashboard + 9 visible nav items succeeded via Click(). Bottom 3 items (Monitoring, Settings & Deps, and one other) were offscreen with zero bounding rect — NoClickablePointException. SelectionItem/LegacyIA fallbacks did not trigger WinUI3 frame navigation.",
+      "fix_applied": "none (this was the high-water mark run)"
+    },
+    {
+      "pass": "5b",
+      "run_id": "29642873532",
+      "error": "Regression to 1/13: Dashboard captured (initial selected page), then ALL other nav items failed. Root cause: NavigateToItem was rewritten to try SelectionItemPattern.Select() FIRST for all items. WinUI3 NavigationView does NOT raise SelectionChanged or trigger frame navigation via UIA SelectionItemPattern — it requires actual pointer input (Click). Select() returned success but nav content never changed, so all 12 remaining surfaces showed zero elements or were stale-window failures.",
+      "fix_applied": "Pass 6 (this fix): Restored Click-first strategy. Dashboard (index 0) skips navigation entirely (capture initial selected page). Visible items: Click() first. Offscreen items: ScrollIntoView → re-resolve mainWindow + navItem (captured navAutomationId string eagerly before scroll to avoid stale COM reads) → Click() → SelectionItem/LegacyIA fallback only if still unclickable. Re-resolve mainWindow every iteration to avoid stale UIA element handles after layout changes."
     }
   ],
   "environment_note": "Windows UIAutomation ground-truth capture requires a running Windows GUI session. This host is macOS; runtime capture is validated by CI (explore-windows workflow on windows-latest runner). This file is updated diagnostically after each CI pass until the app launches successfully and FlaUI exploration completes.",
-  "next_step": "CI run with pass-4 fix applied; expected: dotnet restore and publish both evaluate Platform=x64, WindowsAppSDK SelfContained resolves correctly, app binary produced, FlaUI explorer launched."
+  "next_step": "CI run with pass-6 fix applied. Expected: Dashboard captured via initial-page path; 10 visible items navigated via Click(); 3 offscreen items via ScrollIntoView+re-resolve+Click(); all 13/13 surfaces nonzero. Target: 13/13 = SUCCESS."
 }
