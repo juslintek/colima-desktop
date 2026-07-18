@@ -53,12 +53,8 @@ Pass 5 note (role=unknown):
         2. DFS for accessible name == "Navigation" (Property::Label on ListBox)
         3. DFS for "sidebar_scroll" then first child with >= 5 children
         4. Score-based: find node whose children names overlap known sidebar labels
-    * activate_sidebar_row() uses:
-        A. row.name == surface_id ("dashboard", "containers", ...)
-        B. row.name == surface_name ("Dashboard", "Containers", ...)
-        C. child.name == surface_name (Label child inside row)
-        D. Positional index from SIDEBAR_SURFACES order (last resort)
-  - Requires 11 non-empty captures (all sidebar surfaces) + >= 3 distinct name-fps.
+    * Navigation strategies A/B/C/D are superseded by pass 8 grid nav — see below.
+  - Requires 11 non-empty captures (all sidebar surfaces) + all 11 fps unique.
   - dump_tree_diagnostic() emits bounded tree (depth<=6) on first activation miss.
 
 Pass 6 note (identical fingerprints — doAction(0) false-accept):
@@ -77,44 +73,38 @@ Pass 6 note (identical fingerprints — doAction(0) false-accept):
     4. CONTENT FINGERPRINT CHECK after each activation attempt.
 
 Pass 7 note (AT-SPI extents unusable — xdotool positional fallback):
-  - Run 29643261452: Navigation node exists with 11 children confirmed. AT-SPI
-    extents returned by queryComponent().getExtents(DESKTOP_COORDS) are zero or
-    off-screen for all sidebar rows — so generateMouseEvent and xdotool with
-    AT-SPI-derived coords both fail to produce a fingerprint change.
-  - Screenshot from that run proves stable sidebar geometry in Xvfb 1280×800:
-      left pane width ≈200px, row centers x≈100
-      Dashboard  y≈23  (row 0)
-      Containers y≈61  (row 1)
-      each subsequent row +38px
-      → formula: y = 23 + 38*i   for surface index i (0-based)
-  - Fix (pass 7):
-    1. _get_sidebar_row_coords(surface_index, display) — derive actual window
-       coordinates in two stages:
-         a. Dynamic: `xdotool search --sync --onlyvisible --name "Colima Desktop"`
-            followed by `xdotool getwindowgeometry <wid>` to get window origin
-            (X, Y). Then: abs_x = win_x + 100, abs_y = win_y + 23 + 38*i.
-            This handles any window placement by the window manager.
-         b. Fixed Xvfb fallback: if xdotool search returns no window or
-            getwindowgeometry fails, use x=100, y=23+38*i directly (documented
-            fallback; valid for Xvfb 1280×800 where WM places window at (0,0)).
-    2. _try_xdotool_positional(surface_index, display) — calls
-       _get_sidebar_row_coords then runs:
-         xdotool mousemove --sync <x> <y> click 1
-       Waits surface_pause seconds (settle) then checks _get_content_fingerprint.
-       Returns (True, method_str) on success.
-    3. activate_sidebar_row fallback chain (updated):
-         A/B/C. Named row match → named doAction / AT-SPI extents mouse / xdotool
-                with AT-SPI extents (unchanged from pass 6)
-         D.     Positional: first try AT-SPI-extents methods (for future compat),
-                then call _try_xdotool_positional(idx, display) as the final,
-                concrete positional fallback.
-    4. The positional coords are HONEST: they are derived from real screenshot
-       evidence, documented in the source, and only used after all AT-SPI methods
-       fail. The grid assumption (38px rows, x=100) is documented as an Xvfb
-       invariant and is validated by the fingerprint change check — if the coords
-       are wrong the fingerprint will not change and the surface is still reported
-       as not activated.
-    5. Requires 11 nonempty captures with >=3 distinct name-fingerprints.
+  - Run 29643261452: Navigation node with 11 children confirmed. AT-SPI extents
+    return zero/off-screen for all sidebar rows — so generateMouseEvent and
+    xdotool with AT-SPI extents both fail. Implemented positional grid fallback.
+
+Pass 8 note (mislabeled captures — deterministic xdotool grid, AT-SPI nav removed):
+  - Run 29643626991 diagnostic: even-index surfaces (Images=2, Networks=4,
+    Kubernetes=6, Runtime=8, Profiles=10) recorded `mouse_event:95,18`. 95,18 is
+    the AT-SPI component extent of the Dashboard row (index 0). Root cause:
+    strategies A/B/C match sidebar rows by AT-SPI name, then call AT-SPI
+    component extents for the click — but ALL sidebar rows return the SAME wrong
+    extents (Dashboard's position) because the GTK4/AT-SPI combo on this runner
+    reports all row extents identically. Even-indexed rows "activated" while
+    clicking Dashboard, producing mislabeled ground truth.
+  - Fix (pass 8):
+    1. Dashboard (index 0) is the INITIAL state. No click is sent. fp_before is
+       recorded as the baseline.
+    2. For every index 1..10, ALL AT-SPI doAction / component-coordinate
+       strategies are BYPASSED entirely. Navigation uses ONLY the verified Xvfb
+       positional grid via xdotool:
+           abs_x = win_x + 100
+           abs_y = win_y + 23 + 38 * i   (i = 0-based surface index)
+       activation_method recorded as `xdotool_grid:index=N`.
+    3. Window origin (win_x, win_y) obtained dynamically via:
+           xdotool search --sync --onlyvisible --name "Colima Desktop"
+           xdotool getwindowgeometry <wid> → parse "Position: X,Y"
+       Falls back to (0,0) if xdotool search fails (Xvfb default placement).
+    4. After each click, fingerprint must differ from the PREVIOUS surface's fp.
+       Surface fails if fingerprint unchanged.
+    5. After all 11 captures, ALL 11 content fingerprints must be UNIQUE
+       (frozenset cardinality == 11). Any duplicate = run fails.
+    6. AT-SPI tree traversal and screenshots are preserved unchanged (read-only
+       AT-SPI use is reliable; only AT-SPI-driven click-navigation was broken).
 """
 
 import argparse
@@ -836,224 +826,82 @@ def _try_xdotool_positional(
         return (False, "")
 
 
-def activate_sidebar_row(
-    listbox,
-    surface_id: str,
+def navigate_to_surface_grid(
+    surface_index: int,
     surface_name: str,
     app_acc,
     fp_before: frozenset,
     surface_pause: float,
-    surface_index: int = 0,
-    display: str = ":99",
+    display: str,
 ) -> tuple:
     """
-    Navigate to a sidebar surface with verified content change.
+    Pass 8: deterministic sidebar navigation via xdotool positional grid.
 
-    Pass-7 changes vs pass-6:
-      - Added _try_xdotool_positional() as the final fallback in Strategy D.
-        When AT-SPI extents are zero/off-screen (observed in run 29643261452),
-        both generateMouseEvent and AT-SPI-extent xdotool fail.  The positional
-        fallback derives coordinates from real Xvfb geometry:
-            x = win_origin_x + 100
-            y = win_origin_y + 23 + 38 * surface_index
-        Window origin is obtained dynamically via xdotool getwindowgeometry;
-        falls back to fixed (0,0) if the window cannot be found (Xvfb default).
-      - surface_index and display are new parameters for the positional fallback.
+    ALL AT-SPI doAction / component-coordinate strategies are bypassed because
+    run 29643626991 proved they produce mislabeled captures: AT-SPI extents for
+    ALL sidebar rows map to the same wrong coords (Dashboard's position), so even
+    a correct name-match ends up clicking Dashboard for every even-indexed surface.
 
-    Pass-6 changes vs pass-5 (unchanged):
-      - REMOVED doAction(0) arbitrary-index fallback.
-      - Only named actions 'click', 'activate', or 'select' are invoked.
-      - Fingerprint verified after every activation attempt.
-      - Returns (bool, str) for diagnostics.
+    This function is the ONLY navigation path used for indices 1..10.
+    Dashboard (index 0) is never passed here — it is the initial state.
 
-    Row matching strategies (unchanged from pass-5):
-      A. row.name == surface_id  (e.g. "dashboard")
-      B. row.name == surface_name (e.g. "Dashboard")
-      C. child.name == surface_name or surface_id
-      D. positional index from SIDEBAR_SURFACES (+ xdotool_positional final)
+    Grid formula (from Xvfb 1280×800 screenshot evidence, run 29643261452):
+        abs_x = win_x + 100
+        abs_y = win_y + 23 + 38 * surface_index   (surface_index is 0-based)
 
-    Full activation chain per matched row (A/B/C):
-      1. doAction named 'click'/'activate'/'select'
-      2. pyatspi.Registry.generateMouseEvent(cx, cy, 'b1c') at AT-SPI extents
-      3. xdotool mousemove <cx> <cy> click 1 at AT-SPI extents
+    Window origin (win_x, win_y):
+      Stage A — xdotool search + getwindowgeometry (dynamic; handles any WM placement)
+      Stage B — (0, 0) fixed fallback (Xvfb default; window at top-left)
 
-    Strategy D chain:
-      1–3 above (same, using AT-SPI extents from the positional row)
-      4. _try_xdotool_positional(surface_index, display) — grid coords
+    Fingerprint check: fp_before must be provided (not None for indices 1..10).
+    Accepts only if _get_content_fingerprint(app_acc) != fp_before after the click.
+    Returns (True, "xdotool_grid:index=N") on success, (False, "") on failure.
     """
+    x, y = _get_sidebar_row_coords(surface_index, display)
+    method_str = f"xdotool_grid:index={surface_index}"
+    env = os.environ.copy()
+    env["DISPLAY"] = display
 
-    def _fp_changed(method_label: str) -> bool:
-        """Pause, recompute fingerprint, return True if content changed."""
-        if fp_before is None:
-            # First surface (Dashboard) — no baseline; accept unconditionally
-            return True
-        time.sleep(surface_pause)
-        fp_after = _get_content_fingerprint(app_acc)
-        if fp_after != fp_before:
+    print(
+        f"  [grid_nav] surface={surface_name!r} index={surface_index} → ({x},{y})",
+        flush=True,
+    )
+
+    try:
+        result = subprocess.run(
+            ["xdotool", "mousemove", "--sync", str(x), str(y), "click", "1"],
+            capture_output=True, text=True, timeout=8, env=env,
+        )
+        if result.returncode != 0:
             print(
-                f"  [activate] Content changed after {method_label} "
-                f"(fp_before size={len(fp_before)}, fp_after size={len(fp_after)})",
+                f"  [grid_nav] xdotool exit={result.returncode} "
+                f"stderr={result.stderr.strip()!r}",
                 flush=True,
             )
-            return True
+            return (False, "")
+    except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+        print(f"  [grid_nav] xdotool exception: {e}", flush=True)
+        return (False, "")
+
+    # Wait for GTK to process the row-selected signal and update the Stack page
+    time.sleep(surface_pause)
+
+    # Verify content changed
+    fp_after = _get_content_fingerprint(app_acc)
+    if fp_after != fp_before:
         print(
-            f"  [activate] No content change after {method_label} — rejecting",
+            f"  [grid_nav] ✓ content changed "
+            f"(fp_before={len(fp_before)} names, fp_after={len(fp_after)} names)",
             flush=True,
         )
-        return False
+        return (True, method_str)
 
-    def _try_named_action(row, label: str) -> tuple:
-        """Try doAction for 'click', 'activate', or 'select' on row."""
-        try:
-            action = row.queryAction()
-            for j in range(action.nActions):
-                raw = action.getName(j)
-                aname = raw.lower() if raw else ""
-                if aname in ("click", "activate", "select"):
-                    action.doAction(j)
-                    if _fp_changed(f"doAction({raw!r}) on {label}"):
-                        return (True, f"doAction:{raw}")
-        except Exception:
-            pass
-        return (False, "")
-
-    def _try_mouse_event(row, label: str) -> tuple:
-        """Try pyatspi.Registry.generateMouseEvent at row center."""
-        center = _get_row_center(row)
-        if center is None:
-            return (False, "")
-        x, y = center
-        try:
-            pyatspi.Registry.generateMouseEvent(x, y, "b1c")
-            if _fp_changed(f"generateMouseEvent({x},{y}) on {label}"):
-                return (True, f"mouse_event:{x},{y}")
-        except Exception:
-            pass
-        return (False, "")
-
-    def _try_xdotool(row, label: str) -> tuple:
-        """Try xdotool click at row center (subprocess)."""
-        center = _get_row_center(row)
-        if center is None:
-            return (False, "")
-        x, y = center
-        try:
-            result = subprocess.run(
-                ["xdotool", "mousemove", str(x), str(y), "click", "1"],
-                capture_output=True, timeout=5,
-            )
-            if result.returncode == 0:
-                if _fp_changed(f"xdotool click {x},{y} on {label}"):
-                    return (True, f"xdotool:{x},{y}")
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
-            pass
-        return (False, "")
-
-    def _activate_row_all_methods(row, label: str) -> tuple:
-        """Try all activation methods on a matched row; return first success."""
-        ok, method = _try_named_action(row, label)
-        if ok:
-            return (True, method)
-        ok, method = _try_mouse_event(row, label)
-        if ok:
-            return (True, method)
-        ok, method = _try_xdotool(row, label)
-        if ok:
-            return (True, method)
-        return (False, "")
-
-    def _name_matches(node) -> bool:
-        try:
-            n = node.name or ""
-            if n in (surface_id, surface_name):
-                return True
-        except Exception:
-            pass
-        try:
-            d = node.description or ""
-            if d in (surface_id, surface_name):
-                return True
-        except Exception:
-            pass
-        return False
-
-    # Strategies A & B: direct row iteration on listbox
-    try:
-        nchildren = listbox.childCount
-        for i in range(nchildren):
-            row = listbox.getChildAtIndex(i)
-            if row is None:
-                continue
-
-            if _name_matches(row):
-                ok, method = _activate_row_all_methods(row, f"A/B row[{i}]")
-                if ok:
-                    print(
-                        f"  [activate] A/B (row name match i={i}), "
-                        f"surface={surface_name!r}, method={method!r}",
-                        flush=True,
-                    )
-                    return (True, method)
-
-            # Strategy C: check child label
-            try:
-                for ci in range(row.childCount):
-                    child = row.getChildAtIndex(ci)
-                    if child is not None:
-                        cn = get_node_accessible_name(child)
-                        if cn in (surface_name, surface_id):
-                            ok, method = _activate_row_all_methods(row, f"C row[{i}].child[{ci}]")
-                            if ok:
-                                print(
-                                    f"  [activate] C (child label i={i} ci={ci}), "
-                                    f"surface={surface_name!r}, method={method!r}",
-                                    flush=True,
-                                )
-                                return (True, method)
-            except Exception:
-                pass
-    except Exception:
-        pass
-
-    # Strategy D: positional index (last resort — no doAction(0), still uses
-    # named-action → AT-SPI mouse → xdotool with AT-SPI extents,
-    # then xdotool_positional with grid coords as final fallback)
-    try:
-        idx = next(i for i, (sid, _) in enumerate(SIDEBAR_SURFACES) if sid == surface_id)
-        row = listbox.getChildAtIndex(idx)
-        if row is not None:
-            # Try AT-SPI-based methods first (named action, extents mouse, extents xdotool)
-            ok, method = _activate_row_all_methods(row, f"D positional[{idx}]")
-            if ok:
-                print(
-                    f"  [activate] D (positional index={idx}, AT-SPI), "
-                    f"surface={surface_name!r}, method={method!r}",
-                    flush=True,
-                )
-                return (True, method)
-    except Exception:
-        pass
-
-    # Strategy D final: xdotool_positional with Xvfb geometry grid coordinates.
-    # Used when AT-SPI extents are zero/off-screen (confirmed in run 29643261452).
-    # Coordinates derived from screenshot evidence: x≈100, y=23+38*i.
-    # Window origin obtained dynamically via xdotool getwindowgeometry where
-    # possible; falls back to fixed (0,0) for Xvfb default placement.
-    try:
-        idx = next(i for i, (sid, _) in enumerate(SIDEBAR_SURFACES) if sid == surface_id)
-    except StopIteration:
-        idx = surface_index  # use the caller-supplied index if lookup fails
-    ok, method = _try_xdotool_positional(idx, display, surface_pause, fp_before, app_acc)
-    if ok:
-        print(
-            f"  [activate] D-final (xdotool_positional index={idx}), "
-            f"surface={surface_name!r}, method={method!r}",
-            flush=True,
-        )
-        return (True, method)
-
-    print(f"  [activate] All strategies failed for surface={surface_name!r}", flush=True)
-    return (False, "none")
+    print(
+        f"  [grid_nav] ✗ no content change at ({x},{y}) — "
+        f"click may have missed or GTK did not update stack",
+        flush=True,
+    )
+    return (False, "")
 
 
 # ---------------------------------------------------------------------------
@@ -1263,37 +1111,55 @@ def main() -> int:
 
         tree_diagnostic_captured = False
 
-        # Traverse each surface
-        for idx, (surface_id, surface_name) in enumerate(SIDEBAR_SURFACES, 1):
+        # ── Pass 8: deterministic surface traversal ──────────────────────
+        #
+        # Dashboard (index 0) is the INITIAL state — no click sent.
+        # For every index 1..10, navigation is EXCLUSIVELY via xdotool positional
+        # grid (navigate_to_surface_grid). All AT-SPI doAction / component-extent
+        # strategies are bypassed because run 29643626991 proved they produce
+        # mislabeled captures: AT-SPI extents for all sidebar rows map to the same
+        # wrong position (Dashboard's coords), causing even-indexed surfaces to
+        # silently click Dashboard and record Dashboard content under a different
+        # surface label.
+        #
+        # Validation at the end requires ALL 11 content fingerprints to be unique.
+        all_content_fps = []  # collect per-surface frozenset for uniqueness check
+        prev_fp = _get_content_fingerprint(app_acc)  # Dashboard baseline fp
+
+        for idx, (surface_id, surface_name) in enumerate(SIDEBAR_SURFACES):
+            # idx is 0-based here; SIDEBAR_SURFACES[0] = ("dashboard", "Dashboard")
             surface_errors = []
             activated = False
             activation_method = "none"
 
-            # surface_index is 0-based (idx is 1-based from enumerate)
-            surface_index_0 = idx - 1
-
-            # Capture content fingerprint BEFORE activation so we can verify
-            # that the sidebar row activation actually changed the displayed surface.
-            # Dashboard is the initial surface — no prior baseline, skip change check.
-            is_first_surface = (idx == 1)
-            fp_before = None if is_first_surface else _get_content_fingerprint(app_acc)
-
-            if sidebar is not None:
-                activated, activation_method = activate_sidebar_row(
-                    sidebar, surface_id, surface_name,
-                    app_acc, fp_before, args.surface_pause,
-                    surface_index=surface_index_0,
+            if idx == 0:
+                # Dashboard is the initial/already-displayed surface.
+                # Record fp, take screenshot, collect tree — no navigation needed.
+                activated = True
+                activation_method = "initial_state"
+                print(f"[explore_atspi] Surface 0: {surface_name} (initial state)", flush=True)
+            else:
+                # Indices 1..10: use ONLY the xdotool positional grid.
+                # fp_before = the previous surface's content fingerprint.
+                fp_before_nav = prev_fp
+                activated, activation_method = navigate_to_surface_grid(
+                    surface_index=idx,
+                    surface_name=surface_name,
+                    app_acc=app_acc,
+                    fp_before=fp_before_nav,
+                    surface_pause=args.surface_pause,
                     display=display,
                 )
                 if not activated:
                     surface_errors.append(
-                        f"Could not activate sidebar row '{surface_name}' "
-                        f"(all methods tried: named-action, generateMouseEvent, "
-                        f"xdotool AT-SPI extents, xdotool positional grid; "
-                        f"none produced a content fingerprint change)"
+                        f"xdotool_grid navigation failed for '{surface_name}' "
+                        f"(index={idx}, coords=({100}, {23 + 38 * idx})): "
+                        f"content fingerprint did not change after click."
                     )
-                    print(f"  WARNING: sidebar row '{surface_name}' not activated", flush=True)
-                    # Capture bounded tree diagnostic on first activation failure
+                    print(
+                        f"  WARNING: grid navigation failed for '{surface_name}'",
+                        flush=True,
+                    )
                     if not tree_diagnostic_captured:
                         tree_diagnostic_captured = True
                         diag = dump_tree_diagnostic(app_acc, max_depth=6, max_children=20)
@@ -1302,36 +1168,34 @@ def main() -> int:
                             "surface": surface_id,
                             "surface_label": surface_name,
                             "message": (
-                                f"First missing label: '{surface_name}'. "
-                                "Bounded pre-navigation tree follows (depth<=6, children<=20 each)."
+                                f"Grid nav failed for '{surface_name}' (index={idx}). "
+                                "Bounded tree follows."
                             ),
                             "tree_diagnostic": diag,
                         })
-                        print(
-                            f"  [diagnostic] Dumped tree ({len(diag)} nodes) for missing '{surface_name}'",
-                            flush=True,
-                        )
                 else:
-                    print(f"  Activated: {surface_name} (method={activation_method!r})", flush=True)
-                    # Already paused inside activate_sidebar_row for fp check; no extra sleep needed
-            else:
-                surface_errors.append("Sidebar not found; skipping activation")
-                # Still pause so view has time to render before collection
-                time.sleep(args.surface_pause)
+                    print(
+                        f"  [explore_atspi] Surface {idx}: {surface_name} "
+                        f"(method={activation_method!r})",
+                        flush=True,
+                    )
 
             # Collect tree from app root for this surface
             elements = collect_tree(app_acc, surface_name)
             total_elements += len(elements)
 
-            # Build a name-based fingerprint: sorted tuple of non-empty element names
-            # This allows detecting truly-distinct surfaces even when element counts
-            # happen to be similar across surfaces.
+            # Content fingerprint AFTER navigation (used as fp_before for next surface)
+            current_fp = _get_content_fingerprint(app_acc)
+            all_content_fps.append(current_fp)
+            prev_fp = current_fp  # next iteration uses this as fp_before
+
+            # Element-name fingerprint (for ground-truth metadata)
             element_names_fingerprint = tuple(sorted(set(
                 e["name"] for e in elements if e.get("name", "").strip()
             )))
 
-            # Screenshot
-            ss_file = SCREENSHOTS_DIR / f"{idx:04d}-{surface_id}.png"
+            # Screenshot — 1-based file numbering for readability
+            ss_file = SCREENSHOTS_DIR / f"{idx + 1:04d}-{surface_id}.png"
             ss_taken = take_screenshot(display, ss_file)
             if ss_taken:
                 screenshot_paths.append(f"exploration/linux/screenshots/{ss_file.name}")
@@ -1358,28 +1222,24 @@ def main() -> int:
             })
             print("ERROR: zero elements collected", file=sys.stderr)
 
-        # ── Distinct-surfaces guard ──────────────────────────────────────
-        # Require:
-        #   (a) >= 11 non-empty captures (one per sidebar surface)
-        #   (b) >= 3 distinct name-fingerprints (real different content across surfaces)
-        #       Element-count alone is unreliable because GTK4 full-tree captures always
-        #       include the entire window tree; use the set of element names instead.
-        #
-        # The name-fingerprint is: sorted tuple of distinct non-empty element names.
-        # If navigation is not working, all 11 captures show the same surface and
-        # therefore identical name-sets.  If working, different surfaces expose
-        # different widget names (e.g. "containers_list" vs "images_list" etc.).
+        # ── All-unique fingerprints guard (pass 8) ───────────────────────
+        # Require ALL 11 content fingerprints to be unique.  Any duplicate means
+        # two surfaces captured the same content — a mislabeled navigation.
+        # (Distinct element-count fps are unreliable — we use content fps here.)
         nonempty_surfaces = [s for s in surfaces_data if s["element_count"] > 0]
-        distinct_count_fps = len(set(s["element_count"] for s in nonempty_surfaces))
+        activated_count = sum(1 for s in surfaces_data if s["activated"])
+
+        distinct_content_fps = len(set(all_content_fps))
         distinct_name_fps = len(set(
             tuple(s.get("element_names_fingerprint", [])) for s in nonempty_surfaces
         ))
-        activated_count = sum(1 for s in surfaces_data if s["activated"])
 
         print(
             f"[explore_atspi] Surfaces: {len(surfaces_data)} total, "
-            f"{len(nonempty_surfaces)} non-empty, {distinct_count_fps} distinct count-fps, "
-            f"{distinct_name_fps} distinct name-fps, {activated_count} activated",
+            f"{len(nonempty_surfaces)} non-empty, "
+            f"{distinct_content_fps}/11 distinct content-fps, "
+            f"{distinct_name_fps} distinct name-fps, "
+            f"{activated_count} activated",
             flush=True,
         )
 
@@ -1399,29 +1259,38 @@ def main() -> int:
                 file=sys.stderr,
             )
 
-        # Require distinct name fingerprints (real navigation happened)
-        # Use a lower bar of 3 distinct fps in case some surfaces are structurally similar
-        if distinct_name_fps < 3 and len(nonempty_surfaces) >= 3:
-            # All non-empty surfaces have the same name content — likely identical captures
+        # Require ALL 11 content fingerprints to be unique (pass 8 hard gate)
+        if distinct_content_fps < 11 and len(all_content_fps) == 11:
+            # Find which surfaces have duplicate fps for diagnostic output
+            seen_fps: dict = {}
+            duplicates = []
+            for i, fp in enumerate(all_content_fps):
+                if fp in seen_fps:
+                    duplicates.append({
+                        "surface_a": SIDEBAR_SURFACES[seen_fps[fp]][0],
+                        "surface_b": SIDEBAR_SURFACES[i][0],
+                        "shared_fp_size": len(fp),
+                    })
+                else:
+                    seen_fps[fp] = i
             errors.append({
-                "phase": "distinct_surfaces_check",
+                "phase": "all_unique_fps_check",
                 "error": (
-                    f"Only {distinct_name_fps} distinct name-fingerprints across "
-                    f"{len(nonempty_surfaces)} non-empty surfaces (need >= 3). "
-                    "All captures appear to show the same surface — sidebar navigation "
-                    "rows are not being activated, or all views have identical AT-SPI trees."
+                    f"Only {distinct_content_fps}/11 unique content fingerprints. "
+                    f"{len(duplicates)} duplicate pair(s) found — these surfaces have "
+                    "identical content, indicating navigation did not work for them."
                 ),
-                "recommendation": (
-                    "Pass 6 fix: doAction(0) fallback removed. Only named click/activate/select "
-                    "actions are used, followed by generateMouseEvent and xdotool as fallbacks. "
-                    "Each attempt is verified by content fingerprint change on main_stack. "
-                    "If still failing: check that main_stack widget_name is accessible via AT-SPI, "
-                    "or that view widgets have distinct accessible names per surface."
+                "duplicate_pairs": duplicates,
+                "hint": (
+                    "Pass 8 root cause was AT-SPI extents returning Dashboard coords "
+                    "for all rows. Grid nav should fix this. If duplicates persist, "
+                    "increase surface_pause (GTK stack update may be slow), or "
+                    "verify grid coords match actual Xvfb layout."
                 ),
             })
             print(
-                f"WARNING: only {distinct_name_fps} distinct name-fps "
-                f"(element-count fps: {distinct_count_fps})",
+                f"ERROR: only {distinct_content_fps}/11 unique content fps "
+                f"({len(duplicates)} duplicate pair(s)): {duplicates}",
                 file=sys.stderr,
             )
 
@@ -1466,13 +1335,16 @@ def main() -> int:
             "surfaces_explored": len(SIDEBAR_SURFACES),
         },
         "at_spi_method": (
-            "pyatspi DFS traversal; sidebar row activation via "
-            "named doAction('click'/'activate'/'select') → "
-            "generateMouseEvent(center,'b1c') → xdotool AT-SPI extents → "
-            "xdotool positional (x=win_x+100, y=win_y+23+38*i, dynamic window origin via "
-            "xdotool getwindowgeometry, Xvfb fixed fallback); "
-            "each attempt verified by content fingerprint change on main_stack "
-            "(pass 7: added xdotool_positional final fallback for zero AT-SPI extents)"
+            "pyatspi DFS traversal (read-only) + screenshots; "
+            "sidebar navigation: Dashboard (index 0) = initial state (no click); "
+            "indices 1..10 = ONLY xdotool positional grid "
+            "(x=win_x+100, y=win_y+23+38*i, dynamic window origin via "
+            "xdotool search + getwindowgeometry, Xvfb fixed fallback (0,0)); "
+            "activation_method recorded as xdotool_grid:index=N; "
+            "each navigation verified by content fingerprint change; "
+            "all 11 content fingerprints must be unique "
+            "(pass 8: AT-SPI doAction/component-extent navigation fully removed "
+            "after run 29643626991 proved it produces mislabeled captures)"
         ),
         "element_count": total_elements,
         "surfaces_count": len(surfaces_data),
@@ -1488,12 +1360,17 @@ def main() -> int:
         print("VALIDATION FAILED: zero elements — AT-SPI capture incomplete", file=sys.stderr)
         return 1
 
-    # Fail if distinct-surfaces guard tripped (too few non-empty surfaces)
+    # Fail if non-empty-surfaces guard tripped
     if any(
         e.get("phase") == "distinct_surfaces_check" and "only" in e.get("error", "").lower()
         for e in errors
     ):
-        print("VALIDATION FAILED: insufficient distinct surfaces captured", file=sys.stderr)
+        print("VALIDATION FAILED: insufficient non-empty surfaces captured", file=sys.stderr)
+        return 1
+
+    # Fail if all-unique content fingerprints gate tripped (pass 8)
+    if any(e.get("phase") == "all_unique_fps_check" for e in errors):
+        print("VALIDATION FAILED: duplicate content fingerprints — navigation mislabeled", file=sys.stderr)
         return 1
 
     return 0

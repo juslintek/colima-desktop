@@ -46,6 +46,10 @@
     {
       "phase": "diagnostic-pass-7-plan",
       "error": "FIXED in pass 7 (this commit). Run 29643261452 shows Navigation node with 11 children confirmed present. AT-SPI queryComponent().getExtents(DESKTOP_COORDS) returns zero or off-screen extents for all sidebar rows — so generateMouseEvent and xdotool with AT-SPI extents both fail fingerprint change check. Screenshot from run 29643261452 proves stable Xvfb 1280x800 sidebar geometry: left pane width ~200px, row centers x≈100, Dashboard y≈23, Containers y≈61, +38px per row (y = 23 + 38*i for 0-indexed surface i). Implemented honest positional fallback: _get_sidebar_row_coords(i, display) tries Stage A (xdotool search + getwindowgeometry to get actual window origin, handles any WM placement) then Stage B (fixed Xvfb constants x=100, y=23+38*i, valid when Xvfb places window at 0,0). _try_xdotool_positional() calls xdotool mousemove --sync <x> <y> click 1, waits surface_pause for GTK connect_row_selected processing, verifies fingerprint change. Placed as final step in Strategy D after all AT-SPI methods fail. Requires 11 nonempty captures + >=3 distinct name-fingerprints."
+    },
+    {
+      "phase": "diagnostic-pass-8-plan",
+      "error": "FIXED in pass 8. Run 29643626991 passed with 872 elements/11 labels, but diagnostics show mislabeled captures: even-indexed surfaces (Images=2, Networks=4, Kubernetes=6, Runtime=8, Profiles=10) recorded activation_method 'mouse_event:95,18'. Root cause: AT-SPI component extents for ALL sidebar rows map to Dashboard's position (95,18). Strategies A/B/C match rows by AT-SPI name, then invoke those extents for the mouse event — resulting in every even-indexed surface clicking Dashboard and recording Dashboard content. Pass 8 fix: ALL AT-SPI doAction/component-extent navigation strategies removed entirely. Dashboard (index 0) = initial state (no click). Indices 1..10 use ONLY xdotool positional grid: abs_x=win_x+100, abs_y=win_y+23+38*i. activation_method='xdotool_grid:index=N'. Hard gate: ALL 11 content fingerprints must be unique (any duplicate = run fails). AT-SPI tree traversal and screenshots unchanged (read-only AT-SPI is reliable)."
     }
   ],
   "known_surfaces": [
@@ -148,6 +152,25 @@
         "explore_atspi.py — updated at_spi_method field in result to reflect pass 7",
         ".github/workflows/explore-linux.yml — updated workflow comment to describe pass 7",
         "exploration/linux/ground-truth.json — updated diagnostic history with pass 7 record"
+      ]
+    },
+    {
+      "pass": 8,
+      "run": "pending — based on mislabeled evidence from run 29643626991",
+      "result": "pending — deterministic xdotool grid; AT-SPI navigation fully removed",
+      "root_cause": "run 29643626991: AT-SPI extents for ALL sidebar rows map to Dashboard coords (95,18). Strategies A/B/C found rows by name, then used those extents for mouse click. Even-indexed surfaces (Images=2, Networks=4, Kubernetes=6, Runtime=8, Profiles=10) all clicked Dashboard and captured Dashboard content under a different label.",
+      "fixes": [
+        "explore_atspi.py — removed activate_sidebar_row() entirely",
+        "explore_atspi.py — added navigate_to_surface_grid(index, name, app_acc, fp_before, pause, display)",
+        "explore_atspi.py — Dashboard (index 0) = initial_state, no click sent",
+        "explore_atspi.py — indices 1..10 use ONLY xdotool_grid: abs_x=win_x+100, abs_y=win_y+23+38*i",
+        "explore_atspi.py — activation_method recorded as xdotool_grid:index=N",
+        "explore_atspi.py — main loop refactored to use navigate_to_surface_grid for indices 1..10",
+        "explore_atspi.py — all_content_fps list tracks per-surface frozensets",
+        "explore_atspi.py — all_unique_fps_check gate: all 11 fps must be distinct (replaces >=3 check)",
+        "explore_atspi.py — updated at_spi_method field, pass 8 docstring added",
+        ".github/workflows/explore-linux.yml — updated workflow comment (pass 8)",
+        "exploration/linux/ground-truth.json — added pass 8 diagnostic record"
       ]
     }
   ]

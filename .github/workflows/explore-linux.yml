@@ -1,21 +1,20 @@
 name: explore-linux
-# Pass 7: fix navigation with xdotool positional grid fallback (run 29643261452).
-# Root cause: AT-SPI queryComponent().getExtents(DESKTOP_COORDS) returns zero or
-# off-screen extents for all sidebar rows in CI runner. generateMouseEvent and
-# xdotool with AT-SPI extents therefore both fail to change content fingerprint.
-# Screenshot from run 29643261452 proves stable Xvfb 1280x800 sidebar geometry:
-#   left pane width ≈200px, row centers x≈100
-#   Dashboard y≈23, Containers y≈61, +38px per row (y = 23 + 38*i, 0-indexed)
-# Fix: _get_sidebar_row_coords(i, display) —
-#   Stage A: xdotool search --onlyvisible --name "Colima Desktop" →
-#            xdotool getwindowgeometry <wid> → parse Position: X,Y →
-#            abs_x = win_x+100, abs_y = win_y+23+38*i  (dynamic, handles WM offset)
-#   Stage B: fixed Xvfb fallback x=100, y=23+38*i  (Xvfb places window at (0,0))
-# _try_xdotool_positional(i, display): xdotool mousemove --sync <x> <y> click 1,
-#   bounded settle, then fingerprint change required (Dashboard exempt as baseline).
-# Full activation chain per row: named doAction → AT-SPI extents mouse →
-#   xdotool AT-SPI extents → xdotool_positional grid (final).
-# Requires 11 nonempty captures + >=3 distinct name-fingerprints.
+# Pass 8: deterministic xdotool grid navigation — AT-SPI nav fully removed.
+# Root cause (run 29643626991): AT-SPI component extents for ALL sidebar rows
+# mapped to the same wrong coordinates (Dashboard row: 95,18). Strategies A/B/C
+# matched rows by AT-SPI name then invoked those extents — even-indexed surfaces
+# (Images=2, Networks=4, Kubernetes=6, Runtime=8, Profiles=10) each clicked
+# Dashboard and recorded Dashboard content under a different label (mislabeled).
+# Fix:
+#   - Dashboard (index 0) = initial state, no click.
+#   - Indices 1..10: ALL AT-SPI doAction/component-extent strategies bypassed.
+#     Navigation is ONLY via xdotool positional grid:
+#       abs_x = win_x + 100
+#       abs_y = win_y + 23 + 38*i   (i = 0-based surface index)
+#     activation_method = "xdotool_grid:index=N"
+#   - Window origin: Stage A xdotool search + getwindowgeometry (dynamic);
+#     Stage B fixed (0,0) Xvfb fallback.
+#   - Validation: ALL 11 content fingerprints must be unique (new hard gate).
 
 # Trigger on:
 #   - manual dispatch
@@ -113,14 +112,13 @@ jobs:
       #   NO_AT_BRIDGE=0     — allow AT-SPI bridge (default 1 in headless envs blocks it)
       #   GTK_MODULES must NOT be set to gail:atk-bridge (GTK2/3 only, breaks GTK4)
       #
-      # Pass 7 sidebar navigation:
-      #   AT-SPI queryComponent().getExtents() returns zero/off-screen coords in CI.
-      #   xdotool_positional fallback: derives window origin dynamically via
-      #     xdotool search --onlyvisible --name "Colima Desktop" + getwindowgeometry,
-      #   then computes abs_x = win_x+100, abs_y = win_y+23+38*i (0-indexed).
-      #   Xvfb fixed fallback: x=100, y=23+38*i (window at (0,0), confirmed by
-      #   screenshot from run 29643261452, 1280×800 display).
-      #   Each click verified by content fingerprint change on main_stack node.
+      # Pass 8 sidebar navigation (deterministic grid, AT-SPI nav removed):
+      #   Run 29643626991 proved AT-SPI extents for all sidebar rows map to
+      #   Dashboard coords (95,18), causing mislabeled captures on even-indexed
+      #   surfaces. Fix: Dashboard = initial state (no click). Indices 1..10 use
+      #   ONLY xdotool positional grid: abs_x = win_x+100, abs_y = win_y+23+38*i.
+      #   activation_method = "xdotool_grid:index=N". All 11 content fps must be
+      #   unique (hard gate — any duplicate = run fails).
       #
       # ALLOW_FAILURE: the explore step uses || true so the artifact upload
       # always runs. The final assertion step enforces the nonzero gate.
