@@ -13,6 +13,7 @@ Requirements:
     Xvfb display (DISPLAY set)
     GTK_A11Y=atspi, NO_AT_BRIDGE=0  (set before the app is launched)
     scrot or imagemagick (optional, for screenshots)
+    xdotool (optional, for mouse-click fallback)
 
 Usage (called by the CI workflow):
     python3 scripts/linux/explore_atspi.py \\
@@ -57,11 +58,31 @@ Pass 5 note (role=unknown):
         B. row.name == surface_name ("Dashboard", "Containers", ...)
         C. child.name == surface_name (Label child inside row)
         D. Positional index from SIDEBAR_SURFACES order (last resort)
-      For each matched row: doAction(click/activate) → any doAction → generateMouseEvent
-  - Distinct-surface fingerprint now uses sorted set of element names (not just
-    element count) — gives reliable distinct-view detection when nav works.
   - Requires 11 non-empty captures (all sidebar surfaces) + >= 3 distinct name-fps.
   - dump_tree_diagnostic() emits bounded tree (depth<=6) on first activation miss.
+
+Pass 6 note (identical fingerprints — doAction(0) false-accept):
+  - Run 29642873493: all 11 captures have 87 elements and identical fingerprints.
+    Root cause: Strategy D used doAction(0) which fires whatever action happens
+    to be at index 0 (e.g. clipboard, focus) and returns True. The GTK sidebar's
+    connect_row_selected signal only fires when GTK internally processes a real
+    pointer/keyboard select — an arbitrary AT-SPI action does NOT trigger it.
+  - Fix (this pass):
+    1. REMOVE the doAction(0) arbitrary-index fallback entirely.
+       Only invoke doAction(i) where action.getName(i).lower() in
+       ('click', 'activate', 'select').
+    2. PRIMARY mouse fallback: queryComponent().getExtents(DESKTOP_COORDS) →
+       pyatspi.Registry.generateMouseEvent(cx, cy, 'b1c').
+    3. SECONDARY mouse fallback: xdotool click <x> <y> (using same extents).
+    4. CONTENT FINGERPRINT CHECK after each activation attempt:
+       _get_content_fingerprint() finds the 'main_stack' node (DFS by widget_name)
+       and collects the sorted set of widget_names/accessible-names of its visible
+       children (the stack pages). If the fingerprint did not change from the
+       previous surface, the activation attempt is rejected and the next fallback
+       is tried. Only when the fingerprint changes (or for Dashboard/first surface)
+       is the activation accepted.
+    5. activate_sidebar_row() returns (bool, str) — activated flag + method name —
+       for diagnostics recorded in ground-truth.json.
 """
 
 import argparse
@@ -541,74 +562,211 @@ def dump_tree_diagnostic(root, max_depth: int = 6, max_children: int = 20) -> li
     return result
 
 
-def activate_sidebar_row(listbox, surface_id: str, surface_name: str) -> bool:
-    """
-    Navigate to a sidebar surface.  Role-blind multi-strategy:
+def _get_row_center(row) -> tuple:
+    """Return (x, y) center of a row's component extents, or None."""
+    try:
+        comp = row.queryComponent()
+        ext = comp.getExtents(pyatspi.DESKTOP_COORDS)
+        if ext.width > 0 and ext.height > 0:
+            return (ext.x + ext.width // 2, ext.y + ext.height // 2)
+    except Exception:
+        pass
+    return None
 
-    Strategy A: Find row by widget_name == surface_id  (e.g. "dashboard")
-                widget_name is set via row.set_widget_name(id) in main.rs
-    Strategy B: Find row by accessible name == surface_name (e.g. "Dashboard")
-                set via row.update_property(Property::Label(name))
-    Strategy C: Find row whose child label text == surface_name
-                (Label child set via lbl.set_widget_name("sidebar_label_{id}"))
-    Strategy D: Positional index from SIDEBAR_SURFACES order (last resort)
 
-    For each matched row, activation priority:
-      1. doAction('click') or doAction('activate')
-      2. SelectionItemPattern equivalent: querySelection on parent
-      3. generateMouseEvent at center coords
+def _get_content_fingerprint(app_acc) -> frozenset:
     """
-    def _try_activate(row) -> bool:
-        # Try doAction
+    Compute a fingerprint of the currently-visible content area (main_stack).
+
+    Walk the AT-SPI tree, find the node whose accessible name is 'main_stack'
+    (the gtk::Stack widget in build_main_window), then collect the sorted set of
+    non-empty accessible names of its children and grandchildren — these are the
+    per-surface view widgets (e.g. 'containers_list', 'images_list', etc.).
+
+    If main_stack is not found (e.g. all roles unknown), fall back to collecting
+    names from the entire app tree, excluding known sidebar widget names, so that
+    the fingerprint still changes when the stack switches pages.
+
+    Returns a frozenset of strings — identical sets mean no navigation happened.
+    """
+    SIDEBAR_NAMES = {sid for sid, _ in SIDEBAR_SURFACES} | \
+                    {name for _, name in SIDEBAR_SURFACES} | \
+                    {"sidebar_list", "sidebar_scroll", "Navigation"}
+
+    def _collect_names_from(node, max_depth=4, depth=0) -> set:
+        names = set()
+        if depth > max_depth:
+            return names
+        try:
+            n = node.name or ""
+            if n and n not in SIDEBAR_NAMES:
+                names.add(n)
+        except Exception:
+            pass
+        try:
+            for i in range(node.childCount):
+                ch = node.getChildAtIndex(i)
+                if ch is not None:
+                    names.update(_collect_names_from(ch, max_depth, depth + 1))
+        except Exception:
+            pass
+        return names
+
+    # Try to find main_stack first (2 levels deep is usually enough)
+    stack_node = find_node_by_accessible_name(app_acc, "main_stack", max_depth=15)
+    if stack_node is not None:
+        names = set()
+        try:
+            for i in range(stack_node.childCount):
+                ch = stack_node.getChildAtIndex(i)
+                if ch is not None:
+                    n = ch.name or ""
+                    if n:
+                        names.add(n)
+                    # grandchildren — the real content widgets
+                    names.update(_collect_names_from(ch, max_depth=2, depth=0))
+        except Exception:
+            pass
+        if names:
+            return frozenset(names)
+
+    # Fallback: full-tree names minus sidebar names
+    all_names = _collect_names_from(app_acc, max_depth=12)
+    return frozenset(all_names)
+
+
+def activate_sidebar_row(
+    listbox,
+    surface_id: str,
+    surface_name: str,
+    app_acc,
+    fp_before: frozenset,
+    surface_pause: float,
+) -> tuple:
+    """
+    Navigate to a sidebar surface with verified content change.
+
+    Pass-6 changes vs pass-5:
+      - REMOVED doAction(0) arbitrary-index fallback (falsely accepted in run
+        29642873493 because index-0 action was clipboard/focus, not navigation).
+      - Only named actions 'click', 'activate', or 'select' are invoked.
+      - After each activation method, pause surface_pause seconds and check
+        _get_content_fingerprint(app_acc). If the fingerprint is unchanged from
+        fp_before, the attempt is rejected and the next fallback is tried.
+      - Fallback chain per matched row:
+          1. doAction named 'click'/'activate'/'select'
+          2. pyatspi.Registry.generateMouseEvent(cx, cy, 'b1c') at center
+          3. xdotool click cx cy (subprocess call)
+      - For the Dashboard (first surface), fp_before is None and change check
+        is skipped — Dashboard is the initial/baseline surface.
+      - Returns (activated: bool, method: str) for diagnostics.
+
+    Row matching strategies (unchanged from pass-5):
+      A. row.name == surface_id  (e.g. "dashboard")
+      B. row.name == surface_name (e.g. "Dashboard")
+      C. child.name == surface_name or surface_id
+      D. positional index from SIDEBAR_SURFACES
+
+    The row candidates are tried in A→B→C→D order; for each candidate the
+    activation fallback chain is attempted with fingerprint verification.
+    """
+
+    def _fp_changed(method_label: str) -> bool:
+        """Pause, recompute fingerprint, return True if content changed."""
+        if fp_before is None:
+            # First surface (Dashboard) — no baseline; accept unconditionally
+            return True
+        time.sleep(surface_pause)
+        fp_after = _get_content_fingerprint(app_acc)
+        if fp_after != fp_before:
+            print(
+                f"  [activate] Content changed after {method_label} "
+                f"(fp_before size={len(fp_before)}, fp_after size={len(fp_after)})",
+                flush=True,
+            )
+            return True
+        print(
+            f"  [activate] No content change after {method_label} — rejecting",
+            flush=True,
+        )
+        return False
+
+    def _try_named_action(row, label: str) -> tuple:
+        """Try doAction for 'click', 'activate', or 'select' on row."""
         try:
             action = row.queryAction()
             for j in range(action.nActions):
-                aname = action.getName(j).lower() if action.getName(j) else ""
-                if aname in ("click", "activate"):
+                raw = action.getName(j)
+                aname = raw.lower() if raw else ""
+                if aname in ("click", "activate", "select"):
                     action.doAction(j)
-                    return True
+                    if _fp_changed(f"doAction({raw!r}) on {label}"):
+                        return (True, f"doAction:{raw}")
         except Exception:
             pass
+        return (False, "")
 
-        # Try any available action (take first one)
+    def _try_mouse_event(row, label: str) -> tuple:
+        """Try pyatspi.Registry.generateMouseEvent at row center."""
+        center = _get_row_center(row)
+        if center is None:
+            return (False, "")
+        x, y = center
         try:
-            action = row.queryAction()
-            if action.nActions > 0:
-                action.doAction(0)
-                return True
+            pyatspi.Registry.generateMouseEvent(x, y, "b1c")
+            if _fp_changed(f"generateMouseEvent({x},{y}) on {label}"):
+                return (True, f"mouse_event:{x},{y}")
         except Exception:
             pass
+        return (False, "")
 
-        # generateMouseEvent at center
+    def _try_xdotool(row, label: str) -> tuple:
+        """Try xdotool click at row center (subprocess)."""
+        center = _get_row_center(row)
+        if center is None:
+            return (False, "")
+        x, y = center
         try:
-            comp = row.queryComponent()
-            ext = comp.getExtents(pyatspi.DESKTOP_COORDS)
-            if ext.width > 0 and ext.height > 0:
-                x = ext.x + ext.width // 2
-                y = ext.y + ext.height // 2
-                pyatspi.Registry.generateMouseEvent(x, y, "b1c")
-                return True
-        except Exception:
+            result = subprocess.run(
+                ["xdotool", "mousemove", str(x), str(y), "click", "1"],
+                capture_output=True, timeout=5,
+            )
+            if result.returncode == 0:
+                if _fp_changed(f"xdotool click {x},{y} on {label}"):
+                    return (True, f"xdotool:{x},{y}")
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
             pass
+        return (False, "")
 
-        return False
+    def _activate_row_all_methods(row, label: str) -> tuple:
+        """Try all activation methods on a matched row; return first success."""
+        ok, method = _try_named_action(row, label)
+        if ok:
+            return (True, method)
+        ok, method = _try_mouse_event(row, label)
+        if ok:
+            return (True, method)
+        ok, method = _try_xdotool(row, label)
+        if ok:
+            return (True, method)
+        return (False, "")
 
-    def _name_matches(node, target_name, target_id) -> bool:
+    def _name_matches(node) -> bool:
         try:
             n = node.name or ""
-            if n == target_id or n == target_name:
+            if n in (surface_id, surface_name):
                 return True
         except Exception:
             pass
         try:
             d = node.description or ""
-            if d == target_name or d == target_id:
+            if d in (surface_id, surface_name):
                 return True
         except Exception:
             pass
         return False
 
-    # Strategies A & B: direct row iteration
+    # Strategies A & B: direct row iteration on listbox
     try:
         nchildren = listbox.childCount
         for i in range(nchildren):
@@ -616,40 +774,55 @@ def activate_sidebar_row(listbox, surface_id: str, surface_name: str) -> bool:
             if row is None:
                 continue
 
-            # Strategy A & B: name/desc match
-            if _name_matches(row, surface_name, surface_id):
-                if _try_activate(row):
-                    print(f"  [activate] Strategy A/B match (row name), surface={surface_name!r}", flush=True)
-                    return True
+            if _name_matches(row):
+                ok, method = _activate_row_all_methods(row, f"A/B row[{i}]")
+                if ok:
+                    print(
+                        f"  [activate] A/B (row name match i={i}), "
+                        f"surface={surface_name!r}, method={method!r}",
+                        flush=True,
+                    )
+                    return (True, method)
 
-            # Strategy C: check child labels
+            # Strategy C: check child label
             try:
                 for ci in range(row.childCount):
                     child = row.getChildAtIndex(ci)
                     if child is not None:
                         cn = get_node_accessible_name(child)
-                        if cn == surface_name or cn == surface_id:
-                            if _try_activate(row):
-                                print(f"  [activate] Strategy C match (child label), surface={surface_name!r}", flush=True)
-                                return True
+                        if cn in (surface_name, surface_id):
+                            ok, method = _activate_row_all_methods(row, f"C row[{i}].child[{ci}]")
+                            if ok:
+                                print(
+                                    f"  [activate] C (child label i={i} ci={ci}), "
+                                    f"surface={surface_name!r}, method={method!r}",
+                                    flush=True,
+                                )
+                                return (True, method)
             except Exception:
                 pass
     except Exception:
         pass
 
-    # Strategy D: positional index
+    # Strategy D: positional index (last resort — no doAction(0), still uses
+    # named-action → mouse → xdotool, with fingerprint check)
     try:
         idx = next(i for i, (sid, _) in enumerate(SIDEBAR_SURFACES) if sid == surface_id)
         row = listbox.getChildAtIndex(idx)
         if row is not None:
-            if _try_activate(row):
-                print(f"  [activate] Strategy D (positional index={idx}), surface={surface_name!r}", flush=True)
-                return True
+            ok, method = _activate_row_all_methods(row, f"D positional[{idx}]")
+            if ok:
+                print(
+                    f"  [activate] D (positional index={idx}), "
+                    f"surface={surface_name!r}, method={method!r}",
+                    flush=True,
+                )
+                return (True, method)
     except Exception:
         pass
 
     print(f"  [activate] All strategies failed for surface={surface_name!r}", flush=True)
-    return False
+    return (False, "none")
 
 
 # ---------------------------------------------------------------------------
@@ -863,11 +1036,25 @@ def main() -> int:
         for idx, (surface_id, surface_name) in enumerate(SIDEBAR_SURFACES, 1):
             surface_errors = []
             activated = False
+            activation_method = "none"
+
+            # Capture content fingerprint BEFORE activation so we can verify
+            # that the sidebar row activation actually changed the displayed surface.
+            # Dashboard is the initial surface — no prior baseline, skip change check.
+            is_first_surface = (idx == 1)
+            fp_before = None if is_first_surface else _get_content_fingerprint(app_acc)
 
             if sidebar is not None:
-                activated = activate_sidebar_row(sidebar, surface_id, surface_name)
+                activated, activation_method = activate_sidebar_row(
+                    sidebar, surface_id, surface_name,
+                    app_acc, fp_before, args.surface_pause,
+                )
                 if not activated:
-                    surface_errors.append(f"Could not activate sidebar row '{surface_name}'")
+                    surface_errors.append(
+                        f"Could not activate sidebar row '{surface_name}' "
+                        f"(all methods tried: named-action, generateMouseEvent, xdotool; "
+                        f"none produced a content fingerprint change)"
+                    )
                     print(f"  WARNING: sidebar row '{surface_name}' not activated", flush=True)
                     # Capture bounded tree diagnostic on first activation failure
                     if not tree_diagnostic_captured:
@@ -888,10 +1075,12 @@ def main() -> int:
                             flush=True,
                         )
                 else:
-                    print(f"  Activated: {surface_name}", flush=True)
-                    time.sleep(args.surface_pause)
+                    print(f"  Activated: {surface_name} (method={activation_method!r})", flush=True)
+                    # Already paused inside activate_sidebar_row for fp check; no extra sleep needed
             else:
                 surface_errors.append("Sidebar not found; skipping activation")
+                # Still pause so view has time to render before collection
+                time.sleep(args.surface_pause)
 
             # Collect tree from app root for this surface
             elements = collect_tree(app_acc, surface_name)
@@ -917,6 +1106,7 @@ def main() -> int:
                 "surface": surface_id,
                 "surface_label": surface_name,
                 "activated": activated,
+                "activation_method": activation_method,
                 "element_count": len(elements),
                 "element_names_fingerprint": list(element_names_fingerprint[:30]),
                 "screenshot": f"exploration/linux/screenshots/{ss_file.name}" if ss_taken else None,
@@ -985,9 +1175,11 @@ def main() -> int:
                     "rows are not being activated, or all views have identical AT-SPI trees."
                 ),
                 "recommendation": (
-                    "Check sidebar activation: row widget_names are IDs like 'dashboard', "
-                    "not labels like 'Dashboard'. Verify Strategy A/B/C/D all tried. "
-                    "Check if GTK4 row.connect_row_selected signal fires (generateMouseEvent)."
+                    "Pass 6 fix: doAction(0) fallback removed. Only named click/activate/select "
+                    "actions are used, followed by generateMouseEvent and xdotool as fallbacks. "
+                    "Each attempt is verified by content fingerprint change on main_stack. "
+                    "If still failing: check that main_stack widget_name is accessible via AT-SPI, "
+                    "or that view widgets have distinct accessible names per surface."
                 ),
             })
             print(
@@ -1038,7 +1230,10 @@ def main() -> int:
         },
         "at_spi_method": (
             "pyatspi DFS traversal; sidebar row activation via "
-            "doAction('click'/'activate') then generateMouseEvent fallback"
+            "named doAction('click'/'activate'/'select') → "
+            "generateMouseEvent(center,'b1c') → xdotool click; "
+            "each attempt verified by content fingerprint change on main_stack "
+            "(pass 6: removed arbitrary doAction(0) fallback)"
         ),
         "element_count": total_elements,
         "surfaces_count": len(surfaces_data),

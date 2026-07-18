@@ -1,8 +1,16 @@
 name: explore-linux
-# Pass 5: role-blind sidebar navigation (all roles report as 'unknown' on GTK4/ubuntu-latest).
-# Uses name-based DFS (widget_name/accessible label/child text/positional index) to find
-# and activate each of the 11 sidebar rows.  Requires 11 nonempty captures + >=3 distinct
-# name-fingerprints.  Bounded tree diagnostic emitted on first activation miss.
+# Pass 6: fix identical fingerprints (run 29642873493: all 11 surfaces identical).
+# Root cause: doAction(0) fallback fired unrelated actions (clipboard/focus) and was
+# falsely accepted as navigation. The sidebar's connect_row_selected only fires on real
+# pointer/keyboard input, not arbitrary AT-SPI actions.
+# Fix: removed doAction(0) fallback. Activation chain per row:
+#   1. doAction(i) where name is 'click'/'activate'/'select' only
+#   2. pyatspi.Registry.generateMouseEvent(cx, cy, 'b1c') at row center
+#   3. xdotool mousemove <cx> <cy> click 1
+# Each attempt verified by _get_content_fingerprint(app_acc): compares sorted set of
+# widget names in main_stack before/after. Only accepted if fingerprint changes.
+# Dashboard (first surface) skips the change check (it IS the initial baseline).
+# Requires 11 nonempty captures + >=3 distinct name-fingerprints.
 
 # Trigger on:
 #   - manual dispatch

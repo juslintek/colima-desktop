@@ -181,3 +181,22 @@
 - **outcome:** (pending)
 - **outcome:** DONE ✅ (commit e3fc997). Added `<Platform>x64</Platform>` to `windows/ColimaDesktop.Windows.csproj` PropertyGroup (alongside existing RuntimeIdentifier/PlatformTarget/Platforms — all four are now set). Added `-p:Platform=x64 -p:PlatformTarget=x64` to both `dotnet restore` and `dotnet publish` in `.github/workflows/explore-windows.yml`. XML valid (python3 ElementTree), YAML valid (python3 yaml.safe_load), both steps verified to contain the flags. `exploration/windows/ground-truth.json` created with 4-pass diagnostic history. Committed; not pushed.
 - **contract-impact:** none.
+
+### 2026-07-18T14:41Z · linux-ui-explorer · M3.9 diagnostic pass 6
+- **intent:** Fix identical fingerprints across all 11 sidebar surfaces (run 29642873493: 87 elements per surface, all identical). Root cause: `activate_sidebar_row` Strategy D's `doAction(0)` fires whatever action is at index 0 (e.g. clipboard, focus) and returns `True` — falsely accepted as navigation. The sidebar's `connect_row_selected` signal only fires when GTK internally processes a real click/select, not from arbitrary AT-SPI actions.
+- **plan:**
+  1. `explore_atspi.py` — `activate_sidebar_row`: remove all `doAction(0)` arbitrary-index fallback. Only invoke `doAction(i)` where `action.getName(i).lower() in ('click','activate','select')`. Fallback chain: (1) named click/activate action, (2) `generateMouseEvent(cx, cy, 'b1c')` using `queryComponent().getExtents(DESKTOP_COORDS)`, (3) `xdotool click --window root cx cy` using same extents. After each attempt pause `surface_pause` seconds then compare content fingerprint of the MAIN STACK only (exclude sidebar) — walk `main_stack` child names. Accept only if fingerprint changed from previous surface. If unchanged after all 3 attempts, log and continue.
+  2. Add `_get_content_fingerprint(app_acc)` — find node named `main_stack` (DFS), collect sorted set of non-empty child/grandchild names excluding sidebar names; fall back to full-tree fingerprint if main_stack not found.
+  3. `activate_sidebar_row` returns tuple `(activated: bool, method: str)` for diagnostics.
+  4. `explore_atspi.py` main loop — before activating surface N, record `fp_before = _get_content_fingerprint(app_acc)`. After activation + pause, record `fp_after`. If `fp_after == fp_before`, log "no content change detected" and try next fallback (mouse event → xdotool). Only mark `activated=True` after confirmed content change. Dashboard (first) is baseline; skip change check for it.
+  5. `.github/workflows/explore-linux.yml` — add `xdotool` to apt-get install (already present from pass 5, verify it is there).
+  6. `exploration/linux/ground-truth.json` — update diagnostic history.
+- **files-to-touch:** `scripts/linux/explore_atspi.py`, `.github/workflows/explore-linux.yml`, `exploration/linux/ground-truth.json`.
+- **outcome:** (pending)
+
+### 2026-07-18T14:41Z · windows-ui-explorer · M3.9 diagnostic pass 6
+- **intent:** Fix pass-5b regression (run 29642873532: 1/13 surfaces captured). Root cause: `NavigateToItem` was rewritten to try `SelectionItemPattern.Select()` first. WinUI3 NavigationView does NOT navigate via UIA SelectionItemPattern — it requires actual pointer input. Select() returned success but frame content never changed; only Dashboard (initial selected page, needed no nav) captured elements.
+- **plan:** (1) Dashboard (index 0): skip navigation entirely, capture initial selected page. (2) Visible items: restore `Click()` first (proven 10/13 in run 29642368125). (3) Offscreen items: `ScrollIntoView` → re-resolve `mainWindow` + `navItem` (using eagerly-captured `navAutomationId` string before scroll makes COM ref stale) → `Click()` → `SelectionItem.Select()` / `LegacyIA.DoDefaultAction()` only as last resort. (4) Re-resolve `mainWindow` every loop iteration to avoid stale UIA COM handles after layout changes.
+- **files-to-touch:** `scripts/windows/Program.cs`, `exploration/windows/ground-truth.json`.
+- **outcome:** DONE ✅ (commit 8eefc67). NavigateToItem restored to Click-first. Dashboard uses no-navigation path. Re-resolution of mainWindow and nav item on every iteration (and on every offscreen item). navAutomationId captured eagerly. ground-truth.json updated with pass-5/5b/6 diagnostic history. Target: 13/13 surfaces nonzero.
+- **contract-impact:** none.

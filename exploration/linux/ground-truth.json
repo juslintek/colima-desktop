@@ -1,8 +1,8 @@
 {
   "platform": "Linux",
-  "timestamp": "2026-07-18T14:09:34Z",
+  "timestamp": "2026-07-18T14:41:41Z",
   "environment_blocked": true,
-  "environment_block_reason": "Pass 4 pre-flight: colima shim not yet exercised in a live CI run. The root cause of all prior failures (GTK_A11Y=1 in pass 3; colima-absent onboarding in run 29641947378) is now fully addressed. This file will be replaced by a live capture on the next CI run.",
+  "environment_block_reason": "Pass 6 pre-flight: fix for identical-fingerprint root cause applied (doAction(0) fallback removed; content-fingerprint verification added). Will be replaced by a live CI capture on the next run.",
   "host": {
     "display": ":99",
     "app_binary": "linux/target/release/colima-desktop",
@@ -13,7 +13,7 @@
     "app_id": "dev.colima.desktop",
     "surfaces_explored": 0
   },
-  "at_spi_method": "pyatspi DFS traversal; sidebar row activation via doAction/generateMouseEvent",
+  "at_spi_method": "pyatspi DFS traversal; sidebar row activation via named doAction('click'/'activate'/'select') → generateMouseEvent(center,'b1c') → xdotool click; each attempt verified by content fingerprint change on main_stack (pass 6: removed arbitrary doAction(0) fallback)",
   "element_count": 0,
   "surfaces_count": 0,
   "screenshots": [],
@@ -32,8 +32,16 @@
       "error": "GTK_A11Y corrected to 'atspi' (valid GTK4 backend). Run 29641947378 achieved 374 elements — app registers in AT-SPI tree. However all 11 captures were the same onboarding window. Root cause: colima not installed in CI runner → DependencyManager::is_colima_installed() (uses which::which('colima')) returned false → build_onboarding_window() called instead of build_main_window(). No sidebar (sidebar_list) exists in onboarding view."
     },
     {
-      "phase": "diagnostic-pass-4-plan",
-      "error": "FIXED in this commit. Added scripts/linux/colima_shim.sh — CI-only stub responding to --version/version/status/list/start/stop/delete (exit 0). Updated run_explore.sh and .github/workflows/explore-linux.yml to create /tmp/ci-colima-bin/colima from the shim and prepend to PATH before launching explore_atspi.py. PATH is inherited by the Rust app subprocess so which::which('colima') finds the shim and is_colima_installed() returns true. Updated explore_atspi.py: (1) detect_onboarding_window() guard — fails fast with structured error if onboarding window detected instead of main UI; (2) improved find_sidebar_listbox() — searches by widget_name='sidebar_list' OR accessible label='Navigation' OR fallback to best LIST_BOX role by child count; (3) distinct-surfaces guard — requires >= 2 non-empty surfaces AND >= 2 distinct element-count fingerprints, fails if all captures look identical."
+      "phase": "diagnostic-pass-4",
+      "error": "FIXED: Added scripts/linux/colima_shim.sh — CI-only stub responding to --version/version/status/list/start/stop/delete (exit 0). Updated run_explore.sh and .github/workflows/explore-linux.yml to create /tmp/ci-colima-bin/colima from the shim and prepend to PATH before launching explore_atspi.py. PATH is inherited by the Rust app subprocess so which::which('colima') finds the shim and is_colima_installed() returns true. Updated explore_atspi.py: (1) detect_onboarding_window() guard; (2) improved find_sidebar_listbox(); (3) distinct-surfaces guard."
+    },
+    {
+      "phase": "diagnostic-pass-5",
+      "error": "Run 29642368125: real main window with 11 sidebar labels loads. But pyatspi reports every role as 'unknown' on GTK4/ubuntu-latest. Fixed: fully role-blind DFS strategies (widget_name/accessible-label/child-text/positional). Run 29642368125 captured 10/13 surfaces nonzero. Run 29642873493 (pass 5b): used doAction(0) as positional fallback — captured 87 elements for all 11 surfaces but all 11 fingerprints IDENTICAL. Root cause identified: doAction(0) fired clipboard/focus actions, returned True but did NOT trigger connect_row_selected signal."
+    },
+    {
+      "phase": "diagnostic-pass-6-plan",
+      "error": "FIXED in this commit. Root cause of identical fingerprints: doAction(0) arbitrary-index fallback was falsely accepted because index-0 AT-SPI action is not 'click'/'activate' on GTK4 ListBoxRow — it may be clipboard, focus, or another unrelated action that returns True but does not fire connect_row_selected. Fix: (1) Removed doAction(0) entirely. Only invoke doAction(i) where getName(i).lower() in ('click','activate','select'). (2) Added pyatspi.Registry.generateMouseEvent(cx, cy, 'b1c') as primary mouse fallback. (3) Added xdotool mousemove cx cy click 1 as secondary fallback. (4) Added _get_content_fingerprint(app_acc): DFS-finds main_stack node, collects sorted set of its visible children/grandchildren widget names. After EACH activation attempt, pause surface_pause seconds and compare fp_before vs fp_after — only accept if changed. Dashboard (index 0) skips change check (it IS the initial surface). activate_sidebar_row() now returns (bool, str) for diagnostics."
     }
   ],
   "known_surfaces": [
@@ -67,7 +75,7 @@
     },
     {
       "pass": 4,
-      "run": "pending",
+      "run": "29641947428 (windows) / pending (linux)",
       "result": "pending — colima shim + onboarding guard + improved sidebar locator applied",
       "fixes": [
         "scripts/linux/colima_shim.sh created — CI colima stub, satisfies which::which('colima')",
@@ -77,12 +85,46 @@
         "explore_atspi.py — find_sidebar_listbox() improved (widget_name OR label OR role fallback)",
         "explore_atspi.py — distinct-surfaces guard (>= 2 non-empty, >= 2 distinct element counts)"
       ]
+    },
+    {
+      "pass": 5,
+      "run": "29642368125",
+      "result": "Real main window loads (11 sidebar labels present). Role-blind strategies. 10/13 nonzero surfaces captured. Positional doAction(0) fallback introduced.",
+      "fixes": [
+        "explore_atspi.py — fully role-blind DFS (widget_name/accessible-label/child-text/positional)",
+        "explore_atspi.py — dump_tree_diagnostic() on first activation miss",
+        "explore_atspi.py — name-based fingerprints replace element-count fingerprints"
+      ]
+    },
+    {
+      "pass": "5b",
+      "run": "29642873493",
+      "result": "87 elements per surface, all 11 fingerprints IDENTICAL. Root cause: doAction(0) returned True for clipboard/focus actions without triggering GTK connect_row_selected signal. Navigation appeared to succeed but stack never changed page.",
+      "root_cause": "doAction(0) arbitrary-index fallback does not fire GTK4 ListBoxRow connect_row_selected. Any AT-SPI action at index 0 that returns True was accepted as navigation even though the stack page never changed."
+    },
+    {
+      "pass": 6,
+      "run": "pending",
+      "result": "pending — doAction(0) removed; named-action-only + generateMouseEvent + xdotool + content fingerprint verification applied",
+      "fixes": [
+        "explore_atspi.py — removed doAction(0) entirely; only invoke named 'click'/'activate'/'select' actions",
+        "explore_atspi.py — _get_content_fingerprint(app_acc): DFS-find main_stack, collect child widget names",
+        "explore_atspi.py — _get_row_center(row): extract component extents for mouse fallback",
+        "explore_atspi.py — activate_sidebar_row: generateMouseEvent(cx,cy,'b1c') as primary mouse fallback",
+        "explore_atspi.py — activate_sidebar_row: xdotool mousemove cx cy click 1 as secondary fallback",
+        "explore_atspi.py — each activation attempt verified by fp_before vs fp_after comparison",
+        "explore_atspi.py — Dashboard skips change check (it is the initial/baseline surface)",
+        "explore_atspi.py — activate_sidebar_row returns (bool, str) — method recorded per surface",
+        ".github/workflows/explore-linux.yml — updated pass comment to describe pass 6 changes"
+      ]
     }
   ],
   "notes": [
     "The linux/ GTK4 app compiles and passes the frontends.yml CI job (linux-gtk4 on ubuntu-latest).",
     "Every interactive widget has widget_name + accessible Property::Label set (linux/src/main.rs and views/).",
-    "Diagnostic pass 4 (2026-07-18): root cause was DependencyManager::is_colima_installed() returning false in CI (colima not on PATH), showing onboarding window for all 11 captures. Fix: CI-only colima shim injected on PATH so app enters build_main_window() with sidebar.",
+    "Diagnostic pass 4 (2026-07-18): root cause was DependencyManager::is_colima_installed() returning false in CI (colima not on PATH), showing onboarding window for all 11 captures. Fix: CI-only colima shim injected on PATH.",
+    "Diagnostic pass 5b (2026-07-18): root cause was doAction(0) falsely accepted as navigation. All 11 fingerprints identical (87 elements each). Fix: pass 6 removes doAction(0), adds fingerprint verification.",
+    "Diagnostic pass 6 (2026-07-18): removed arbitrary doAction(0), added content fingerprint gate. Named actions only. Three-tier mouse fallback: named doAction → generateMouseEvent → xdotool. Fingerprint computed from main_stack child widget names.",
     "DependencyManager::is_colima_installed() source: linux/src/dependency_manager.rs L62: which::which('colima').is_ok()",
     "Main window branch: linux/src/main.rs L49-56: if !DependencyManager::is_colima_installed() { build_onboarding_window } else { build_main_window }",
     "environment_blocked=true remains until next CI run confirms nonzero distinct surface capture."
