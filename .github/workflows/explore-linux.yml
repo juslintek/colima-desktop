@@ -1,0 +1,178 @@
+name: explore-linux
+
+# Trigger on:
+#   - manual dispatch
+#   - pushes that touch the Linux app or the exploration scripts/workflow
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'linux/**'
+      - 'scripts/linux/**'
+      - '.github/workflows/explore-linux.yml'
+      - 'exploration/linux/**'
+
+jobs:
+  explore-linux-atspi:
+    name: Linux AT-SPI2 ground-truth capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      # ── Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── System dependencies ─────────────────────────────────────────────
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            libgtk-4-dev \
+            libadwaita-1-dev \
+            protobuf-compiler \
+            xvfb \
+            dbus \
+            dbus-x11 \
+            at-spi2-core \
+            python3-pyatspi \
+            scrot \
+            imagemagick \
+            x11-utils \
+            gir1.2-atspi-2.0
+
+      # ── Rust toolchain (pinned stable) ─────────────────────────────────
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      # ── Cargo cache ─────────────────────────────────────────────────────
+      - name: Cache Cargo registry + build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            linux/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('linux/Cargo.lock', 'linux/Cargo.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      # ── Build Linux GTK4 app (Release) ─────────────────────────────────
+      - name: Build linux/colima-desktop (Release)
+        working-directory: linux
+        run: cargo build --release
+        timeout-minutes: 15
+
+      # ── Prepare output directory ────────────────────────────────────────
+      - name: Prepare exploration output directory
+        run: |
+          mkdir -p exploration/linux/screenshots
+
+      # ── AT-SPI2 exploration ─────────────────────────────────────────────
+      #
+      # We wrap the entire session inside dbus-run-session to get a clean
+      # D-Bus environment, then start Xvfb + at-spi-bus-launcher before
+      # invoking the Python explorer.
+      #
+      # ALLOW_FAILURE: the step itself uses `|| true` so the artifact upload
+      # always runs (diagnostics on failure). The final validation step
+      # checks the exit code stored in EXPLORE_EXIT.
+      - name: Run AT-SPI2 exploration
+        id: explore
+        timeout-minutes: 10
+        env:
+          DISPLAY: ":99"
+          NO_AT_BRIDGE: "0"
+          GTK_A11Y: "1"
+          GSETTINGS_BACKEND: "memory"
+          G_MESSAGES_DEBUG: "none"
+        run: |
+          # Start Xvfb
+          Xvfb :99 -screen 0 1280x800x24 -ac &
+          XVFB_PID=$!
+          sleep 2
+
+          # Run the explorer inside a fresh D-Bus session
+          # (dbus-run-session provides DBUS_SESSION_BUS_ADDRESS automatically)
+          EXIT_CODE=0
+          dbus-run-session -- bash -c '
+            # Start AT-SPI bus
+            /usr/lib/at-spi2-core/at-spi-bus-launcher --launch-immediately &
+            sleep 1
+
+            python3 scripts/linux/explore_atspi.py \
+              --app linux/target/release/colima-desktop \
+              --outdir exploration/linux \
+              --timeout 60 \
+              --surface-pause 1.5
+          ' || EXIT_CODE=$?
+
+          # Stop Xvfb
+          kill "$XVFB_PID" 2>/dev/null || true
+
+          echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
+          # Exit 0 here so the artifact upload step always runs
+          exit 0
+
+      # ── Validate JSON (always) ──────────────────────────────────────────
+      - name: Validate ground-truth.json
+        run: |
+          python3 - <<'PYEOF'
+          import json, sys, pathlib
+
+          gt_path = pathlib.Path("exploration/linux/ground-truth.json")
+          if not gt_path.exists():
+              print("ERROR: ground-truth.json not found", file=sys.stderr)
+              sys.exit(1)
+
+          try:
+              data = json.loads(gt_path.read_text())
+          except json.JSONDecodeError as e:
+              print(f"ERROR: invalid JSON: {e}", file=sys.stderr)
+              sys.exit(1)
+
+          count = data.get("element_count", 0)
+          blocked = data.get("environment_blocked", False)
+          errs = data.get("errors", [])
+
+          print(f"element_count  : {count}")
+          print(f"surfaces_count : {data.get('surfaces_count', 'N/A')}")
+          print(f"env_blocked    : {blocked}")
+          print(f"errors         : {len(errs)}")
+          for e in errs:
+              print(f"  - [{e.get('phase','?')}] {e.get('error','?')}")
+
+          if blocked:
+              print("VALIDATION FAILED: environment_blocked=true", file=sys.stderr)
+              sys.exit(1)
+
+          if count == 0:
+              print("VALIDATION FAILED: element_count=0", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"VALIDATION PASSED: {count} elements captured")
+          PYEOF
+
+      # ── Upload artifact (always — for diagnostics on failure too) ───────
+      - name: Upload linux-ground-truth artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-ground-truth
+          path: exploration/linux/
+          if-no-files-found: warn
+          retention-days: 30
+
+      # ── Final gate: fail the job if exploration did not exit 0 ──────────
+      - name: Assert exploration succeeded
+        if: always()
+        run: |
+          EXIT_CODE="${{ steps.explore.outputs.exit_code }}"
+          if [[ "$EXIT_CODE" != "0" ]]; then
+            echo "AT-SPI exploration exited with code $EXIT_CODE."
+            echo "This is expected when running outside an interactive desktop session."
+            echo "The artifact has been uploaded for diagnostics."
+            echo "See exploration/linux/ground-truth.json (environment_blocked field)."
+            exit "$EXIT_CODE"
+          fi
+          echo "Exploration succeeded."

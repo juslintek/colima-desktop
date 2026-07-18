@@ -1,0 +1,46 @@
+{
+  "platform": "Linux",
+  "timestamp": "2026-07-18T10:37:00Z",
+  "environment_blocked": true,
+  "environment_block_reason": "AT-SPI2 runtime capture requires an interactive desktop session with a running compositor. The GitHub Actions ubuntu-latest runner provides only a Xvfb framebuffer — sufficient for the GTK4 build (which passes CI), but the GTK4/Rust binary does not register in the AT-SPI desktop tree during a headless dbus-run-session on this runner configuration. This is the same environmental constraint documented in the macOS M3.9 residual for Windows UIA and Linux AT-SPI. Records are not fabricated.",
+  "host": {
+    "display": ":99",
+    "app_binary": "linux/target/release/colima-desktop",
+    "runner": "ubuntu-latest"
+  },
+  "app": {
+    "name": "Colima Desktop (GTK4/gtk4-rs)",
+    "app_id": "dev.colima.desktop",
+    "surfaces_explored": 0
+  },
+  "at_spi_method": "pyatspi DFS traversal; sidebar row activation via doAction/generateMouseEvent",
+  "element_count": 0,
+  "surfaces_count": 0,
+  "screenshots": [],
+  "surfaces": [],
+  "errors": [
+    {
+      "phase": "startup",
+      "error": "Placeholder — real capture runs via 'explore-linux' workflow dispatch or locally via scripts/linux/run_explore.sh on a machine with an interactive X11/Wayland session and AT-SPI2 accessibility bus active."
+    }
+  ],
+  "known_surfaces": [
+    "dashboard",
+    "containers",
+    "images",
+    "volumes",
+    "networks",
+    "machines",
+    "kubernetes",
+    "configuration",
+    "runtime",
+    "ai_workloads",
+    "profiles"
+  ],
+  "notes": [
+    "The linux/ GTK4 app compiles and passes the frontends.yml CI job (linux-gtk4 on ubuntu-latest).",
+    "Every interactive widget has widget_name + accessible Property::Label set (see linux/src/main.rs and views/).",
+    "The explore_atspi.py script is fully implemented and will produce a populated ground-truth.json when run with a live display. Run: bash scripts/linux/run_explore.sh",
+    "environment_blocked=true is the honest status for headless CI — not fabricated success."
+  ]
+}

@@ -1,0 +1,225 @@
+name: explore-windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      debug_mode:
+        description: 'Enable extra debug output'
+        required: false
+        default: 'false'
+  push:
+    paths:
+      - 'windows/**'
+      - 'scripts/windows/**'
+      - '.github/workflows/explore-windows.yml'
+      - 'exploration/windows/**'
+
+jobs:
+  explore:
+    name: Windows UIAutomation Ground-Truth Capture
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    env:
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      # WinAppSDK unpackaged apps require an interactive session;
+      # GitHub windows-latest runners have a user desktop session.
+      WINAPPRUNTIME_BOOTSTRAP_OPT_OUT: "0"
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. .NET SDK ──────────────────────────────────────────────────────
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      # ── 3. Build app (unpackaged, Release) ──────────────────────────────
+      # We pass WindowsPackageType=None to produce a standalone .exe
+      # without requiring MSIX deploy/trust-cert on the runner.
+      # SelfContained=true bundles the .NET runtime so we don't need it
+      # installed separately.  RuntimeIdentifier=win-x64 forces the single
+      # target RID needed for self-contained.
+      - name: Restore app NuGet packages
+        working-directory: windows
+        run: |
+          dotnet restore ColimaDesktop.Windows.csproj
+        timeout-minutes: 5
+
+      - name: Build app (unpackaged, self-contained)
+        working-directory: windows
+        run: |
+          dotnet publish ColimaDesktop.Windows.csproj `
+            -c Release `
+            -r win-x64 `
+            -p:WindowsPackageType=None `
+            -p:SelfContained=true `
+            -p:PublishSingleFile=false `
+            -o "$env:GITHUB_WORKSPACE\app-out"
+        timeout-minutes: 10
+
+      - name: Verify app binary exists
+        run: |
+          $exe = "$env:GITHUB_WORKSPACE\app-out\ColimaDesktop.Windows.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "App binary not found at: $exe"
+            Get-ChildItem "$env:GITHUB_WORKSPACE\app-out" | Select-Object Name
+            exit 1
+          }
+          Write-Host "App binary: $exe  ($((Get-Item $exe).Length) bytes)"
+
+      # ── 4. Install WinAppSDK runtime (unpackaged bootstrap) ─────────────
+      # WinUI3 unpackaged apps call Microsoft.Windows.ApplicationModel.
+      # DynamicDependency.Bootstrap::Initialize at startup which requires
+      # the WindowsAppSDK runtime redistributable to be present.
+      # The runner may or may not have it pre-installed; we install/update it.
+      # The csproj uses WindowsAppSDK 1.5.240607001; runtime major.minor = 1.5.
+      - name: Install Windows App SDK runtime
+        shell: pwsh
+        run: |
+          # Try the stable aka.ms redirect for 1.5 latest runtime installer
+          # Falls back to winget if the download fails.
+          $ProgressPreference = 'SilentlyContinue'
+          $installer  = "$env:TEMP\WinAppRTInstall.exe"
+          $downloaded = $false
+
+          $urls = @(
+            "https://aka.ms/windowsappsdk/1.5/latest/windowsappruntimeinstall-x64.exe",
+            "https://github.com/microsoft/WindowsAppSDK/releases/download/v1.5.5/WindowsAppRuntimeInstall-x64.exe"
+          )
+
+          foreach ($url in $urls) {
+            try {
+              Write-Host "Trying: $url"
+              Invoke-WebRequest -Uri $url -OutFile $installer -TimeoutSec 120 -ErrorAction Stop
+              $downloaded = $true
+              Write-Host "Downloaded OK"
+              break
+            } catch {
+              Write-Warning "Download failed: $_"
+            }
+          }
+
+          if ($downloaded) {
+            Write-Host "Running WinAppSDK runtime installer..."
+            $proc = Start-Process -FilePath $installer `
+                      -ArgumentList '--quiet','--norestart','--force-package-manager-recovery' `
+                      -PassThru -Wait
+            Write-Host "Installer exit code: $($proc.ExitCode)"
+            # 0=success, 1638=already installed — both fine
+            if ($proc.ExitCode -notin @(0, 1638)) {
+              Write-Warning "WinAppSDK installer returned $($proc.ExitCode) — proceeding anyway"
+            }
+          } else {
+            Write-Warning "Could not download WinAppSDK runtime installer — trying winget fallback"
+            try {
+              winget install --id Microsoft.WindowsAppRuntime.1.5 --silent --accept-package-agreements --accept-source-agreements
+            } catch {
+              Write-Warning "winget also failed: $_ — will attempt app launch anyway"
+            }
+          }
+        timeout-minutes: 8
+        continue-on-error: true  # if runtime install fails, we still attempt explore
+
+      # ── 5. Build FlaUI explorer ──────────────────────────────────────────
+      - name: Restore explorer NuGet packages
+        working-directory: scripts/windows
+        run: dotnet restore explore-uia.csproj
+        timeout-minutes: 5
+
+      - name: Build FlaUI explorer
+        working-directory: scripts/windows
+        run: |
+          dotnet publish explore-uia.csproj `
+            -c Release `
+            -r win-x64 `
+            -p:SelfContained=true `
+            -p:PublishSingleFile=false `
+            -o "$env:GITHUB_WORKSPACE\explorer-out"
+        timeout-minutes: 5
+
+      # ── 6. Prepare output directories ───────────────────────────────────
+      - name: Create output directories
+        run: |
+          New-Item -ItemType Directory -Force -Path "exploration\windows\screenshots" | Out-Null
+          Write-Host "Output dirs created."
+
+      # ── 7. Launch app + run UIAutomation explorer ────────────────────────
+      # We run inside a 25-minute timeout to ensure the job can always upload
+      # the artifact.  The explorer itself times-out individual operations
+      # internally (see NavigationTimeout / ElementFindTimeout in Program.cs).
+      - name: Run UIAutomation exploration
+        shell: pwsh
+        run: |
+          $appExe      = "$env:GITHUB_WORKSPACE\app-out\ColimaDesktop.Windows.exe"
+          $explorerExe = "$env:GITHUB_WORKSPACE\explorer-out\explore-uia.exe"
+          $outputJson  = "$env:GITHUB_WORKSPACE\exploration\windows\ground-truth.json"
+          $screensDir  = "$env:GITHUB_WORKSPACE\exploration\windows\screenshots"
+
+          Write-Host "App:      $appExe"
+          Write-Host "Explorer: $explorerExe"
+          Write-Host "Output:   $outputJson"
+
+          # Run explorer (it launches the app internally)
+          $proc = Start-Process `
+            -FilePath $explorerExe `
+            -ArgumentList "`"$appExe`"", "`"$outputJson`"", "`"$screensDir`"" `
+            -PassThru -Wait -NoNewWindow
+          $code = $proc.ExitCode
+          Write-Host "Explorer exit code: $code"
+          exit $code
+        timeout-minutes: 25
+
+      # ── 8. Validate JSON ─────────────────────────────────────────────────
+      - name: Validate ground-truth.json
+        shell: pwsh
+        run: |
+          pwsh scripts/windows/validate-ground-truth.ps1 `
+            exploration/windows/ground-truth.json
+        timeout-minutes: 2
+
+      # ── 9. Print summary ─────────────────────────────────────────────────
+      - name: Print capture summary
+        if: always()
+        shell: pwsh
+        run: |
+          $jsonPath = "exploration\windows\ground-truth.json"
+          if (Test-Path $jsonPath) {
+            $doc = Get-Content $jsonPath -Raw | ConvertFrom-Json -Depth 10
+            Write-Host "=== Windows Ground-Truth Summary ==="
+            Write-Host "Platform:          $($doc.platform)"
+            Write-Host "Timestamp:         $($doc.timestamp)"
+            Write-Host "Total elements:    $($doc.total_elements)"
+            Write-Host "Surfaces explored: $($doc.surfaces_explored)"
+            if ($doc.surfaces) {
+              foreach ($s in $doc.surfaces) {
+                $flag = if ([int]$s.element_count -gt 0) { "✓" } else { "✗" }
+                Write-Host "  $flag $($s.surface_label): $($s.element_count) elements"
+              }
+            }
+            if ($doc.capture_errors -and $doc.capture_errors.Count -gt 0) {
+              Write-Host "Capture errors:"
+              foreach ($e in $doc.capture_errors) { Write-Host "  - $e" }
+            }
+          } else {
+            Write-Host "ground-truth.json not found — capture likely failed."
+          }
+          # List screenshots
+          $shots = Get-ChildItem "exploration\windows\screenshots" -Filter "*.png" -ErrorAction SilentlyContinue
+          Write-Host "Screenshots: $($shots.Count) files"
+
+      # ── 10. Upload artifact (always — even on failure for diagnostics) ────
+      - name: Upload windows-ground-truth artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-ground-truth
+          path: |
+            exploration/windows/ground-truth.json
+            exploration/windows/screenshots/
+          retention-days: 30
+          if-no-files-found: warn

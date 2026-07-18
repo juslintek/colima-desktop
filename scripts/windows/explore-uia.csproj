@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!-- Target net8.0-windows for UIAutomationClient COM interop via System.Windows.Automation -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <!-- Self-contained so it works on CI without pre-installed runtimes -->
+    <SelfContained>false</SelfContained>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Optimize>false</Optimize>
+    <AssemblyName>explore-uia</AssemblyName>
+    <RootNamespace>ColimaDesktop.Explorer</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- FlaUI UIA3 — pinned exact versions for reproducibility -->
+    <PackageReference Include="FlaUI.Core" Version="4.0.0" />
+    <PackageReference Include="FlaUI.UIA3" Version="4.0.0" />
+  </ItemGroup>
+</Project>
