@@ -1,18 +1,18 @@
 {
-  "capture_time": "2026-07-18T12:38:13.695417+00:00",
+  "capture_time": "2026-07-18T13:16:19.295644+00:00",
   "capture_method": "hybrid: PTY screenshots + model-direct content (fakeDS)",
   "build_info": {
-    "go_version": "go version go1.26.2 darwin/arm64",
-    "goos": "darwin",
-    "goarch": "arm64",
-    "binary_path": "/var/folders/kg/gcxkd0lj3xbddhz2nlw4v7k40000gn/T/colima-tui-explore-h0ijxd80",
-    "build_time_ms": 451
+    "go_version": "go version go1.25.0 linux/amd64",
+    "goos": "linux",
+    "goarch": "x86_64",
+    "binary_path": "/tmp/colima-tui-explore-3nv9s8xg",
+    "build_time_ms": 619
   },
   "terminal_size": {
     "cols": 120,
     "rows": 40
   },
-  "total_surfaces": 11,
+  "total_surfaces": 12,
   "all_nonempty": true,
   "all_distinct": true,
   "validation_pass": true,
@@ -21,8 +21,8 @@
       "index": 0,
       "name": "Dashboard",
       "key_sequence": "number key '1'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nColima Desktop — TUI\n\nSurfaces available:\n  Dashboard · Containers · Images · Volumes · Networks\n  Kubernetes · Configuration · Runtime · AI Workloads\n  Profiles · Machines\n\nBacked live by the colima-desktop daemon (gRPC).\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\nPress ? for full help.\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nColima Desktop — TUI\n\nSurfaces available:\n  Dashboard · Containers · Images · Volumes · Networks\n  Kubernetes · Configuration · Runtime · AI Workloads\n  Profiles · Machines · Monitoring\n\nBacked live by the colima-desktop daemon (gRPC).\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\nPress ? for full help.\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -35,6 +35,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "Colima",
         "Desktop",
         "TUI",
@@ -52,10 +53,9 @@
         "switch",
         "tabs,",
         "refresh,",
-        "quit.",
-        "Press"
+        "quit."
       ],
-      "content_fingerprint": "a6eb395fd1fb4a70",
+      "content_fingerprint": "28ea7f648af66313",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -64,8 +64,8 @@
       "index": 1,
       "name": "Containers",
       "key_sequence": "number key '2'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H \u001b[38;5;240m1 Dashboard\u001b[0m  \u001b[1;38;5;212m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n\n\n\n\u001b[38;5;196merror: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial unix /tmp/col\u001b[0m\r\n\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[J\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• /web-nginx  nginx:latest\n• /db-postgres  postgres:15\n• /cache-redis  redis:7\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "\u001b[H\n\n\n\nerror: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial unix /tmp/col\r\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[K\r\ndaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[J\u001b[8;H",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• /web-nginx  nginx:latest\n• /db-postgres  postgres:15\n• /cache-redis  redis:7\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -78,6 +78,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "/web-nginx",
         "nginx:latest",
         "/db-postgres",
@@ -93,7 +94,7 @@
         "help",
         "quit"
       ],
-      "content_fingerprint": "a67cf9dfbdc97e46",
+      "content_fingerprint": "d7afc28543119089",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -102,8 +103,8 @@
       "index": 2,
       "name": "Images",
       "key_sequence": "number key '3'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H \u001b[38;5;240m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[1;38;5;212m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n\n\n\n\n\n\n\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• nginx:latest  sha256:abc123\n• postgres:15  sha256:def456\n• redis:7  sha256:ghi789\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• nginx:latest  sha256:abc123\n• postgres:15  sha256:def456\n• redis:7  sha256:ghi789\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -116,6 +117,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "nginx:latest",
         "sha256:abc123",
         "postgres:15",
@@ -131,7 +133,7 @@
         "help",
         "quit"
       ],
-      "content_fingerprint": "f42d885879a5a48b",
+      "content_fingerprint": "84a2d1d15c6b9763",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -140,8 +142,8 @@
       "index": 3,
       "name": "Volumes",
       "key_sequence": "number key '4'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H \u001b[38;5;240m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[1;38;5;212m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n\n\n\n\n\n\n\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• postgres-data  local\n• redis-cache  local\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• postgres-data  local\n• redis-cache  local\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -154,6 +156,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "postgres-data",
         "local",
         "redis-cache",
@@ -166,7 +169,7 @@
         "help",
         "quit"
       ],
-      "content_fingerprint": "fdc725264da8c78b",
+      "content_fingerprint": "c497e9a51644a4fb",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -175,8 +178,8 @@
       "index": 4,
       "name": "Networks",
       "key_sequence": "number key '5'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H \u001b[38;5;240m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[1;38;5;212m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n\n\n\n\n\n\n\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• bridge\n• host\n• app-network  bridge\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\n• bridge\n• host\n• app-network  bridge\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -189,6 +192,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "bridge",
         "host",
         "app-network",
@@ -201,7 +205,7 @@
         "help",
         "quit"
       ],
-      "content_fingerprint": "74b808fc70b0b21e",
+      "content_fingerprint": "2385d9b20d9d2ec3",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -210,8 +214,8 @@
       "index": 5,
       "name": "Kubernetes",
       "key_sequence": "number key '6'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H \u001b[38;5;240m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[1;38;5;212m6 Kubernetes\u001b[0m \u001b[K\r\n\n\n\n\n\n\n\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nKubernetes: disabled\nProfile:    default\nRunning:    true\nRuntime:    docker\n\nActions:  [s] start   [x] stop   [r] reset\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nKubernetes: disabled\nProfile:    default\nRunning:    true\nRuntime:    docker\n\nActions:  [s] start   [x] stop   [r] reset\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -224,6 +228,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "Kubernetes:",
         "disabled",
         "Profile:",
@@ -241,10 +246,9 @@
         "tabs",
         "1-0",
         "jump",
-        "refresh",
-        "help"
+        "refresh"
       ],
-      "content_fingerprint": "1ab9c6d528e7dac2",
+      "content_fingerprint": "8bc3f211ab2acd03",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -253,8 +257,8 @@
       "index": 6,
       "name": "Configuration",
       "key_sequence": "number key '7'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H \u001b[38;5;240m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[1;38;5;212m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\n\n\n\n\n\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nCPU:         4\nMemory:      8.0 GiB\nDisk:        100 GiB\nArch:        aarch64\nVM Type:     vz\nRuntime:     docker\nMount Type:  virtiofs\nKubernetes:  enabled=false  version=v1.35.0+k3s1\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nCPU:         4\nMemory:      8.0 GiB\nDisk:        100 GiB\nArch:        aarch64\nVM Type:     vz\nRuntime:     docker\nMount Type:  virtiofs\nKubernetes:  enabled=false  version=v1.35.0+k3s1\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -267,6 +271,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "CPU:",
         "Memory:",
         "8.0",
@@ -284,10 +289,9 @@
         "enabled=false",
         "version=v1.35.0+k3s1",
         "connecting…",
-        "←/→",
-        "tabs"
+        "←/→"
       ],
-      "content_fingerprint": "33b310af38997e0b",
+      "content_fingerprint": "91018030606beef8",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -296,8 +300,8 @@
       "index": 7,
       "name": "Runtime",
       "key_sequence": "number key '8'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[1;38;5;212m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\n\n\n\n\n\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nRuntime:    docker\nProfile:    default\nVM type:    vz\nArch:       aarch64\n\nActions:  [d] docker   [c] containerd   [i] incus   [u] update\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nRuntime:    docker\nProfile:    default\nVM type:    vz\nArch:       aarch64\n\nActions:  [d] docker   [c] containerd   [i] incus   [u] update\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -310,6 +314,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "Runtime:",
         "docker",
         "Profile:",
@@ -327,10 +332,9 @@
         "1-0",
         "jump",
         "refresh",
-        "help",
-        "quit"
+        "help"
       ],
-      "content_fingerprint": "3719e2e8ec1ad8d7",
+      "content_fingerprint": "bed5458bc93d43d1",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -339,8 +343,8 @@
       "index": 8,
       "name": "AI Workloads",
       "key_sequence": "number key '9'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[1;38;5;212m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\n\nAI Workloads — profile: default\u001b[K\r\n\nActions:\u001b[K\r\n  [s]  model setup      (stream install progress)\u001b[K\r\n  [r]  model run        (interactive inference)\u001b[K\r\n  [v]  model serve      (start OpenAI-compatible API)\u001b[K\r\n  [x]  model stop       (stop serving)\u001b[K\r\n\u001b[K\r\nBackend: colima model subcommand via daemon gRPC.\u001b[K\r\nSupports docker runner and ramalama runner.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nAI Workloads — profile: default\n\nActions:\n  [s]  model setup      (stream install progress)\n  [r]  model run        (interactive inference)\n  [v]  model serve      (start OpenAI-compatible API)\n  [x]  model stop       (stop serving)\n\nBackend: colima model subcommand via daemon gRPC.\nSupports docker runner and ramalama runner.\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "\u001b[H\n\n\n\nAI Workloads — profile: default\u001b[K\r\n\nActions:\u001b[K\r\n  [s]  model setup      (stream install progress)\u001b[K\r\n  [r]  model run        (interactive inference)\u001b[K\r\n  [v]  model serve      (start OpenAI-compatible API)\u001b[K\r\n  [x]  model stop       (stop serving)\u001b[K\r\n\u001b[K\r\nBackend: colima model subcommand via daemon gRPC.\u001b[K\r\nSupports docker runner and ramalama runner.\u001b[K\r\n\u001b[K\r\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[K\r\ndaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[17;H",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nAI Workloads — profile: default\n\nActions:\n  [s]  model setup      (stream install progress)\n  [r]  model run        (interactive inference)\n  [v]  model serve      (start OpenAI-compatible API)\n  [x]  model stop       (stop serving)\n\nBackend: colima model subcommand via daemon gRPC.\nSupports docker runner and ramalama runner.\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -353,6 +357,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "profile:",
         "default",
         "Actions:",
@@ -370,10 +375,9 @@
         "API)",
         "stop",
         "(stop",
-        "serving)",
-        "Backend:"
+        "serving)"
       ],
-      "content_fingerprint": "5ba4feda32d6bd2a",
+      "content_fingerprint": "9bd833949c87ff1b",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -382,8 +386,8 @@
       "index": 9,
       "name": "Profiles",
       "key_sequence": "number key '0'",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[1;38;5;212m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\n\n\u001b[38;5;196merror: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial unix /tmp/col\u001b[0m\r\n\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[J\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nName                 Status       Arch       CPU\n───────────────────────────────────────────────────────\ndefault              Running      aarch64    4\nk8s-dev              Stopped      aarch64    2\nproduction           Stopped      x86_64     8\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "\u001b[H\n\n\n\nerror: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial unix /tmp/col\r\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[K\r\ndaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[J\u001b[8;H",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nName                 Status       Arch       CPU\n───────────────────────────────────────────────────────\ndefault              Running      aarch64    4\nk8s-dev              Stopped      aarch64    2\nproduction           Stopped      x86_64     8\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -396,6 +400,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "Name",
         "Status",
         "Arch",
@@ -413,10 +418,9 @@
         "1-0",
         "jump",
         "refresh",
-        "help",
-        "quit"
+        "help"
       ],
-      "content_fingerprint": "3d134f78dd157ab0",
+      "content_fingerprint": "55559eae4f99283a",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true
@@ -425,8 +429,8 @@
       "index": 10,
       "name": "Machines",
       "key_sequence": "right arrow (→)",
-      "raw_ansi_frame": "\u001b]11;?\u001b\\\u001b[6n\u001b[?25l\u001b[?1049h\u001b[2J\u001b[H\u001b[?25l\u001b[?2004h\u001b[H\r \u001b[1;38;5;212m1 Dashboard\u001b[0m  \u001b[38;5;240m2 Containers\u001b[0m  \u001b[38;5;240m3 Images\u001b[0m  \u001b[38;5;240m4 Volumes\u001b[0m  \u001b[38;5;240m5 Networks\u001b[0m  \u001b[38;5;240m6 Kubernetes\u001b[0m \u001b[K\r\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[38;5;240mMachines\u001b[0m \u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[K\r\n\u001b[1;38;5;39mColima Desktop — TUI\u001b[0m\u001b[K\r\n\u001b[K\r\nSurfaces available:\u001b[K\r\n  Dashboard · Containers · Images · Volumes · Networks\u001b[K\r\n  Kubernetes · Configuration · Runtime · AI Workloads\u001b[K\r\n  Profiles · Machines\u001b[K\r\n\u001b[K\r\nBacked live by the colima-desktop daemon (gRPC).\u001b[K\r\nUse ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\u001b[K\r\nPress ? for full help.\u001b[K\r\n\u001b[K\r\n\u001b[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[0m\u001b[K\r\n\u001b[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[0m\u001b[38;5;245m\u001b[0m\u001b[17;H\u001b[H\n \u001b[38;5;240m7 Configuration\u001b[0m  \u001b[38;5;240m8 Runtime\u001b[0m  \u001b[38;5;240m9 AI Workloads\u001b[0m  \u001b[38;5;240m0 Profiles\u001b[0m  \u001b[1;38;5;212mMachines\u001b[0m \u001b[K\r\n\n\n\n\n\n\u001b[8;H",
-      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nName                 Status       Arch       CPU\n───────────────────────────────────────────────────────\ncolima-default       Running      aarch64    4\ncolima-k8s-dev       Stopped      aarch64    2\nlima-rancher         Stopped      aarch64    4\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "raw_ansi_frame": "",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nName                 Status       Arch       CPU\n───────────────────────────────────────────────────────\ncolima-default       Running      aarch64    4\ncolima-k8s-dev       Stopped      aarch64    2\nlima-rancher         Stopped      aarch64    4\n\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
       "visible_labels": [
         "Dashboard",
         "Containers",
@@ -439,6 +443,7 @@
         "Workloads",
         "Profiles",
         "Machines",
+        "Monitoring",
         "Name",
         "Status",
         "Arch",
@@ -458,7 +463,50 @@
         "help",
         "quit"
       ],
-      "content_fingerprint": "f0ebcb6e30621b22",
+      "content_fingerprint": "1b2d34a093505ccf",
+      "nonempty": true,
+      "distinct_from_prev": true,
+      "pty_screenshot_available": true
+    },
+    {
+      "index": 11,
+      "name": "Monitoring",
+      "key_sequence": "right arrow (→)",
+      "raw_ansi_frame": "\u001b[H\n\n\n\nVM Monitoring\u001b[K\r\n\nStats:  (unavailable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dia\r\n\u001b[K\r\nProcesses:  (unavailable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing:\r\n\u001b[K\r\n\u001b[K\r\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\u001b[K\r\ndaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = \"transport: Error while dialing: dial \u001b[13;H",
+      "normalized_frame": " 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes \n 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines  Monitoring \n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\n\nVM Monitoring\n\nCPU          [███████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░]  38.0%  38B/100B %\nMemory       [███████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░]  37.5%  3.0G/8.0G \nDisk         [█████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░]  22.0%  22.0G/100.0G \n\n  PID      USER         CPU%   MEM%  CONTAINER           COMMAND\n  ───────────────────────────────────────────────────────────────────────────\n> 1001     root         15.2    8.3  —                   dockerd\n  2042     user          3.1    1.2  /web-nginx          nginx: worker\n  3107     999           0.4    2.7  /db-postgres        postgres\n\nActions:  [k] kill selected process   [j/↑↓] select   [r] refresh\n\n──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────\nconnecting…  ←/→ tabs · 1-0 jump · r refresh · ? help · q quit",
+      "visible_labels": [
+        "Dashboard",
+        "Containers",
+        "Images",
+        "Volumes",
+        "Networks",
+        "Kubernetes",
+        "Configuration",
+        "Runtime",
+        "Workloads",
+        "Profiles",
+        "Machines",
+        "Monitoring",
+        "CPU",
+        "38.0%",
+        "38B/100B",
+        "Memory",
+        "37.5%",
+        "3.0G/8.0G",
+        "Disk",
+        "22.0%",
+        "22.0G/100.0G",
+        "PID",
+        "USER",
+        "CPU%",
+        "MEM%",
+        "CONTAINER",
+        "COMMAND",
+        "1001",
+        "root",
+        "15.2"
+      ],
+      "content_fingerprint": "426c0fa142250c03",
       "nonempty": true,
       "distinct_from_prev": true,
       "pty_screenshot_available": true

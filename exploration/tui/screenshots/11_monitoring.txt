@@ -2,16 +2,12 @@
 
 
 
-AI Workloads — profile: default
+VM Monitoring
 
-Actions:
-  [s]  model setup      (stream install progress)
-  [r]  model run        (interactive inference)
-  [v]  model serve      (start OpenAI-compatible API)
-  [x]  model stop       (stop serving)
+Stats:  (unavailable: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dia
 
-Backend: colima model subcommand via daemon gRPC.
-Supports docker runner and ramalama runner.
+Processes:  (unavailable: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing:
+
 
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 daemon unreachable: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial 
