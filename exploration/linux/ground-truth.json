@@ -1,11 +1,11 @@
 {
   "platform": "Linux",
-  "timestamp": "2026-07-18T12:20:19.784355+00:00",
+  "timestamp": "2026-07-18T13:10:25.635145+00:00",
   "host": {
     "display": ":99",
-    "dbus_session_bus_address": "unix:path=/tmp/dbus-BDSmE1A7bW,guid=21e5fc0aa1cc945af64938e36a5b6f72",
+    "dbus_session_bus_address": "unix:path=/tmp/dbus-Jv4Amjx5NQ,guid=de91a3ff4060445241eaa4176a5b7b31",
     "app_binary": "linux/target/release/colima-desktop",
-    "app_pid": 5314,
+    "app_pid": 5357,
     "app_early_exit_code": null,
     "gtk_a11y": "atspi",
     "no_at_bridge": "0"
@@ -13,11 +13,11 @@
   "app": {
     "name": "Colima Desktop (GTK4/gtk4-rs)",
     "app_id": "dev.colima.desktop",
-    "surfaces_explored": 11
+    "surfaces_explored": 12
   },
-  "at_spi_method": "pyatspi DFS traversal (read-only) + screenshots; sidebar navigation: Dashboard (index 0) = initial state (no click); indices 1..10 = ONLY xdotool positional grid (x=win_x+100, y=win_y+23+38*i, dynamic window origin via xdotool search + getwindowgeometry, Xvfb fixed fallback (0,0)); activation_method recorded as xdotool_grid:index=N; each navigation verified by content fingerprint change; all 11 content fingerprints must be unique (pass 8: AT-SPI doAction/component-extent navigation fully removed after run 29643626991 proved it produces mislabeled captures)",
-  "element_count": 778,
-  "surfaces_count": 11,
+  "at_spi_method": "pyatspi DFS traversal (read-only) + screenshots; sidebar navigation: Dashboard (index 0) = initial state (no click); indices 1..11 = ONLY xdotool positional grid (x=win_x+100, y=win_y+23+38*i, dynamic window origin via xdotool search + getwindowgeometry, Xvfb fixed fallback (0,0)); activation_method recorded as xdotool_grid:index=N; each navigation verified by content fingerprint change; all 12 content fingerprints must be unique (pass 8: AT-SPI doAction/component-extent navigation fully removed after run 29643626991 proved it produces mislabeled captures); DISC-03: Monitoring added as 12th surface (index 11, y=win_y+441)",
+  "element_count": 887,
+  "surfaces_count": 12,
   "screenshots": [
     "exploration/linux/screenshots/0000-launch.png",
     "exploration/linux/screenshots/0001-dashboard.png",
@@ -30,7 +30,8 @@
     "exploration/linux/screenshots/0008-configuration.png",
     "exploration/linux/screenshots/0009-runtime.png",
     "exploration/linux/screenshots/0010-ai_workloads.png",
-    "exploration/linux/screenshots/0011-profiles.png"
+    "exploration/linux/screenshots/0011-profiles.png",
+    "exploration/linux/screenshots/0012-monitoring.png"
   ],
   "surfaces": [
     {
@@ -38,7 +39,7 @@
       "surface_label": "Dashboard",
       "activated": true,
       "activation_method": "initial_state",
-      "element_count": 87,
+      "element_count": 90,
       "element_names_fingerprint": [
         "AI Workloads",
         "Architecture",
@@ -56,6 +57,7 @@
         "Machines",
         "Memory",
         "Memory usage",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -68,8 +70,7 @@
         "\u21ba Restart",
         "\u21bb Refresh",
         "\u25a0 Stop",
-        "\u25b6 Start",
-        "\u2717 Error: transport error"
+        "\u25b6 Start"
       ],
       "screenshot": "exploration/linux/screenshots/0001-dashboard.png",
       "elements": [
@@ -423,6 +424,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Dashboard"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Dashboard"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -1204,6 +1232,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Dashboard"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -1228,7 +1265,7 @@
       "surface_label": "Containers",
       "activated": true,
       "activation_method": "xdotool_grid:index=1",
-      "element_count": 82,
+      "element_count": 85,
       "element_names_fingerprint": [
         "+ Create",
         "AI Workloads",
@@ -1242,6 +1279,7 @@
         "Images",
         "Kubernetes",
         "Machines",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -1258,8 +1296,7 @@
         "\u2715 Kill",
         "\u2717 Error: transport error",
         "\ud83d\udccb Logs",
-        "\ud83d\udd0d Inspect",
-        "\ud83d\uddd1 Remove"
+        "\ud83d\udd0d Inspect"
       ],
       "screenshot": "exploration/linux/screenshots/0002-containers.png",
       "elements": [
@@ -1613,6 +1650,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Containers"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Containers"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -2250,6 +2314,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Containers"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -2274,7 +2347,7 @@
       "surface_label": "Images",
       "activated": true,
       "activation_method": "xdotool_grid:index=2",
-      "element_count": 71,
+      "element_count": 74,
       "element_names_fingerprint": [
         "AI Workloads",
         "Colima Desktop",
@@ -2286,6 +2359,7 @@
         "Images",
         "Kubernetes",
         "Machines",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -2654,6 +2728,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Images"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Images"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -3135,6 +3236,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Images"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -3159,7 +3269,7 @@
       "surface_label": "Volumes",
       "activated": true,
       "activation_method": "xdotool_grid:index=3",
-      "element_count": 67,
+      "element_count": 70,
       "element_names_fingerprint": [
         "+ Create",
         "AI Workloads",
@@ -3170,6 +3280,7 @@
         "Images",
         "Kubernetes",
         "Machines",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -3537,6 +3648,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Volumes"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Volumes"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -3960,6 +4098,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Volumes"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -3984,7 +4131,7 @@
       "surface_label": "Networks",
       "activated": true,
       "activation_method": "xdotool_grid:index=4",
-      "element_count": 73,
+      "element_count": 76,
       "element_names_fingerprint": [
         "+ Create",
         "AI Workloads",
@@ -3996,6 +4143,7 @@
         "Images",
         "Kubernetes",
         "Machines",
+        "Monitoring",
         "Navigation",
         "Network list",
         "Network name",
@@ -4365,6 +4513,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Networks"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Networks"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -4866,6 +5041,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Networks"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -4890,7 +5074,7 @@
       "surface_label": "Machines",
       "activated": true,
       "activation_method": "xdotool_grid:index=5",
-      "element_count": 55,
+      "element_count": 58,
       "element_names_fingerprint": [
         "AI Workloads",
         "Colima Desktop",
@@ -4902,6 +5086,7 @@
         "Machine list",
         "Machines",
         "Machines (Lima)",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -5281,6 +5466,33 @@
         },
         {
           "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Machines"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Machines"
+        },
+        {
+          "role": "unknown",
           "name": "",
           "description": "",
           "states": [],
@@ -5533,6 +5745,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Machines"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -5557,7 +5778,7 @@
       "surface_label": "Kubernetes",
       "activated": true,
       "activation_method": "xdotool_grid:index=6",
-      "element_count": 64,
+      "element_count": 67,
       "element_names_fingerprint": [
         "AI Workloads",
         "Colima Desktop",
@@ -5567,6 +5788,7 @@
         "Images",
         "Kubernetes",
         "Machines",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -5934,6 +6156,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Kubernetes"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Kubernetes"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -6330,6 +6579,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Kubernetes"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -6354,7 +6612,7 @@
       "surface_label": "Configuration",
       "activated": true,
       "activation_method": "xdotool_grid:index=7",
-      "element_count": 75,
+      "element_count": 78,
       "element_names_fingerprint": [
         "AI Workloads",
         "Arch",
@@ -6372,6 +6630,7 @@
         "Machines",
         "Memory GiB",
         "Memory in GiB",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -6384,8 +6643,7 @@
         "\u21bb Refresh",
         "\u2717 Error: transport error",
         "\u2b07 Load Config",
-        "\u2b07 Load Template",
-        "\ud83d\udcbe Save Config"
+        "\u2b07 Load Template"
       ],
       "screenshot": "exploration/linux/screenshots/0008-configuration.png",
       "elements": [
@@ -6739,6 +6997,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Configuration"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Configuration"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -7292,6 +7577,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Configuration"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -7316,7 +7610,7 @@
       "surface_label": "Runtime",
       "activated": true,
       "activation_method": "xdotool_grid:index=8",
-      "element_count": 65,
+      "element_count": 68,
       "element_names_fingerprint": [
         "AI Workloads",
         "Colima Desktop",
@@ -7326,6 +7620,7 @@
         "Images",
         "Kubernetes",
         "Machines",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Profiles",
@@ -7693,6 +7988,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Runtime"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Runtime"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -8085,6 +8407,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Runtime"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -8109,7 +8440,7 @@
       "surface_label": "AI Workloads",
       "activated": true,
       "activation_method": "xdotool_grid:index=9",
-      "element_count": 71,
+      "element_count": 74,
       "element_names_fingerprint": [
         "AI Workloads",
         "Colima Desktop",
@@ -8121,6 +8452,7 @@
         "Machines",
         "Model",
         "Model name",
+        "Monitoring",
         "Navigation",
         "Networks",
         "Port",
@@ -8493,6 +8825,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "AI Workloads"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "AI Workloads"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -8992,6 +9351,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "AI Workloads"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -9016,7 +9384,7 @@
       "surface_label": "Profiles",
       "activated": true,
       "activation_method": "xdotool_grid:index=10",
-      "element_count": 68,
+      "element_count": 71,
       "element_names_fingerprint": [
         "+ Create",
         "AI Workloads",
@@ -9028,6 +9396,7 @@
         "Images",
         "Kubernetes",
         "Machines",
+        "Monitoring",
         "Navigation",
         "Networks",
         "New profile name",
@@ -9395,6 +9764,33 @@
         {
           "role": "unknown",
           "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Profiles"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Profiles"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
           "description": "",
           "states": [],
           "actions": [
@@ -9829,6 +10225,15 @@
         },
         {
           "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Profiles"
+        },
+        {
+          "role": "unknown",
           "name": "\u2717 Error: transport error",
           "description": "",
           "states": [],
@@ -9844,6 +10249,958 @@
           ],
           "value": null,
           "surface": "Profiles"
+        }
+      ],
+      "errors": []
+    },
+    {
+      "surface": "monitoring",
+      "surface_label": "Monitoring",
+      "activated": true,
+      "activation_method": "xdotool_grid:index=11",
+      "element_count": 76,
+      "element_names_fingerprint": [
+        "AI Workloads",
+        "CPU",
+        "CPU usage",
+        "Colima Desktop",
+        "Configuration",
+        "Containers",
+        "Dashboard",
+        "Disk",
+        "Disk usage",
+        "Images",
+        "Kubernetes",
+        "Machines",
+        "Memory",
+        "Memory usage",
+        "Monitoring",
+        "Navigation",
+        "Networks",
+        "PID",
+        "Process ID to kill",
+        "Process list",
+        "Profiles",
+        "Runtime",
+        "Signal",
+        "Signal number (default 9)",
+        "VM resource usage",
+        "Volumes",
+        "colima-desktop",
+        "monitoring_output",
+        "\u21bb Refresh",
+        "\u2715 Kill"
+      ],
+      "screenshot": "exploration/linux/screenshots/0012-monitoring.png",
+      "elements": [
+        {
+          "role": "unknown",
+          "name": "colima-desktop",
+          "description": "colima-desktop",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Colima Desktop",
+          "description": "",
+          "states": [],
+          "actions": [
+            "window.close",
+            "window.minimize",
+            "window.toggle-maximized",
+            "default.activate"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": 200.0,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Navigation",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Dashboard",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Dashboard",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Containers",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Containers",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Images",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Images",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Volumes",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Volumes",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Networks",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Networks",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Machines",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Machines",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Kubernetes",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Kubernetes",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Configuration",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Configuration",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Runtime",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Runtime",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "AI Workloads",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "AI Workloads",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Profiles",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Monitoring",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "\u21bb Refresh",
+          "description": "",
+          "states": [],
+          "actions": [
+            "click"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "\u21bb Refresh",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "VM resource usage",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "CPU",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "CPU usage",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": 0.0,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Memory",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Memory usage",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": 0.0,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Disk",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Disk usage",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": 0.0,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Process list",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Process list",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "PID",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Process ID to kill",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": 0.0,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Signal",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "Signal number (default 9)",
+          "description": "",
+          "states": [],
+          "actions": [
+            "activate"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "\u2715 Kill",
+          "description": "",
+          "states": [],
+          "actions": [
+            "click"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "\u2715 Kill",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "monitoring_output",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "clipboard.paste",
+            "selection.delete",
+            "clipboard.cut",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "",
+          "description": "",
+          "states": [],
+          "actions": [],
+          "value": null,
+          "surface": "Monitoring"
+        },
+        {
+          "role": "unknown",
+          "name": "\u2717 Error: transport error",
+          "description": "",
+          "states": [],
+          "actions": [
+            "clipboard.copy",
+            "selection.delete",
+            "clipboard.paste",
+            "link.open",
+            "clipboard.cut",
+            "link.copy",
+            "menu.popup",
+            "selection.select-all"
+          ],
+          "value": null,
+          "surface": "Monitoring"
         }
       ],
       "errors": []
