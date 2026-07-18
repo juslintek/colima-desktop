@@ -1,8 +1,8 @@
 {
   "platform": "Linux",
-  "timestamp": "2026-07-18T10:37:00Z",
+  "timestamp": "2026-07-18T14:00:00Z",
   "environment_blocked": true,
-  "environment_block_reason": "AT-SPI2 runtime capture requires an interactive desktop session with a running compositor. The GitHub Actions ubuntu-latest runner provides only a Xvfb framebuffer — sufficient for the GTK4 build (which passes CI), but the GTK4/Rust binary does not register in the AT-SPI desktop tree during a headless dbus-run-session on this runner configuration. This is the same environmental constraint documented in the macOS M3.9 residual for Windows UIA and Linux AT-SPI. Records are not fabricated.",
+  "environment_block_reason": "AT-SPI2 runtime capture requires an interactive desktop session with a running compositor. The GitHub Actions ubuntu-latest runner provides only a Xvfb framebuffer — sufficient for the GTK4 build (which passes CI), but the GTK4/Rust binary did not register in the AT-SPI desktop tree in prior passes due to incorrect GTK_A11Y value. Diagnostic pass 3 corrects GTK_A11Y=1 (unrecognized) → GTK_A11Y=atspi (correct GTK4 backend). Next CI run will re-attempt live capture.",
   "host": {
     "display": ":99",
     "app_binary": "linux/target/release/colima-desktop",
@@ -20,8 +20,8 @@
   "surfaces": [],
   "errors": [
     {
-      "phase": "startup",
-      "error": "Placeholder — real capture runs via 'explore-linux' workflow dispatch or locally via scripts/linux/run_explore.sh on a machine with an interactive X11/Wayland session and AT-SPI2 accessibility bus active."
+      "phase": "diagnostic-pass-3",
+      "error": "GTK_A11Y=1 was set in prior passes. GTK4 does not recognize '1' as a backend name — valid values are: accesskit | atspi | test | none | help. This produced 'Unrecognized accessibility backend \"1\"' in GTK4 stderr and prevented AT-SPI registration. Fixed: GTK_A11Y=atspi is now set in .github/workflows/explore-linux.yml, scripts/linux/run_explore.sh, and scripts/linux/explore_atspi.py:build_app_env(). Verified from GTK4 4.22.4 binary strings."
     }
   ],
   "known_surfaces": [
@@ -40,7 +40,8 @@
   "notes": [
     "The linux/ GTK4 app compiles and passes the frontends.yml CI job (linux-gtk4 on ubuntu-latest).",
     "Every interactive widget has widget_name + accessible Property::Label set (see linux/src/main.rs and views/).",
-    "The explore_atspi.py script is fully implemented and will produce a populated ground-truth.json when run with a live display. Run: bash scripts/linux/run_explore.sh",
-    "environment_blocked=true is the honest status for headless CI — not fabricated success."
+    "Diagnostic pass 3 (2026-07-18): corrected GTK_A11Y value from '1' (unrecognized) to 'atspi' (correct GTK4 AT-SPI backend). Prior pass CI run 29641672160 confirmed app stays running and at-spi-bus-launcher works, but GTK4 stderr showed 'Unrecognized accessibility backend \"1\"' — this is the root cause of empty AT-SPI tree.",
+    "The explore_atspi.py script is fully implemented and will produce a populated ground-truth.json when run with GTK_A11Y=atspi on a live display. Run: bash scripts/linux/run_explore.sh",
+    "environment_blocked=true remains until a CI run with the corrected GTK_A11Y=atspi confirms nonzero element capture."
   ]
 }

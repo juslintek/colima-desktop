@@ -84,7 +84,11 @@ jobs:
       #   6. python3 explore_atspi.py — run with all env vars exported
       #
       # GTK4 accessibility env vars:
-      #   GTK_A11Y=1         — enable GTK4 accessibility module (NOT GTK_MODULES)
+      #   GTK_A11Y=atspi     — select the AT-SPI backend explicitly. Valid values
+      #                        in GTK4: accesskit | atspi | test | none | help.
+      #                        Do NOT use GTK_A11Y=1 — "1" is unrecognized and
+      #                        causes "Unrecognized accessibility backend '1'" which
+      #                        silently kills AT-SPI registration.
       #   NO_AT_BRIDGE=0     — allow AT-SPI bridge (default 1 in headless envs blocks it)
       #   GTK_MODULES must NOT be set to gail:atk-bridge (GTK2/3 only, breaks GTK4)
       #
@@ -160,7 +164,14 @@ jobs:
           # Give the AT-SPI bus time to fully register on D-Bus
           sleep 2
 
-          # ── 5. Diagnostic: list accessible applications before our app ─
+          # ── 5. Export GTK4 accessibility vars and run diagnostics ─────
+          # GTK_A11Y=atspi is the correct GTK4 AT-SPI backend selector.
+          # Setting GTK_A11Y=1 produces "Unrecognized accessibility backend '1'"
+          # and prevents the app from registering in the AT-SPI tree.
+          export GTK_A11Y=atspi
+          export NO_AT_BRIDGE=0
+          echo "[explore] GTK_A11Y=$GTK_A11Y NO_AT_BRIDGE=$NO_AT_BRIDGE"
+
           echo "--- AT-SPI accessible applications (before launch) ---"
           python3 - <<'PYEOF' || true
           import pyatspi
@@ -205,7 +216,7 @@ jobs:
           # ── 8. Cleanup ────────────────────────────────────────────────
           [[ "$ATSPI_PID" -gt 0 ]] && kill "$ATSPI_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
-          kill "$DBUS_PID" 2>/dev/null || true
+          [[ -n "${DBUS_SESSION_BUS_PID:-}" ]] && kill "$DBUS_SESSION_BUS_PID" 2>/dev/null || true
 
           echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           # Exit 0 here so the artifact upload step always runs

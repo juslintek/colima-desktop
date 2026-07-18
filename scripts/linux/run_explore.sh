@@ -16,7 +16,11 @@
 # On failure it still preserves the diagnostic exploration/linux/ground-truth.json.
 #
 # GTK4 accessibility setup (critical):
-#   GTK_A11Y=1        — enable GTK4's accessibility layer
+#   GTK_A11Y=atspi    — select the AT-SPI backend explicitly. Valid GTK4 values:
+#                       accesskit | atspi | test | none | help
+#                       Do NOT use GTK_A11Y=1 — "1" is unrecognized and causes
+#                       "Unrecognized accessibility backend '1'" which silently
+#                       kills AT-SPI registration.
 #   NO_AT_BRIDGE=0    — allow AT-SPI bridge (headless runners set this to 1)
 #   Do NOT set GTK_MODULES=gail:atk-bridge — that is GTK2/3 only
 
@@ -95,7 +99,10 @@ fi
 sleep 2
 
 # ── AT-SPI env for the app (propagated via explore_atspi.py) ──────────────
-export GTK_A11Y=1
+# GTK_A11Y=atspi is the correct GTK4 AT-SPI backend selector.
+# Valid values: accesskit | atspi | test | none | help
+# Do NOT use GTK_A11Y=1 — "1" is unrecognized and silently kills AT-SPI registration.
+export GTK_A11Y=atspi
 export NO_AT_BRIDGE=0
 
 # ── Run explorer ──────────────────────────────────────────────────────────

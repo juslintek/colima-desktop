@@ -11,7 +11,7 @@ Requirements:
     python3-pyatspi  (or pip install pyatspi)
     at-spi2-core running and DBUS_SESSION_BUS_ADDRESS set
     Xvfb display (DISPLAY set)
-    GTK_A11Y=1, NO_AT_BRIDGE=0  (set before the app is launched)
+    GTK_A11Y=atspi, NO_AT_BRIDGE=0  (set before the app is launched)
     scrot or imagemagick (optional, for screenshots)
 
 Usage (called by the CI workflow):
@@ -21,8 +21,11 @@ Usage (called by the CI workflow):
         [--timeout 60] [--surface-pause 1.5]
 
 GTK4 accessibility notes:
-  - GTK4 uses GTK_A11Y=1 and NO_AT_BRIDGE=0 — NOT GTK_MODULES=gail:atk-bridge
+  - GTK4 uses GTK_A11Y=atspi and NO_AT_BRIDGE=0 — NOT GTK_MODULES=gail:atk-bridge
     (that was GTK2/3 only; setting it on GTK4 is a no-op at best, error at worst).
+  - Do NOT set GTK_A11Y=1 — "1" is not a valid backend name. Valid values are:
+    accesskit | atspi | test | none | help. Using an invalid value produces
+    "Unrecognized accessibility backend '1'" and silently disables AT-SPI.
   - The app must be launched *after* at-spi-bus-launcher is running and
     DBUS_SESSION_BUS_ADDRESS is set in the environment.
   - gsettings org.gnome.desktop.interface toolkit-accessibility must be true.
@@ -340,7 +343,11 @@ def build_app_env() -> dict:
     Build the environment for the GTK4 app subprocess.
 
     Critical GTK4 accessibility env vars:
-      GTK_A11Y=1         — enable GTK4's internal accessibility support
+      GTK_A11Y=atspi     — select the AT-SPI backend explicitly. Valid GTK4 values:
+                           accesskit | atspi | test | none | help.
+                           Do NOT use GTK_A11Y=1 — "1" is unrecognized and causes
+                           "Unrecognized accessibility backend '1'" which silently
+                           kills AT-SPI registration.
       NO_AT_BRIDGE=0     — allow AT-SPI bridge registration (headless runners
                            set this to 1, which silently disables AT-SPI)
       DISPLAY            — must point to the running Xvfb
@@ -351,7 +358,7 @@ def build_app_env() -> dict:
     either does nothing or causes warnings.
     """
     env = os.environ.copy()
-    env["GTK_A11Y"] = "1"
+    env["GTK_A11Y"] = "atspi"
     env["NO_AT_BRIDGE"] = "0"
     env["GSETTINGS_BACKEND"] = env.get("GSETTINGS_BACKEND", "memory")
 

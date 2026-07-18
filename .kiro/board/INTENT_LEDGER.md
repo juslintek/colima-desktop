@@ -160,3 +160,10 @@
 - **Acceptance:** frontends run 29635550954 has all 9 jobs PASS (windows, linux, macos-kit, daemon×3, tui×3).
 - **macOS explorer:** real-backend AX exploration completed all 13 tabs; `exploration/macos/ground-truth.json` validates with 1,847 elements, 13 screenshots, zero errors. Configuration used a real Peekaboo AX fallback after bounded System Events traversal timed out.
 - **M3.9 residual:** Windows UIAutomation and Linux AT-SPI runtime captures remain environment-blocked: no project GUI guest exists on this host; hosted CI lacks a reliable interactive desktop. Static records are intentionally not fabricated.
+
+---
+
+### 2026-07-18T14:00Z · linux-ui-explorer · M3.9 diagnostic pass 3
+- **intent:** Fix GTK4 accessibility backend: `GTK_A11Y=1` is unrecognized (causes "Unrecognized accessibility backend '1'" error and kills AT-SPI registration). Set `GTK_A11Y=atspi` everywhere (workflow, script, Python). Verified from GTK4 4.22.4 binary: valid values are `accesskit|atspi|test|none|help`; `atspi` is the Linux AT-SPI backend.
+- **plan:** (1) `.github/workflows/explore-linux.yml` — replace every `GTK_A11Y=1` with `GTK_A11Y=atspi`, update comments; (2) `scripts/linux/run_explore.sh` — same; (3) `scripts/linux/explore_atspi.py` — same in `build_app_env()` and docstring; (4) update `exploration/linux/ground-truth.json` diagnostic metadata to record the fix; (5) validate YAML/Python/shell; commit; no push.
+- **files-to-touch:** `.github/workflows/explore-linux.yml`, `scripts/linux/run_explore.sh`, `scripts/linux/explore_atspi.py`, `exploration/linux/ground-truth.json`.
