@@ -12,7 +12,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <!-- WindowsAppSDK SelfContained targets reject AnyCPU; pin x64 as the default
          so every dotnet restore/build/publish operation is RID-consistent without
-         requiring an explicit -r win-x64 flag at every call site. -->
+         requiring an explicit -r win-x64 flag at every call site.
+         <Platform> must be set here (not just PlatformTarget/Platforms) because
+         MSBuild's SelfContained resolution gate checks the internal $(Platform)
+         property — which defaults to AnyCPU if this element is absent. -->
+    <Platform>x64</Platform>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <PlatformTarget>x64</PlatformTarget>
     <Platforms>x64</Platforms>

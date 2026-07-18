@@ -49,7 +49,13 @@ jobs:
           # Pass -r win-x64 so NuGet resolves RID-specific assets that match the
           # subsequent publish command; avoids the "assets generated for different
           # RID" MSBuild warning that can re-trigger AnyCPU target evaluation.
-          dotnet restore ColimaDesktop.Windows.csproj -r win-x64
+          # -p:Platform=x64 sets the MSBuild $(Platform) property explicitly —
+          # RuntimeIdentifier/PlatformTarget/Platforms alone do NOT override it,
+          # and WindowsAppSDK SelfContained resolution gates on $(Platform).
+          dotnet restore ColimaDesktop.Windows.csproj `
+            -r win-x64 `
+            -p:Platform=x64 `
+            -p:PlatformTarget=x64
         timeout-minutes: 5
 
       - name: Build app (unpackaged, WinAppSDK self-contained)
@@ -58,6 +64,8 @@ jobs:
           dotnet publish ColimaDesktop.Windows.csproj `
             -c Release `
             -r win-x64 `
+            -p:Platform=x64 `
+            -p:PlatformTarget=x64 `
             -p:WindowsPackageType=None `
             -p:WindowsAppSDKSelfContained=true `
             -p:SelfContained=true `

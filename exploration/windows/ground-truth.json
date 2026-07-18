@@ -1,0 +1,39 @@
+{
+  "platform": "windows",
+  "schema_version": "1.0",
+  "timestamp": "2026-07-18T14:09:34Z",
+  "status": "diagnostic",
+  "total_elements": 0,
+  "surfaces_explored": 0,
+  "surfaces": [],
+  "screenshots": [],
+  "capture_errors": [],
+  "diagnostic_history": [
+    {
+      "pass": 1,
+      "run_id": null,
+      "error": "WindowsAppSDK runtime not installed on CI runner — Bootstrap::Initialize failed at startup; app process exited immediately with no window.",
+      "fix_applied": "Added WindowsAppSDKSelfContained=true + SelfContained=true to dotnet publish to embed AppSDK DLLs in output directory, eliminating the runtime-installer dependency."
+    },
+    {
+      "pass": 2,
+      "run_id": null,
+      "error": "gRPC codegen ordering: x:Bind ViewModels referenced Colimaui types before Grpc.Tools generated them, causing XamlPreCompile MSB3073.",
+      "fix_applied": "Added ProtoBeforeXaml MSBuild target (BeforeTargets=XamlPreCompile;CoreCompile, DependsOnTargets=Protobuf_Compile) and csharp_namespace=Colimaui option to proto Protobuf item."
+    },
+    {
+      "pass": 3,
+      "run_id": null,
+      "error": "ReadAllAsync not found — Grpc.Core.AsyncStreamReader does not expose ReadAllAsync in the version used; required explicit using.",
+      "fix_applied": "Added global <Using Include=\"Grpc.Core\" /> to csproj so ReadAllAsync extension from Grpc.Core namespace resolves without per-file using directives."
+    },
+    {
+      "pass": 4,
+      "run_id": "29641947428",
+      "error": "WindowsAppSDK SelfContained platform AnyCPU: MSBuild $(Platform) property defaults to AnyCPU because <Platform> was never set in the csproj PropertyGroup. The existing <RuntimeIdentifier>win-x64</RuntimeIdentifier>, <PlatformTarget>x64</PlatformTarget>, and <Platforms>x64</Platforms> properties do NOT override the internal $(Platform) evaluation target that gates WindowsAppSDK SelfContained resolution.",
+      "fix_applied": "Added <Platform>x64</Platform> to csproj PropertyGroup (alongside existing RuntimeIdentifier/PlatformTarget/Platforms). Added -p:Platform=x64 -p:PlatformTarget=x64 to both dotnet restore and dotnet publish steps in .github/workflows/explore-windows.yml. This ensures MSBuild $(Platform) is x64 at every evaluation point, not just the RID/target-framework level."
+    }
+  ],
+  "environment_note": "Windows UIAutomation ground-truth capture requires a running Windows GUI session. This host is macOS; runtime capture is validated by CI (explore-windows workflow on windows-latest runner). This file is updated diagnostically after each CI pass until the app launches successfully and FlaUI exploration completes.",
+  "next_step": "CI run with pass-4 fix applied; expected: dotnet restore and publish both evaluate Platform=x64, WindowsAppSDK SelfContained resolves correctly, app binary produced, FlaUI explorer launched."
+}
