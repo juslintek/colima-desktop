@@ -200,3 +200,14 @@
 - **files-to-touch:** `scripts/windows/Program.cs`, `exploration/windows/ground-truth.json`.
 - **outcome:** DONE ✅ (commit 8eefc67). NavigateToItem restored to Click-first. Dashboard uses no-navigation path. Re-resolution of mainWindow and nav item on every iteration (and on every offscreen item). navAutomationId captured eagerly. ground-truth.json updated with pass-5/5b/6 diagnostic history. Target: 13/13 surfaces nonzero.
 - **contract-impact:** none.
+
+### 2026-07-18T14:41Z · linux-ui-explorer · M3.9 diagnostic pass 6 — outcome
+- **outcome:** DONE ✅ (commit 55e82bd). Root cause confirmed: `doAction(0)` fires the index-0 AT-SPI action on GTK4 ListBoxRow (clipboard/focus/etc.) and returns True — but GTK4's `connect_row_selected` signal only fires from real pointer/keyboard input, so the Stack page never changed. All 11 captures had 87 elements with identical fingerprints.
+  - **Fix 1:** `doAction(0)` arbitrary-index fallback removed entirely. Only `doAction(i)` where `getName(i).lower() in ('click','activate','select')` is invoked.
+  - **Fix 2:** Added `_get_row_center(row)` using `queryComponent().getExtents(DESKTOP_COORDS)`.
+  - **Fix 3:** Added `_get_content_fingerprint(app_acc)`: DFS-finds `main_stack` node, returns `frozenset` of visible child/grandchild widget names (sidebar names excluded); falls back to full-tree if `main_stack` not found.
+  - **Fix 4:** Activation fallback chain per row: named-doAction → `generateMouseEvent(cx,cy,'b1c')` → `xdotool mousemove cx cy click 1`.
+  - **Fix 5:** After EACH attempt, pause + compare `fp_before` vs `fp_after`; only accept if fingerprint changed. Dashboard (first surface) skips change check (it IS the initial/baseline page).
+  - **Fix 6:** `activate_sidebar_row` returns `(bool, str)` — activation method recorded per surface in ground-truth.json.
+  - Workflow comment updated; `xdotool` was already in apt deps from pass 5. All files syntax/YAML/JSON validated. Committed; not pushed.
+- **contract-impact:** none.
