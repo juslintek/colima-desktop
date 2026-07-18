@@ -4,8 +4,9 @@
 #   - Valid JSON (parseable)
 #   - Required top-level keys present
 #   - total_elements > 0  (no invented elements guard)
-#   - At least one surface with element_count > 0
+#   - ALL 13 surfaces have element_count > 0  (every nav surface must be captured)
 #   - surfaces array non-empty
+#   - capture_errors is empty  (zero errors required)
 #
 # Usage:  pwsh validate-ground-truth.ps1 <path-to-json>
 # Exit:   0 = valid,  1 = invalid
@@ -66,13 +67,28 @@ if ($null -eq $surfaces -or $surfaces.Count -eq 0) {
 }
 Write-Host "[validate] surfaces count = $($surfaces.Count)"
 
-# At least one surface must have element_count > 0
-$surfacesWithElements = @($surfaces | Where-Object { [int]$_.element_count -gt 0 })
-if ($surfacesWithElements.Count -eq 0) {
-    Write-Error "[validate] FAIL: No surface has element_count > 0"
+# All 13 surfaces must have element_count > 0
+$emptySurfaces = @($surfaces | Where-Object { [int]$_.element_count -eq 0 })
+if ($emptySurfaces.Count -gt 0) {
+    Write-Host "[validate] FAIL: $($emptySurfaces.Count) surface(s) have zero elements:"
+    foreach ($s in $emptySurfaces) {
+        $errMsgs = if ($s.errors) { $s.errors -join "; " } else { "(no error message)" }
+        Write-Host "  - $($s.surface_label): $errMsgs"
+    }
+    Write-Error "[validate] FAIL: All 13 surfaces must have element_count > 0"
     exit 1
 }
-Write-Host "[validate] Surfaces with elements: $($surfacesWithElements.Count)/$($surfaces.Count)"
+Write-Host "[validate] All $($surfaces.Count) surfaces have nonzero elements — OK"
+
+# Zero capture errors required
+$captureErrors = $doc.capture_errors
+if ($captureErrors -and $captureErrors.Count -gt 0) {
+    Write-Host "[validate] FAIL: $($captureErrors.Count) capture error(s):"
+    foreach ($e in $captureErrors) { Write-Host "  - $e" }
+    Write-Error "[validate] FAIL: capture_errors must be empty"
+    exit 1
+}
+Write-Host "[validate] capture_errors = 0 — OK"
 
 # Report per-surface summary
 foreach ($s in $surfaces) {
@@ -81,5 +97,5 @@ foreach ($s in $surfaces) {
     Write-Host "  [$flag] $($s.surface_label): $($s.element_count) elements, $errCount errors"
 }
 
-Write-Host "[validate] PASS: ground-truth.json is valid ($total elements across $($surfacesWithElements.Count) surfaces)"
+Write-Host "[validate] PASS: ground-truth.json is valid ($total elements across $($surfaces.Count)/13 surfaces, 0 capture errors)"
 exit 0

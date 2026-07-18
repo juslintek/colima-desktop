@@ -41,6 +41,27 @@ Colima shim note (pass 4):
     onboarding window (widget_name=window_onboarding, title contains "Setup" or
     accessible label "Colima Desktop Setup"), and fails immediately if so, emitting
     a structured error with instructions to add the colima shim to PATH.
+
+Pass 5 note (role=unknown):
+  - Run 29642368079 proves the real main UI with 11 sidebar labels loads, but
+    pyatspi reports every role as 'unknown' on this GTK4 + ubuntu-latest combo.
+  - Role-based matching ('list' in role.lower(), 'frame' in role.lower()) all fail.
+  - Fix: all tree traversal and widget lookup is now fully ROLE-BLIND.
+    * find_sidebar_listbox() uses 4 name-based strategies:
+        1. DFS for accessible name == "sidebar_list" (widget_name on ListBox)
+        2. DFS for accessible name == "Navigation" (Property::Label on ListBox)
+        3. DFS for "sidebar_scroll" then first child with >= 5 children
+        4. Score-based: find node whose children names overlap known sidebar labels
+    * activate_sidebar_row() uses:
+        A. row.name == surface_id ("dashboard", "containers", ...)
+        B. row.name == surface_name ("Dashboard", "Containers", ...)
+        C. child.name == surface_name (Label child inside row)
+        D. Positional index from SIDEBAR_SURFACES order (last resort)
+      For each matched row: doAction(click/activate) → any doAction → generateMouseEvent
+  - Distinct-surface fingerprint now uses sorted set of element names (not just
+    element count) — gives reliable distinct-view detection when nav works.
+  - Requires 11 non-empty captures (all sidebar surfaces) + >= 3 distinct name-fps.
+  - dump_tree_diagnostic() emits bounded tree (depth<=6) on first activation miss.
 """
 
 import argparse
@@ -324,123 +345,310 @@ def detect_onboarding_window(app_acc) -> bool:
     return _check_node(app_acc)
 
 
-def find_sidebar_listbox(app_acc):
+def get_node_accessible_name(node) -> str:
+    """Return best accessible name for a node: name, description, or accessible attributes."""
+    try:
+        n = node.name or ""
+        if n:
+            return n
+    except Exception:
+        pass
+    try:
+        d = node.description or ""
+        if d:
+            return d
+    except Exception:
+        pass
+    try:
+        attrs = node.getAttributes()
+        if attrs:
+            for a in attrs:
+                if isinstance(a, str) and a.strip():
+                    return a.strip()
+    except Exception:
+        pass
+    return ""
+
+
+def find_node_by_accessible_name(root, target_name: str, max_depth: int = 25) -> object:
     """
-    Find the sidebar ListBox widget.  Tries multiple strategies in order:
-
-    1. widget_name == "sidebar_list"   (set explicitly in main.rs build_sidebar)
-    2. accessible Property::Label == "Navigation"  (also set in build_sidebar)
-    3. First LIST_BOX role with >= 5 children  (sidebar has 11 entries)
-    4. Any LIST_BOX role (fallback)
-
-    The sidebar is a gtk::ListBox inside a gtk::ScrolledWindow inside the left
-    pane of the gtk::Paned.  At depth <= 15 from app root.
+    DFS search for a node whose accessible name (name/desc/attrs) exactly matches
+    target_name.  Role-blind — works even when all roles are reported as 'unknown'.
     """
-    best_listbox = None
-    best_listbox_children = 0
-
-    def search(node, _depth=0):
-        nonlocal best_listbox, best_listbox_children
-        if _depth > 20:
+    def _search(node, depth):
+        if depth > max_depth:
             return None
         try:
-            node_name = node.name or ""
-            node_desc = node.description or ""
-            role = role_name(node)
-
-            # Strategy 1: exact widget_name match (AT-SPI name for gtk4-rs ListBox)
-            if node_name == "sidebar_list":
+            n = get_node_accessible_name(node)
+            if n == target_name:
                 return node
-
-            # Strategy 2: accessible label == "Navigation"
-            if node_name == "Navigation" and "list" in role.lower():
-                return node
-            if node_desc == "Navigation" and "list" in role.lower():
-                return node
-
-            # Strategy 3 & 4: remember best LIST_BOX by child count
-            if "list" in role.lower():
-                try:
-                    nchildren = node.childCount
-                    if nchildren > best_listbox_children:
-                        best_listbox = node
-                        best_listbox_children = nchildren
-                except Exception:
-                    pass
-
         except Exception:
             pass
-
         try:
             for i in range(node.childCount):
                 child = node.getChildAtIndex(i)
                 if child is not None:
-                    result = search(child, _depth + 1)
-                    if result is not None:
-                        return result
+                    found = _search(child, depth + 1)
+                    if found is not None:
+                        return found
         except Exception:
             pass
         return None
 
-    explicit = search(app_acc)
-    if explicit is not None:
-        return explicit
+    return _search(root, 0)
 
-    # Fall back to best list box found during traversal (strategy 3/4)
-    if best_listbox is not None and best_listbox_children >= 2:
+
+def find_sidebar_listbox(app_acc):
+    """
+    Find the sidebar ListBox widget.  Role-blind strategies (GTK4 + this runner
+    combo may report every role as 'unknown', so we cannot rely on role matching):
+
+    Strategy 1: DFS for node with accessible name == "sidebar_list"
+                (widget_name set in main.rs; GTK4 exposes widget_name as AT-SPI name
+                 for some widget types on some GTK versions)
+    Strategy 2: DFS for node with accessible name == "Navigation"
+                (accessible Property::Label set on the ListBox)
+    Strategy 3: DFS for node with accessible name == "sidebar_scroll"
+                (ScrolledWindow parent; use its first child as the listbox)
+    Strategy 4: Collect all nodes with >= 5 children; pick the one whose children
+                have accessible names matching the known surface labels.
+                This is the most robust fallback — works regardless of role/name.
+
+    The sidebar is a gtk::ListBox inside a gtk::ScrolledWindow inside the left
+    pane of the gtk::Paned.  At depth <= 15 from app root.
+    """
+    # Strategy 1 & 2 — direct name match
+    for target in ("sidebar_list", "Navigation"):
+        node = find_node_by_accessible_name(app_acc, target, max_depth=25)
+        if node is not None:
+            print(
+                f"[find_sidebar_listbox] Strategy 1/2 found via name={target!r}: "
+                f"name={getattr(node, 'name', '?')!r} role={role_name(node)!r} "
+                f"children={getattr(node, 'childCount', '?')}",
+                flush=True,
+            )
+            return node
+
+    # Strategy 3 — find sidebar_scroll then get first child
+    scroll_node = find_node_by_accessible_name(app_acc, "sidebar_scroll", max_depth=25)
+    if scroll_node is not None:
+        try:
+            for i in range(scroll_node.childCount):
+                child = scroll_node.getChildAtIndex(i)
+                if child is not None and child.childCount >= 5:
+                    print(
+                        f"[find_sidebar_listbox] Strategy 3 (sidebar_scroll child): "
+                        f"name={getattr(child, 'name', '?')!r} children={child.childCount}",
+                        flush=True,
+                    )
+                    return child
+        except Exception:
+            pass
+
+    # Strategy 4 — find a node whose children's accessible names include known sidebar labels
+    known_labels = {label for _, label in SIDEBAR_SURFACES}
+
+    best_node = None
+    best_score = 0
+
+    def _collect_candidates(node, depth=0):
+        nonlocal best_node, best_score
+        if depth > 20:
+            return
+        try:
+            nchildren = node.childCount
+            if nchildren >= 5:
+                # Check how many children have names matching sidebar labels
+                child_names = set()
+                for i in range(min(nchildren, 20)):
+                    try:
+                        ch = node.getChildAtIndex(i)
+                        if ch is not None:
+                            n = get_node_accessible_name(ch)
+                            if n:
+                                child_names.add(n)
+                            # Also check grandchildren (row > label pattern)
+                            for j in range(min(ch.childCount, 5)):
+                                try:
+                                    gch = ch.getChildAtIndex(j)
+                                    if gch is not None:
+                                        gn = get_node_accessible_name(gch)
+                                        if gn:
+                                            child_names.add(gn)
+                                except Exception:
+                                    pass
+                    except Exception:
+                        pass
+                score = len(child_names & known_labels)
+                if score > best_score:
+                    best_score = score
+                    best_node = node
+        except Exception:
+            pass
+        try:
+            for i in range(node.childCount):
+                ch = node.getChildAtIndex(i)
+                if ch is not None:
+                    _collect_candidates(ch, depth + 1)
+        except Exception:
+            pass
+
+    _collect_candidates(app_acc)
+
+    if best_node is not None and best_score >= 3:
         print(
-            f"[find_sidebar_listbox] Using fallback list box "
-            f"(children={best_listbox_children}, name={getattr(best_listbox, 'name', '?')!r})",
+            f"[find_sidebar_listbox] Strategy 4 (label-match): "
+            f"name={getattr(best_node, 'name', '?')!r} "
+            f"children={getattr(best_node, 'childCount', '?')} "
+            f"label_score={best_score}/{len(known_labels)}",
             flush=True,
         )
-        return best_listbox
+        return best_node
 
+    print("[find_sidebar_listbox] All strategies exhausted — sidebar not found", flush=True)
     return None
 
 
-def activate_sidebar_row(listbox, surface_name: str) -> bool:
-    """Click the sidebar row whose accessible name matches surface_name."""
+def dump_tree_diagnostic(root, max_depth: int = 6, max_children: int = 20) -> list:
+    """
+    Bounded DFS dump for diagnostics when a label is missing.
+    Returns a list of dicts with name/role/childCount — enough to debug
+    why a particular node is not being found.
+    """
+    result = []
+
+    def _dump(node, depth):
+        if depth > max_depth:
+            return
+        try:
+            n = node.name or ""
+            r = role_name(node)
+            nc = node.childCount
+            result.append({
+                "depth": depth,
+                "name": n,
+                "role": r,
+                "childCount": nc,
+            })
+            for i in range(min(nc, max_children)):
+                ch = node.getChildAtIndex(i)
+                if ch is not None:
+                    _dump(ch, depth + 1)
+        except Exception as e:
+            result.append({"depth": depth, "error": str(e)})
+
+    _dump(root, 0)
+    return result
+
+
+def activate_sidebar_row(listbox, surface_id: str, surface_name: str) -> bool:
+    """
+    Navigate to a sidebar surface.  Role-blind multi-strategy:
+
+    Strategy A: Find row by widget_name == surface_id  (e.g. "dashboard")
+                widget_name is set via row.set_widget_name(id) in main.rs
+    Strategy B: Find row by accessible name == surface_name (e.g. "Dashboard")
+                set via row.update_property(Property::Label(name))
+    Strategy C: Find row whose child label text == surface_name
+                (Label child set via lbl.set_widget_name("sidebar_label_{id}"))
+    Strategy D: Positional index from SIDEBAR_SURFACES order (last resort)
+
+    For each matched row, activation priority:
+      1. doAction('click') or doAction('activate')
+      2. SelectionItemPattern equivalent: querySelection on parent
+      3. generateMouseEvent at center coords
+    """
+    def _try_activate(row) -> bool:
+        # Try doAction
+        try:
+            action = row.queryAction()
+            for j in range(action.nActions):
+                aname = action.getName(j).lower() if action.getName(j) else ""
+                if aname in ("click", "activate"):
+                    action.doAction(j)
+                    return True
+        except Exception:
+            pass
+
+        # Try any available action (take first one)
+        try:
+            action = row.queryAction()
+            if action.nActions > 0:
+                action.doAction(0)
+                return True
+        except Exception:
+            pass
+
+        # generateMouseEvent at center
+        try:
+            comp = row.queryComponent()
+            ext = comp.getExtents(pyatspi.DESKTOP_COORDS)
+            if ext.width > 0 and ext.height > 0:
+                x = ext.x + ext.width // 2
+                y = ext.y + ext.height // 2
+                pyatspi.Registry.generateMouseEvent(x, y, "b1c")
+                return True
+        except Exception:
+            pass
+
+        return False
+
+    def _name_matches(node, target_name, target_id) -> bool:
+        try:
+            n = node.name or ""
+            if n == target_id or n == target_name:
+                return True
+        except Exception:
+            pass
+        try:
+            d = node.description or ""
+            if d == target_name or d == target_id:
+                return True
+        except Exception:
+            pass
+        return False
+
+    # Strategies A & B: direct row iteration
     try:
-        for i in range(listbox.childCount):
+        nchildren = listbox.childCount
+        for i in range(nchildren):
             row = listbox.getChildAtIndex(i)
             if row is None:
                 continue
-            row_name = (row.name or "").strip()
 
-            matched = row_name == surface_name
-            if not matched:
-                # Also check label children
-                try:
-                    for c in range(row.childCount):
-                        child = row.getChildAtIndex(c)
-                        if child and (child.name or "").strip() == surface_name:
-                            matched = True
-                            break
-                except Exception:
-                    pass
-
-            if matched:
-                # Try doAction first
-                try:
-                    action = row.queryAction()
-                    for j in range(action.nActions):
-                        if action.getName(j) in ("click", "activate"):
-                            action.doAction(j)
-                            return True
-                except Exception:
-                    pass
-                # Fallback: mouse click via component extents
-                try:
-                    comp = row.queryComponent()
-                    ext = comp.getExtents(pyatspi.DESKTOP_COORDS)
-                    x = ext.x + ext.width // 2
-                    y = ext.y + ext.height // 2
-                    pyatspi.Registry.generateMouseEvent(x, y, "b1c")
+            # Strategy A & B: name/desc match
+            if _name_matches(row, surface_name, surface_id):
+                if _try_activate(row):
+                    print(f"  [activate] Strategy A/B match (row name), surface={surface_name!r}", flush=True)
                     return True
-                except Exception:
-                    pass
+
+            # Strategy C: check child labels
+            try:
+                for ci in range(row.childCount):
+                    child = row.getChildAtIndex(ci)
+                    if child is not None:
+                        cn = get_node_accessible_name(child)
+                        if cn == surface_name or cn == surface_id:
+                            if _try_activate(row):
+                                print(f"  [activate] Strategy C match (child label), surface={surface_name!r}", flush=True)
+                                return True
+            except Exception:
+                pass
     except Exception:
         pass
+
+    # Strategy D: positional index
+    try:
+        idx = next(i for i, (sid, _) in enumerate(SIDEBAR_SURFACES) if sid == surface_id)
+        row = listbox.getChildAtIndex(idx)
+        if row is not None:
+            if _try_activate(row):
+                print(f"  [activate] Strategy D (positional index={idx}), surface={surface_name!r}", flush=True)
+                return True
+    except Exception:
+        pass
+
+    print(f"  [activate] All strategies failed for surface={surface_name!r}", flush=True)
     return False
 
 
@@ -649,16 +857,36 @@ def main() -> int:
                 flush=True,
             )
 
+        tree_diagnostic_captured = False
+
         # Traverse each surface
         for idx, (surface_id, surface_name) in enumerate(SIDEBAR_SURFACES, 1):
             surface_errors = []
             activated = False
 
             if sidebar is not None:
-                activated = activate_sidebar_row(sidebar, surface_name)
+                activated = activate_sidebar_row(sidebar, surface_id, surface_name)
                 if not activated:
                     surface_errors.append(f"Could not activate sidebar row '{surface_name}'")
                     print(f"  WARNING: sidebar row '{surface_name}' not activated", flush=True)
+                    # Capture bounded tree diagnostic on first activation failure
+                    if not tree_diagnostic_captured:
+                        tree_diagnostic_captured = True
+                        diag = dump_tree_diagnostic(app_acc, max_depth=6, max_children=20)
+                        errors.append({
+                            "phase": "activation_diagnostic",
+                            "surface": surface_id,
+                            "surface_label": surface_name,
+                            "message": (
+                                f"First missing label: '{surface_name}'. "
+                                "Bounded pre-navigation tree follows (depth<=6, children<=20 each)."
+                            ),
+                            "tree_diagnostic": diag,
+                        })
+                        print(
+                            f"  [diagnostic] Dumped tree ({len(diag)} nodes) for missing '{surface_name}'",
+                            flush=True,
+                        )
                 else:
                     print(f"  Activated: {surface_name}", flush=True)
                     time.sleep(args.surface_pause)
@@ -668,6 +896,13 @@ def main() -> int:
             # Collect tree from app root for this surface
             elements = collect_tree(app_acc, surface_name)
             total_elements += len(elements)
+
+            # Build a name-based fingerprint: sorted tuple of non-empty element names
+            # This allows detecting truly-distinct surfaces even when element counts
+            # happen to be similar across surfaces.
+            element_names_fingerprint = tuple(sorted(set(
+                e["name"] for e in elements if e.get("name", "").strip()
+            )))
 
             # Screenshot
             ss_file = SCREENSHOTS_DIR / f"{idx:04d}-{surface_id}.png"
@@ -683,6 +918,7 @@ def main() -> int:
                 "surface_label": surface_name,
                 "activated": activated,
                 "element_count": len(elements),
+                "element_names_fingerprint": list(element_names_fingerprint[:30]),
                 "screenshot": f"exploration/linux/screenshots/{ss_file.name}" if ss_taken else None,
                 "elements": elements,
                 "errors": surface_errors,
@@ -696,54 +932,67 @@ def main() -> int:
             print("ERROR: zero elements collected", file=sys.stderr)
 
         # ── Distinct-surfaces guard ──────────────────────────────────────
-        # Require at least 2 surface captures that are non-empty AND have
-        # distinct element-count fingerprints.  If all surfaces have
-        # identical element counts it strongly suggests the sidebar navigation
-        # is not working (e.g. all captures are the same onboarding view or
-        # the same main window without switching).
+        # Require:
+        #   (a) >= 11 non-empty captures (one per sidebar surface)
+        #   (b) >= 3 distinct name-fingerprints (real different content across surfaces)
+        #       Element-count alone is unreliable because GTK4 full-tree captures always
+        #       include the entire window tree; use the set of element names instead.
+        #
+        # The name-fingerprint is: sorted tuple of distinct non-empty element names.
+        # If navigation is not working, all 11 captures show the same surface and
+        # therefore identical name-sets.  If working, different surfaces expose
+        # different widget names (e.g. "containers_list" vs "images_list" etc.).
         nonempty_surfaces = [s for s in surfaces_data if s["element_count"] > 0]
-        distinct_counts = len(set(s["element_count"] for s in nonempty_surfaces))
+        distinct_count_fps = len(set(s["element_count"] for s in nonempty_surfaces))
+        distinct_name_fps = len(set(
+            tuple(s.get("element_names_fingerprint", [])) for s in nonempty_surfaces
+        ))
         activated_count = sum(1 for s in surfaces_data if s["activated"])
 
         print(
             f"[explore_atspi] Surfaces: {len(surfaces_data)} total, "
-            f"{len(nonempty_surfaces)} non-empty, {distinct_counts} distinct element counts, "
-            f"{activated_count} activated",
+            f"{len(nonempty_surfaces)} non-empty, {distinct_count_fps} distinct count-fps, "
+            f"{distinct_name_fps} distinct name-fps, {activated_count} activated",
             flush=True,
         )
 
-        if len(nonempty_surfaces) < 2:
+        # Require 11 non-empty captures
+        if len(nonempty_surfaces) < 11:
             errors.append({
                 "phase": "distinct_surfaces_check",
                 "error": (
-                    f"Only {len(nonempty_surfaces)} non-empty surfaces captured (need >= 2). "
-                    "Navigation is not working or all surfaces returned empty trees."
+                    f"Only {len(nonempty_surfaces)}/11 non-empty surfaces captured. "
+                    "Navigation is not working or some surfaces returned empty trees."
                 ),
+                "nonempty_surfaces": [s["surface"] for s in nonempty_surfaces],
+                "activated_count": activated_count,
             })
             print(
-                f"ERROR: only {len(nonempty_surfaces)} non-empty surfaces (need >= 2)",
+                f"ERROR: only {len(nonempty_surfaces)}/11 non-empty surfaces (need all 11)",
                 file=sys.stderr,
             )
 
-        if distinct_counts < 2 and len(nonempty_surfaces) >= 2:
-            # All non-empty surfaces have the same element count — suspect
-            # identical captures (e.g. all showing onboarding or same view)
+        # Require distinct name fingerprints (real navigation happened)
+        # Use a lower bar of 3 distinct fps in case some surfaces are structurally similar
+        if distinct_name_fps < 3 and len(nonempty_surfaces) >= 3:
+            # All non-empty surfaces have the same name content — likely identical captures
             errors.append({
                 "phase": "distinct_surfaces_check",
                 "error": (
-                    f"All {len(nonempty_surfaces)} non-empty surfaces have the same element "
-                    f"count ({nonempty_surfaces[0]['element_count']}). This strongly suggests "
-                    "all captures are identical (sidebar navigation not working or onboarding "
-                    "window captured repeatedly)."
+                    f"Only {distinct_name_fps} distinct name-fingerprints across "
+                    f"{len(nonempty_surfaces)} non-empty surfaces (need >= 3). "
+                    "All captures appear to show the same surface — sidebar navigation "
+                    "rows are not being activated, or all views have identical AT-SPI trees."
                 ),
                 "recommendation": (
-                    "Verify the colima shim is on PATH so the main window loads. "
-                    "Check sidebar activation: doAction('click'/'activate') may not be "
-                    "triggering a view switch — try generateMouseEvent fallback."
+                    "Check sidebar activation: row widget_names are IDs like 'dashboard', "
+                    "not labels like 'Dashboard'. Verify Strategy A/B/C/D all tried. "
+                    "Check if GTK4 row.connect_row_selected signal fires (generateMouseEvent)."
                 ),
             })
             print(
-                f"WARNING: all non-empty surfaces identical ({distinct_counts} distinct counts)",
+                f"WARNING: only {distinct_name_fps} distinct name-fps "
+                f"(element-count fps: {distinct_count_fps})",
                 file=sys.stderr,
             )
 
@@ -805,8 +1054,11 @@ def main() -> int:
         print("VALIDATION FAILED: zero elements — AT-SPI capture incomplete", file=sys.stderr)
         return 1
 
-    # Fail if distinct-surfaces guard tripped
-    if any(e.get("phase") == "distinct_surfaces_check" and "only" in e.get("error", "") for e in errors):
+    # Fail if distinct-surfaces guard tripped (too few non-empty surfaces)
+    if any(
+        e.get("phase") == "distinct_surfaces_check" and "only" in e.get("error", "").lower()
+        for e in errors
+    ):
         print("VALIDATION FAILED: insufficient distinct surfaces captured", file=sys.stderr)
         return 1
 

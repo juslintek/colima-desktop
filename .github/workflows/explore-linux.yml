@@ -1,4 +1,8 @@
 name: explore-linux
+# Pass 5: role-blind sidebar navigation (all roles report as 'unknown' on GTK4/ubuntu-latest).
+# Uses name-based DFS (widget_name/accessible label/child text/positional index) to find
+# and activate each of the 11 sidebar rows.  Requires 11 nonempty captures + >=3 distinct
+# name-fingerprints.  Bounded tree diagnostic emitted on first activation miss.
 
 # Trigger on:
 #   - manual dispatch
@@ -281,7 +285,15 @@ jobs:
               print("VALIDATION FAILED: element_count=0", file=sys.stderr)
               sys.exit(1)
 
-          print(f"VALIDATION PASSED: {count} elements captured")
+          surfaces = data.get("surfaces", [])
+          nonempty = [s for s in surfaces if s.get("element_count", 0) > 0]
+          print(f"nonempty_surfaces : {len(nonempty)}/{len(surfaces)}")
+
+          if len(nonempty) < 11:
+              print(f"VALIDATION FAILED: only {len(nonempty)}/11 nonempty surfaces", file=sys.stderr)
+              sys.exit(1)
+
+          print(f"VALIDATION PASSED: {count} elements, {len(nonempty)}/11 surfaces captured")
           PYEOF
 
       # ── Upload artifact (always — for diagnostics on failure too) ───────

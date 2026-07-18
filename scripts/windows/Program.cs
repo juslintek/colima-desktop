@@ -228,8 +228,16 @@ internal static class Program
                         continue;
                     }
 
-                    // Invoke navigation
-                    navItem.Click();
+                    // Invoke navigation — prefer automation patterns over mouse to handle
+                    // offscreen items (zero bounding rect → NoClickablePointException).
+                    string? navErr = NavigateToItem(navItem, label);
+                    if (navErr != null)
+                    {
+                        Console.WriteLine($"[explorer] WARN: {navErr}");
+                        captureErrors.Add(navErr);
+                        surfaces.Add(EmptySurface(surfaceKey, label, navErr));
+                        continue;
+                    }
                     Thread.Sleep((int)NavigationSettle.TotalMilliseconds);
 
                     // Traverse full window tree
@@ -266,6 +274,11 @@ internal static class Program
             }
 
             var totalElements = surfaces.Sum(s => s.ElementCount);
+
+            // Enforce: ALL 13 surfaces must have at least 1 element, and zero capture errors.
+            var missingSurfaces = surfaces.Where(s => s.ElementCount == 0).Select(s => s.SurfaceLabel).ToList();
+            bool allSurfacesNonzero = missingSurfaces.Count == 0;
+            bool zeroCaptureErrors  = captureErrors.Count == 0;
 
             var capture = new GroundTruthCapture
             {
@@ -317,7 +330,21 @@ internal static class Program
                 return 1;
             }
 
-            Console.WriteLine("[explorer] SUCCESS");
+            if (!allSurfacesNonzero)
+            {
+                Console.Error.WriteLine($"[explorer] FAIL: {missingSurfaces.Count} surface(s) have zero elements: {string.Join(", ", missingSurfaces)}");
+                return 1;
+            }
+
+            if (!zeroCaptureErrors)
+            {
+                Console.Error.WriteLine($"[explorer] FAIL: {captureErrors.Count} capture error(s):");
+                foreach (var e in captureErrors)
+                    Console.Error.WriteLine($"[explorer]   - {e}");
+                return 1;
+            }
+
+            Console.WriteLine("[explorer] SUCCESS — all 13 surfaces nonzero, 0 capture errors");
             return 0;
         }
         catch (Exception ex)
@@ -461,6 +488,112 @@ internal static class Program
             Thread.Sleep(300);
         }
         return null;
+    }
+
+    /// <summary>
+    /// Navigate to a WinUI 3 NavigationViewItem using automation patterns,
+    /// avoiding Mouse.Click which throws NoClickablePointException when the item
+    /// has a zero bounding rectangle (i.e., is offscreen / scrolled out of view).
+    ///
+    /// Strategy (in priority order):
+    ///   1. ScrollIntoView via ScrollItemPattern (brings item into the visible pane area)
+    ///   2. SelectionItemPattern.Select()  — proper UIA way to select a list item
+    ///   3. LegacyIAccessiblePattern.DoDefaultAction()  — generic MSAA fallback
+    ///   4. Keyboard: set focus + press Enter/Space
+    ///   5. Mouse click (last resort — only works if bounding rect is nonzero)
+    ///
+    /// Returns null on success, or an error string on failure.
+    /// </summary>
+    private static string? NavigateToItem(AutomationElement navItem, string label)
+    {
+        // Step 1: ScrollIntoView if the item is offscreen (zero rect or IsOffscreen flag)
+        bool isOffscreen = SafeGet(() => navItem.IsOffscreen, false);
+        var  rect        = SafeGetRect(navItem);
+        bool zeroRect    = rect == null || (rect.Width == 0 && rect.Height == 0);
+
+        if (isOffscreen || zeroRect)
+        {
+            Console.WriteLine($"[explorer]   '{label}' is offscreen (rect={rect?.Width}×{rect?.Height}) — attempting ScrollIntoView");
+            try
+            {
+                var scrollItem = navItem.Patterns.ScrollItem;
+                if (scrollItem.IsSupported)
+                {
+                    scrollItem.Pattern.ScrollIntoView();
+                    Thread.Sleep(400); // allow NavigationView pane to animate scroll
+                    Console.WriteLine($"[explorer]   ScrollIntoView succeeded for '{label}'");
+                }
+                else
+                {
+                    Console.WriteLine($"[explorer]   ScrollItemPattern not supported for '{label}' — continuing with other patterns");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[explorer]   ScrollIntoView failed for '{label}': {ex.Message}");
+                // Not fatal — continue to next strategy
+            }
+        }
+
+        // Step 2: SelectionItemPattern.Select() — the canonical way to select a nav item
+        try
+        {
+            var selectionItem = navItem.Patterns.SelectionItem;
+            if (selectionItem.IsSupported)
+            {
+                selectionItem.Pattern.Select();
+                Console.WriteLine($"[explorer]   SelectionItemPattern.Select() succeeded for '{label}'");
+                return null; // success
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[explorer]   SelectionItemPattern.Select() failed for '{label}': {ex.Message}");
+        }
+
+        // Step 3: LegacyIAccessiblePattern.DoDefaultAction() — MSAA fallback
+        try
+        {
+            var legacyIa = navItem.Patterns.LegacyIAccessible;
+            if (legacyIa.IsSupported)
+            {
+                legacyIa.Pattern.DoDefaultAction();
+                Console.WriteLine($"[explorer]   LegacyIAccessiblePattern.DoDefaultAction() succeeded for '{label}'");
+                return null; // success
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[explorer]   LegacyIAccessiblePattern.DoDefaultAction() failed for '{label}': {ex.Message}");
+        }
+
+        // Step 4: Keyboard — focus the element and press Enter
+        try
+        {
+            navItem.Focus();
+            Thread.Sleep(200);
+            FlaUI.Core.Input.Keyboard.Press(FlaUI.Core.WindowsAPI.VirtualKeyShort.RETURN);
+            Thread.Sleep(200);
+            Console.WriteLine($"[explorer]   Keyboard Enter succeeded for '{label}'");
+            return null; // success
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[explorer]   Keyboard Enter failed for '{label}': {ex.Message}");
+        }
+
+        // Step 5: Mouse click — last resort (only works when bounding rect is nonzero)
+        try
+        {
+            navItem.Click();
+            Console.WriteLine($"[explorer]   Mouse.Click() succeeded for '{label}'");
+            return null; // success
+        }
+        catch (Exception ex)
+        {
+            // All strategies exhausted
+            return $"All navigation strategies failed for '{label}': {ex.GetType().Name}: {ex.Message}";
+        }
     }
 
     private static void TraverseElement(
