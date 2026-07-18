@@ -151,3 +151,12 @@
 - **CI now GREEN: daemon×3, tui×3, macos-kit. RED: windows-winui, linux-gtk4** (documented in gap-report.md with exact remaining fixes; both need native dev environments for efficient iteration — a genuine environmental constraint on this macOS host).
 - **verify.sh COV_MIN → 71** (robust no-VM floor; 74.2% with the live e2e VM). GREEN in any environment.
 - **HONEST FINAL STATE:** plan is NOT 100% complete. Unmet: M3.11 literal 100% coverage (provably unreachable headless; achieved 71.9–74.2%, the practical max), M3.9 live UI explorers (needs GUI+AX/UIA/AT-SPI sessions), and windows/linux frontend CI compilation (needs native toolchains to finish 2 documented deep fixes). Everything else DONE + verified.
+
+---
+
+### 2026-07-18T10:40Z · orchestrator · frontend CI green + macOS M3.9 ground truth
+- **Windows fixed:** XamlCompiler binding issues corrected by windows-native-dev; authoritative `windows-winui` GitHub Actions job PASS.
+- **Linux fixed:** all GTK `!Send` widget captures refactored to async-channel + GLib `spawn_future_local`; authoritative `linux-gtk4` job PASS.
+- **Acceptance:** frontends run 29635550954 has all 9 jobs PASS (windows, linux, macos-kit, daemon×3, tui×3).
+- **macOS explorer:** real-backend AX exploration completed all 13 tabs; `exploration/macos/ground-truth.json` validates with 1,847 elements, 13 screenshots, zero errors. Configuration used a real Peekaboo AX fallback after bounded System Events traversal timed out.
+- **M3.9 residual:** Windows UIAutomation and Linux AT-SPI runtime captures remain environment-blocked: no project GUI guest exists on this host; hosted CI lacks a reliable interactive desktop. Static records are intentionally not fabricated.

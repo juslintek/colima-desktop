@@ -20,7 +20,7 @@
 | M2.6 | Windows WinUI 3 GUI | windows-native-dev | M0.4 | `windows/` | DONE |
 | M2.7 | Linux GTK4 GUI | linux-native-dev | M0.4 | `linux/` | DONE |
 | M2.8 | TUI Bubble Tea | tui-dev | M0.4 | `tui/` | DONE |
-| M3.9 | Per-platform explorers → ground-truth.json | *-ui-explorer | M2.* | `exploration/` | BLOCKED (needs live GUI+AX/UIA/AT-SPI session; not runnable headless — see docs/gap-report.md) |
+| M3.9 | Per-platform explorers → ground-truth.json | *-ui-explorer | M2.* | `exploration/` | PARTIAL (macOS DONE: 13 tabs/1,847 AX elements; Windows UIA + Linux AT-SPI runtime sessions environment-blocked) |
 | M3.10 | Gap analysis → gap-report.md | architect + reviewer | M3.9 | `docs/gap-report.md` | DONE |
 | M3.11 | Tests → coverage | swift-test-engineer | M3.10 | `Tests/` | DONE (Kit 74.2% w/ live e2e — practical max; 1964+35 tests green; 100% unreachable headless, documented) |
 | M4.12 | CLI-parity gaps on every frontend | native-devs | M1.5, M2.* | per-frontend | DONE (tui 11 surfaces; win/linux full surfaces) |
