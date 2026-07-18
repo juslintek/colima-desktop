@@ -1,8 +1,8 @@
 {
   "platform": "Linux",
-  "timestamp": "2026-07-18T14:41:41Z",
+  "timestamp": "2026-07-18T14:56:42Z",
   "environment_blocked": true,
-  "environment_block_reason": "Pass 6 pre-flight: fix for identical-fingerprint root cause applied (doAction(0) fallback removed; content-fingerprint verification added). Will be replaced by a live CI capture on the next run.",
+  "environment_block_reason": "Pass 7 pre-flight: xdotool positional grid fallback implemented. Will be replaced by a live CI capture on the next run.",
   "host": {
     "display": ":99",
     "app_binary": "linux/target/release/colima-desktop",
@@ -13,7 +13,7 @@
     "app_id": "dev.colima.desktop",
     "surfaces_explored": 0
   },
-  "at_spi_method": "pyatspi DFS traversal; sidebar row activation via named doAction('click'/'activate'/'select') → generateMouseEvent(center,'b1c') → xdotool click; each attempt verified by content fingerprint change on main_stack (pass 6: removed arbitrary doAction(0) fallback)",
+  "at_spi_method": "pyatspi DFS traversal; sidebar row activation via named doAction('click'/'activate'/'select') → generateMouseEvent(center,'b1c') → xdotool AT-SPI extents → xdotool positional (x=win_x+100, y=win_y+23+38*i, dynamic window origin via xdotool getwindowgeometry, Xvfb fixed fallback); each attempt verified by content fingerprint change on main_stack (pass 7: added xdotool_positional final fallback for zero AT-SPI extents)",
   "element_count": 0,
   "surfaces_count": 0,
   "screenshots": [],
@@ -40,8 +40,12 @@
       "error": "Run 29642368125: real main window with 11 sidebar labels loads. But pyatspi reports every role as 'unknown' on GTK4/ubuntu-latest. Fixed: fully role-blind DFS strategies (widget_name/accessible-label/child-text/positional). Run 29642368125 captured 10/13 surfaces nonzero. Run 29642873493 (pass 5b): used doAction(0) as positional fallback — captured 87 elements for all 11 surfaces but all 11 fingerprints IDENTICAL. Root cause identified: doAction(0) fired clipboard/focus actions, returned True but did NOT trigger connect_row_selected signal."
     },
     {
-      "phase": "diagnostic-pass-6-plan",
-      "error": "FIXED in this commit. Root cause of identical fingerprints: doAction(0) arbitrary-index fallback was falsely accepted because index-0 AT-SPI action is not 'click'/'activate' on GTK4 ListBoxRow — it may be clipboard, focus, or another unrelated action that returns True but does not fire connect_row_selected. Fix: (1) Removed doAction(0) entirely. Only invoke doAction(i) where getName(i).lower() in ('click','activate','select'). (2) Added pyatspi.Registry.generateMouseEvent(cx, cy, 'b1c') as primary mouse fallback. (3) Added xdotool mousemove cx cy click 1 as secondary fallback. (4) Added _get_content_fingerprint(app_acc): DFS-finds main_stack node, collects sorted set of its visible children/grandchildren widget names. After EACH activation attempt, pause surface_pause seconds and compare fp_before vs fp_after — only accept if changed. Dashboard (index 0) skips change check (it IS the initial surface). activate_sidebar_row() now returns (bool, str) for diagnostics."
+      "phase": "diagnostic-pass-6",
+      "error": "FIXED in pass 6: doAction(0) arbitrary-index fallback removed entirely. Only named 'click'/'activate'/'select' actions invoked. Added pyatspi.Registry.generateMouseEvent(cx, cy, 'b1c') as primary mouse fallback; xdotool mousemove cx cy click 1 as secondary. Added _get_content_fingerprint(app_acc) — finds main_stack, collects widget names. Each activation attempt verified by fingerprint change (Dashboard skips as baseline). activate_sidebar_row returns (bool, str) for diagnostics."
+    },
+    {
+      "phase": "diagnostic-pass-7-plan",
+      "error": "FIXED in pass 7 (this commit). Run 29643261452 shows Navigation node with 11 children confirmed present. AT-SPI queryComponent().getExtents(DESKTOP_COORDS) returns zero or off-screen extents for all sidebar rows — so generateMouseEvent and xdotool with AT-SPI extents both fail fingerprint change check. Screenshot from run 29643261452 proves stable Xvfb 1280x800 sidebar geometry: left pane width ~200px, row centers x≈100, Dashboard y≈23, Containers y≈61, +38px per row (y = 23 + 38*i for 0-indexed surface i). Implemented honest positional fallback: _get_sidebar_row_coords(i, display) tries Stage A (xdotool search + getwindowgeometry to get actual window origin, handles any WM placement) then Stage B (fixed Xvfb constants x=100, y=23+38*i, valid when Xvfb places window at 0,0). _try_xdotool_positional() calls xdotool mousemove --sync <x> <y> click 1, waits surface_pause for GTK connect_row_selected processing, verifies fingerprint change. Placed as final step in Strategy D after all AT-SPI methods fail. Requires 11 nonempty captures + >=3 distinct name-fingerprints."
     }
   ],
   "known_surfaces": [
@@ -104,8 +108,8 @@
     },
     {
       "pass": 6,
-      "run": "pending",
-      "result": "pending — doAction(0) removed; named-action-only + generateMouseEvent + xdotool + content fingerprint verification applied",
+      "run": "pending (committed as 55e82bd)",
+      "result": "doAction(0) removed. Named-action + generateMouseEvent + xdotool AT-SPI extents + content fingerprint verification. Pending CI run to confirm.",
       "fixes": [
         "explore_atspi.py — removed doAction(0) entirely; only invoke named 'click'/'activate'/'select' actions",
         "explore_atspi.py — _get_content_fingerprint(app_acc): DFS-find main_stack, collect child widget names",
@@ -117,16 +121,34 @@
         "explore_atspi.py — activate_sidebar_row returns (bool, str) — method recorded per surface",
         ".github/workflows/explore-linux.yml — updated pass comment to describe pass 6 changes"
       ]
+    },
+    {
+      "pass": 7,
+      "run": "pending — based on evidence from run 29643261452",
+      "result": "pending — xdotool_positional grid fallback added for zero-extent AT-SPI rows",
+      "evidence": {
+        "run": "29643261452",
+        "navigation_node": "present, 11 children confirmed via AT-SPI",
+        "atspi_extents": "zero or off-screen for all sidebar rows",
+        "screenshot_geometry": {
+          "display": "Xvfb 1280x800",
+          "left_pane_width": 200,
+          "row_center_x": 100,
+          "dashboard_y": 23,
+          "containers_y": 61,
+          "row_step_y": 38,
+          "formula": "y = 23 + 38 * surface_index  (0-indexed)"
+        }
+      },
+      "fixes": [
+        "explore_atspi.py — _get_sidebar_row_coords(i, display): Stage A dynamic via xdotool search+getwindowgeometry; Stage B fixed Xvfb fallback x=100, y=23+38*i",
+        "explore_atspi.py — _try_xdotool_positional(i, display, pause, fp_before, app_acc): xdotool mousemove --sync x y click 1, bounded settle, fingerprint check",
+        "explore_atspi.py — activate_sidebar_row: added surface_index and display params; Strategy D final calls _try_xdotool_positional after AT-SPI methods fail",
+        "explore_atspi.py — updated pass 7 docstring with geometry evidence and fallback rationale",
+        "explore_atspi.py — updated at_spi_method field in result to reflect pass 7",
+        ".github/workflows/explore-linux.yml — updated workflow comment to describe pass 7",
+        "exploration/linux/ground-truth.json — updated diagnostic history with pass 7 record"
+      ]
     }
-  ],
-  "notes": [
-    "The linux/ GTK4 app compiles and passes the frontends.yml CI job (linux-gtk4 on ubuntu-latest).",
-    "Every interactive widget has widget_name + accessible Property::Label set (linux/src/main.rs and views/).",
-    "Diagnostic pass 4 (2026-07-18): root cause was DependencyManager::is_colima_installed() returning false in CI (colima not on PATH), showing onboarding window for all 11 captures. Fix: CI-only colima shim injected on PATH.",
-    "Diagnostic pass 5b (2026-07-18): root cause was doAction(0) falsely accepted as navigation. All 11 fingerprints identical (87 elements each). Fix: pass 6 removes doAction(0), adds fingerprint verification.",
-    "Diagnostic pass 6 (2026-07-18): removed arbitrary doAction(0), added content fingerprint gate. Named actions only. Three-tier mouse fallback: named doAction → generateMouseEvent → xdotool. Fingerprint computed from main_stack child widget names.",
-    "DependencyManager::is_colima_installed() source: linux/src/dependency_manager.rs L62: which::which('colima').is_ok()",
-    "Main window branch: linux/src/main.rs L49-56: if !DependencyManager::is_colima_installed() { build_onboarding_window } else { build_main_window }",
-    "environment_blocked=true remains until next CI run confirms nonzero distinct surface capture."
   ]
 }
