@@ -15,6 +15,11 @@ public sealed partial class SettingsViewModel : ViewModelBase
     public DependencyManager DependencyManager => App.DependencyManager;
     public ConnectionSettings ConnectionSettings => App.ConnectionSettings;
 
+    // Typed accessors for each dependency (indexer x:Bind not supported in WinUI 3 XamlCompiler)
+    public DependencyManager.Dependency Wsl2Dep => DependencyManager.Dependencies[0];
+    public DependencyManager.Dependency DockerDep => DependencyManager.Dependencies[1];
+    public DependencyManager.Dependency DaemonDep => DependencyManager.Dependencies[2];
+
     [ObservableProperty] private string _statusMessage = string.Empty;
 
     public override Task LoadAsync(CancellationToken ct = default) =>

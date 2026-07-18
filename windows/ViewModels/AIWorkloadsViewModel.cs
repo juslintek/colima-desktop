@@ -14,7 +14,8 @@ public sealed partial class AIWorkloadsViewModel : ViewModelBase
     [ObservableProperty] private string _modelName = string.Empty;
     [ObservableProperty] private string _runner = "docker";
     [ObservableProperty] private string _prompt = string.Empty;
-    [ObservableProperty] private int _servePort = 8080;
+    // NumberBox.Value is double; cast to int when using as a port number.
+    [ObservableProperty] private double _servePort = 8080;
     [ObservableProperty] private string _progressMessage = string.Empty;
     [ObservableProperty] private float _progressValue;
     [ObservableProperty] private bool _isProgressVisible;
@@ -68,8 +69,8 @@ public sealed partial class AIWorkloadsViewModel : ViewModelBase
     private Task ServeModelAsync() =>
         RunAsync(async t =>
         {
-            var resp = await Client.ModelServeAsync(Settings.ActiveProfile, ModelName, Runner, ServePort, t);
-            StatusMessage = resp.Success ? $"Serving on port {ServePort}" : $"Error: {resp.Error}";
+            var resp = await Client.ModelServeAsync(Settings.ActiveProfile, ModelName, Runner, (int)ServePort, t);
+            StatusMessage = resp.Success ? $"Serving on port {(int)ServePort}" : $"Error: {resp.Error}";
         });
 
     [RelayCommand]

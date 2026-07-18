@@ -26,7 +26,7 @@
                     <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
                                   AutomationProperties.Name="K8sLoading" />
                     <TextBlock AutomationProperties.Name="K8sStatusEnabled"
-                               Text="{x:Bind ViewModel.VmStatus.Kubernetes, Mode=OneWay, FallbackValue='Unknown'}" />
+                               Text="{x:Bind ViewModel.VmStatus.Kubernetes, Mode=OneWay, Converter={StaticResource BoolToEnabledConverter}, FallbackValue='Unknown'}" />
                 </StackPanel>
             </Border>
 

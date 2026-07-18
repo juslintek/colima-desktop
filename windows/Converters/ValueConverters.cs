@@ -106,3 +106,13 @@ public sealed class BoolToSeverityConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, string language) =>
         throw new NotImplementedException();
 }
+
+/// <summary>bool → "Enabled" / "Disabled"</summary>
+public sealed class BoolToEnabledConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, string language) =>
+        value is true ? "Enabled" : "Disabled";
+
+    public object ConvertBack(object value, Type targetType, object parameter, string language) =>
+        throw new NotImplementedException();
+}

@@ -48,13 +48,13 @@
 
                     <TextBlock Grid.Row="1" Grid.Column="0"
                                AutomationProperties.Name="StatsCPUValue"
-                               Text="{x:Bind ViewModel.LatestStats.CpuPercent, Mode=OneWay, Converter={StaticResource PercentConverter}}" />
+                               Text="{x:Bind ViewModel.LatestStats.CpuPercent, Mode=OneWay, Converter={StaticResource PercentConverter}, FallbackValue=''}" />
                     <TextBlock Grid.Row="1" Grid.Column="1"
                                AutomationProperties.Name="StatsMemoryValue"
-                               Text="{x:Bind ViewModel.LatestStats.MemoryUsed, Mode=OneWay, Converter={StaticResource BytesToMBConverter}}" />
+                               Text="{x:Bind ViewModel.LatestStats.MemoryUsed, Mode=OneWay, Converter={StaticResource BytesToMBConverter}, FallbackValue=''}" />
                     <TextBlock Grid.Row="1" Grid.Column="2"
                                AutomationProperties.Name="StatsDiskValue"
-                               Text="{x:Bind ViewModel.LatestStats.DiskUsed, Mode=OneWay, Converter={StaticResource BytesToMBConverter}}" />
+                               Text="{x:Bind ViewModel.LatestStats.DiskUsed, Mode=OneWay, Converter={StaticResource BytesToMBConverter}, FallbackValue=''}" />
                 </Grid>
             </StackPanel>
         </Border>

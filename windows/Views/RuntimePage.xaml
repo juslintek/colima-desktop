@@ -30,8 +30,9 @@
                     <TextBlock Text="Switch Runtime" Style="{ThemeResource SubtitleTextBlockStyle}"
                                AutomationProperties.Name="SwitchRuntimeHeader" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <ComboBox AutomationProperties.Name="FieldTargetRuntime"
-                                  SelectedValue="{x:Bind ViewModel.TargetRuntime, Mode=TwoWay}"
+                        <ComboBox x:Name="TargetRuntimeCombo"
+                                  AutomationProperties.Name="FieldTargetRuntime"
+                                  SelectionChanged="TargetRuntimeCombo_SelectionChanged"
                                   Width="200">
                             <ComboBoxItem Content="docker" Tag="docker" />
                             <ComboBoxItem Content="containerd" Tag="containerd" />
@@ -61,8 +62,7 @@
                                 Command="{x:Bind ViewModel.UpdateColimaCommand}" />
                         <Button Content="Prune"
                                 AutomationProperties.Name="BtnPrune"
-                                Command="{x:Bind ViewModel.PruneCommand}"
-                                CommandParameter="{x:Null}" />
+                                Click="Prune_Click" />
                         <Button Content="Prune All"
                                 AutomationProperties.Name="BtnPruneAll"
                                 Click="PruneAll_Click" />

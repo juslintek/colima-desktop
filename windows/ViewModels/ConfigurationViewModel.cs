@@ -17,10 +17,11 @@ public sealed partial class ConfigurationViewModel : ViewModelBase
     [ObservableProperty] private ColimaConfig? _template;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
-    // Flattened editable fields (bound individually in XAML)
-    [ObservableProperty] private int _cpu;
-    [ObservableProperty] private float _memory;
-    [ObservableProperty] private int _disk;
+    // Flattened editable fields (bound individually in XAML).
+    // NumberBox.Value is double, so cpu/memory/disk are double to avoid XamlCompiler type errors.
+    [ObservableProperty] private double _cpu;
+    [ObservableProperty] private double _memory;
+    [ObservableProperty] private double _disk;
     [ObservableProperty] private string _runtime = string.Empty;
     [ObservableProperty] private string _vmType = string.Empty;
     [ObservableProperty] private string _arch = string.Empty;
@@ -78,9 +79,9 @@ public sealed partial class ConfigurationViewModel : ViewModelBase
 
     private void ApplyFieldsToConfig(ColimaConfig cfg)
     {
-        cfg.Cpu = Cpu;
-        cfg.Memory = Memory;
-        cfg.Disk = Disk;
+        cfg.Cpu = (int)Cpu;
+        cfg.Memory = (float)Memory;
+        cfg.Disk = (int)Disk;
         cfg.Runtime = Runtime;
         cfg.VmType = VmType;
         cfg.Arch = Arch;

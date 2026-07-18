@@ -40,8 +40,9 @@
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Runner" VerticalAlignment="Center"
                                    AutomationProperties.Name="LabelRunner" />
                         <ComboBox Grid.Row="1" Grid.Column="1"
+                                  x:Name="RunnerCombo"
                                   AutomationProperties.Name="FieldRunner"
-                                  SelectedValue="{x:Bind ViewModel.Runner, Mode=TwoWay}"
+                                  SelectionChanged="RunnerCombo_SelectionChanged"
                                   HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="docker" Tag="docker" />
                             <ComboBoxItem Content="ramalama" Tag="ramalama" />

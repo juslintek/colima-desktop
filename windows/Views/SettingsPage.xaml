@@ -110,9 +110,10 @@
                     </StackPanel>
 
                     <!-- Overall status -->
-                    <InfoBar AutomationProperties.Name="DepsOverallStatus"
+                    <InfoBar x:Name="DepsOverallInfoBar"
+                             AutomationProperties.Name="DepsOverallStatus"
                              IsOpen="True"
-                             Severity="{x:Bind ViewModel.DependencyManager.IsReady, Mode=OneWay, Converter={StaticResource BoolToSeverityConverter}}"
+                             Severity="Informational"
                              Message="{x:Bind ViewModel.DependencyManager.OverallStatus, Mode=OneWay}"
                              Title="Overall" IsClosable="False" />
 
@@ -124,23 +125,23 @@
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <TextBlock Text="WSL2" FontWeight="SemiBold"
                                            AutomationProperties.Name="DepNameWSL2" />
-                                <TextBlock Text="{x:Bind ViewModel.DependencyManager.Dependencies[0].StatusMessage, Mode=OneWay}"
+                                <TextBlock Text="{x:Bind ViewModel.Wsl2Dep.StatusMessage, Mode=OneWay}"
                                            AutomationProperties.Name="DepStatusWSL2"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
                                 <TextBlock AutomationProperties.Name="DepVersionWSL2"
-                                           Text="{x:Bind ViewModel.DependencyManager.Dependencies[0].InstalledVersion, Mode=OneWay}"
+                                           Text="{x:Bind ViewModel.Wsl2Dep.InstalledVersion, Mode=OneWay}"
                                            FontSize="12" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE73E;"
                                           AutomationProperties.Name="DepCheckWSL2"
                                           Foreground="Green"
-                                          Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[0].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                          Visibility="{x:Bind ViewModel.Wsl2Dep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 <Button Content="Install WSL2"
                                         AutomationProperties.Name="BtnInstallWSL2"
                                         Command="{x:Bind ViewModel.InstallWsl2Command}"
-                                        Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[0].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
-                                <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.Dependencies[0].IsInstalling, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.Wsl2Dep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+                                <ProgressRing IsActive="{x:Bind ViewModel.Wsl2Dep.IsInstalling, Mode=OneWay}"
                                              AutomationProperties.Name="DepInstallingWSL2"
                                              Width="20" Height="20" />
                             </StackPanel>
@@ -155,23 +156,23 @@
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <TextBlock Text="Docker" FontWeight="SemiBold"
                                            AutomationProperties.Name="DepNameDocker" />
-                                <TextBlock Text="{x:Bind ViewModel.DependencyManager.Dependencies[1].StatusMessage, Mode=OneWay}"
+                                <TextBlock Text="{x:Bind ViewModel.DockerDep.StatusMessage, Mode=OneWay}"
                                            AutomationProperties.Name="DepStatusDocker"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
                                 <TextBlock AutomationProperties.Name="DepVersionDocker"
-                                           Text="{x:Bind ViewModel.DependencyManager.Dependencies[1].InstalledVersion, Mode=OneWay}"
+                                           Text="{x:Bind ViewModel.DockerDep.InstalledVersion, Mode=OneWay}"
                                            FontSize="12" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE73E;"
                                           AutomationProperties.Name="DepCheckDocker"
                                           Foreground="Green"
-                                          Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[1].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                          Visibility="{x:Bind ViewModel.DockerDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 <Button Content="Install Docker"
                                         AutomationProperties.Name="BtnInstallDocker"
                                         Command="{x:Bind ViewModel.InstallDockerCommand}"
-                                        Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[1].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
-                                <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.Dependencies[1].IsInstalling, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.DockerDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+                                <ProgressRing IsActive="{x:Bind ViewModel.DockerDep.IsInstalling, Mode=OneWay}"
                                              AutomationProperties.Name="DepInstallingDocker"
                                              Width="20" Height="20" />
                             </StackPanel>
@@ -186,27 +187,27 @@
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <TextBlock Text="colima-daemon" FontWeight="SemiBold"
                                            AutomationProperties.Name="DepNameDaemon" />
-                                <TextBlock Text="{x:Bind ViewModel.DependencyManager.Dependencies[2].StatusMessage, Mode=OneWay}"
+                                <TextBlock Text="{x:Bind ViewModel.DaemonDep.StatusMessage, Mode=OneWay}"
                                            AutomationProperties.Name="DepStatusDaemon"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
                                 <TextBlock AutomationProperties.Name="DepVersionDaemon"
-                                           Text="{x:Bind ViewModel.DependencyManager.Dependencies[2].InstalledVersion, Mode=OneWay}"
+                                           Text="{x:Bind ViewModel.DaemonDep.InstalledVersion, Mode=OneWay}"
                                            FontSize="12" />
                                 <HyperlinkButton Content="Update available"
                                                  AutomationProperties.Name="DepUpdateAvailableDaemon"
-                                                 Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[2].UpdateAvailable, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                 Visibility="{x:Bind ViewModel.DaemonDep.UpdateAvailable, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
                                                  Command="{x:Bind ViewModel.InstallDaemonCommand}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE73E;"
                                           AutomationProperties.Name="DepCheckDaemon"
                                           Foreground="Green"
-                                          Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[2].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
+                                          Visibility="{x:Bind ViewModel.DaemonDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 <Button Content="Install Daemon"
                                         AutomationProperties.Name="BtnInstallDaemon"
                                         Command="{x:Bind ViewModel.InstallDaemonCommand}"
-                                        Visibility="{x:Bind ViewModel.DependencyManager.Dependencies[2].IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
-                                <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.Dependencies[2].IsInstalling, Mode=OneWay}"
+                                        Visibility="{x:Bind ViewModel.DaemonDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
+                                <ProgressRing IsActive="{x:Bind ViewModel.DaemonDep.IsInstalling, Mode=OneWay}"
                                              AutomationProperties.Name="DepInstallingDaemon"
                                              Width="20" Height="20" />
                             </StackPanel>

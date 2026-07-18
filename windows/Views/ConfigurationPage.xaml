@@ -84,8 +84,9 @@
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Runtime" VerticalAlignment="Center"
                                    AutomationProperties.Name="LabelRuntime" />
                         <ComboBox Grid.Row="0" Grid.Column="1"
+                                  x:Name="RuntimeCombo"
                                   AutomationProperties.Name="FieldRuntime"
-                                  SelectedValue="{x:Bind ViewModel.Runtime, Mode=TwoWay}"
+                                  SelectionChanged="RuntimeCombo_SelectionChanged"
                                   HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="docker" Tag="docker" />
                             <ComboBoxItem Content="containerd" Tag="containerd" />
@@ -95,8 +96,9 @@
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="VM Type" VerticalAlignment="Center"
                                    AutomationProperties.Name="LabelVmType" />
                         <ComboBox Grid.Row="1" Grid.Column="1"
+                                  x:Name="VmTypeCombo"
                                   AutomationProperties.Name="FieldVmType"
-                                  SelectedValue="{x:Bind ViewModel.VmType, Mode=TwoWay}"
+                                  SelectionChanged="VmTypeCombo_SelectionChanged"
                                   HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="vz" Tag="vz" />
                             <ComboBoxItem Content="qemu" Tag="qemu" />
@@ -106,8 +108,9 @@
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Architecture" VerticalAlignment="Center"
                                    AutomationProperties.Name="LabelArch" />
                         <ComboBox Grid.Row="2" Grid.Column="1"
+                                  x:Name="ArchCombo"
                                   AutomationProperties.Name="FieldArch"
-                                  SelectedValue="{x:Bind ViewModel.Arch, Mode=TwoWay}"
+                                  SelectionChanged="ArchCombo_SelectionChanged"
                                   HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="aarch64" Tag="aarch64" />
                             <ComboBoxItem Content="x86_64" Tag="x86_64" />
@@ -116,8 +119,9 @@
                         <TextBlock Grid.Row="3" Grid.Column="0" Text="Mount Type" VerticalAlignment="Center"
                                    AutomationProperties.Name="LabelMountType" />
                         <ComboBox Grid.Row="3" Grid.Column="1"
+                                  x:Name="MountTypeCombo"
                                   AutomationProperties.Name="FieldMountType"
-                                  SelectedValue="{x:Bind ViewModel.MountType, Mode=TwoWay}"
+                                  SelectionChanged="MountTypeCombo_SelectionChanged"
                                   HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="virtiofs" Tag="virtiofs" />
                             <ComboBoxItem Content="9p" Tag="9p" />

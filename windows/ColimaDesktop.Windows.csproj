@@ -18,7 +18,7 @@
     <PackageReference Include="Grpc.Net.Client" Version="2.63.0" />
     <PackageReference Include="Google.Protobuf" Version="3.27.1" />
     <PackageReference Include="Grpc.Tools" Version="2.64.0" PrivateAssets="All" />
-    <PackageReference Include="System.Text.Json" Version="8.0.4" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
   </ItemGroup>
   <ItemGroup>
     <Protobuf Include="Proto/colima_ui.proto" GrpcServices="Client" />

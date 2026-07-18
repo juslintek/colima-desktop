@@ -29,15 +29,15 @@
                                   AutomationProperties.Name="LoadingIndicator" />
                     <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.VmStatus, Mode=OneWay, Converter={StaticResource NullToVisibilityConverter}}">
                         <TextBlock AutomationProperties.Name="VMStatusRunning"
-                                   Text="{x:Bind ViewModel.VmStatus.Running, Mode=OneWay, Converter={StaticResource BoolToStatusConverter}}" />
+                                   Text="{x:Bind ViewModel.VmStatus.Running, Mode=OneWay, Converter={StaticResource BoolToStatusConverter}, FallbackValue=''}" />
                         <TextBlock AutomationProperties.Name="VMStatusName"
-                                   Text="{x:Bind ViewModel.VmStatus.DisplayName, Mode=OneWay}" />
+                                   Text="{x:Bind ViewModel.VmStatus.DisplayName, Mode=OneWay, FallbackValue=''}" />
                         <TextBlock AutomationProperties.Name="VMStatusRuntime"
-                                   Text="{x:Bind ViewModel.VmStatus.Runtime, Mode=OneWay}" />
+                                   Text="{x:Bind ViewModel.VmStatus.Runtime, Mode=OneWay, FallbackValue=''}" />
                         <TextBlock AutomationProperties.Name="VMStatusArch"
-                                   Text="{x:Bind ViewModel.VmStatus.Arch, Mode=OneWay}" />
+                                   Text="{x:Bind ViewModel.VmStatus.Arch, Mode=OneWay, FallbackValue=''}" />
                         <TextBlock AutomationProperties.Name="VMStatusIP"
-                                   Text="{x:Bind ViewModel.VmStatus.IpAddress, Mode=OneWay}" />
+                                   Text="{x:Bind ViewModel.VmStatus.IpAddress, Mode=OneWay, FallbackValue=''}" />
                     </StackPanel>
                 </StackPanel>
             </Border>

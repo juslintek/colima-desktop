@@ -8,6 +8,7 @@
     <converters:BoolToInverseVisibilityConverter x:Key="BoolToInverseVisibilityConverter" />
     <converters:NullToVisibilityConverter        x:Key="NullToVisibilityConverter" />
     <converters:BoolToStatusConverter            x:Key="BoolToStatusConverter" />
+    <converters:BoolToEnabledConverter           x:Key="BoolToEnabledConverter" />
     <converters:NonEmptyToBoolConverter          x:Key="NonEmptyToBoolConverter" />
     <converters:EmptyStringToVisibilityConverter x:Key="EmptyStringToVisibilityConverter" />
     <converters:PercentConverter                 x:Key="PercentConverter" />
