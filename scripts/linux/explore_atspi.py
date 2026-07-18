@@ -160,6 +160,7 @@ SIDEBAR_SURFACES = [
     ("runtime",       "Runtime"),
     ("ai_workloads",  "AI Workloads"),
     ("profiles",      "Profiles"),
+    ("monitoring",    "Monitoring"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -1122,7 +1123,7 @@ def main() -> int:
         # silently click Dashboard and record Dashboard content under a different
         # surface label.
         #
-        # Validation at the end requires ALL 11 content fingerprints to be unique.
+        # Validation at the end requires ALL 12 content fingerprints to be unique.
         all_content_fps = []  # collect per-surface frozenset for uniqueness check
         prev_fp = _get_content_fingerprint(app_acc)  # Dashboard baseline fp
 
@@ -1139,7 +1140,7 @@ def main() -> int:
                 activation_method = "initial_state"
                 print(f"[explore_atspi] Surface 0: {surface_name} (initial state)", flush=True)
             else:
-                # Indices 1..10: use ONLY the xdotool positional grid.
+                # Indices 1..11: use ONLY the xdotool positional grid.
                 # fp_before = the previous surface's content fingerprint.
                 fp_before_nav = prev_fp
                 activated, activation_method = navigate_to_surface_grid(
@@ -1237,30 +1238,30 @@ def main() -> int:
         print(
             f"[explore_atspi] Surfaces: {len(surfaces_data)} total, "
             f"{len(nonempty_surfaces)} non-empty, "
-            f"{distinct_content_fps}/11 distinct content-fps, "
+            f"{distinct_content_fps}/12 distinct content-fps, "
             f"{distinct_name_fps} distinct name-fps, "
             f"{activated_count} activated",
             flush=True,
         )
 
-        # Require 11 non-empty captures
-        if len(nonempty_surfaces) < 11:
+        # Require 12 non-empty captures
+        if len(nonempty_surfaces) < 12:
             errors.append({
                 "phase": "distinct_surfaces_check",
                 "error": (
-                    f"Only {len(nonempty_surfaces)}/11 non-empty surfaces captured. "
+                    f"Only {len(nonempty_surfaces)}/12 non-empty surfaces captured. "
                     "Navigation is not working or some surfaces returned empty trees."
                 ),
                 "nonempty_surfaces": [s["surface"] for s in nonempty_surfaces],
                 "activated_count": activated_count,
             })
             print(
-                f"ERROR: only {len(nonempty_surfaces)}/11 non-empty surfaces (need all 11)",
+                f"ERROR: only {len(nonempty_surfaces)}/12 non-empty surfaces (need all 12)",
                 file=sys.stderr,
             )
 
-        # Require ALL 11 content fingerprints to be unique (pass 8 hard gate)
-        if distinct_content_fps < 11 and len(all_content_fps) == 11:
+        # Require ALL 12 content fingerprints to be unique (pass 8 hard gate)
+        if distinct_content_fps < 12 and len(all_content_fps) == 12:
             # Find which surfaces have duplicate fps for diagnostic output
             seen_fps: dict = {}
             duplicates = []
@@ -1276,7 +1277,7 @@ def main() -> int:
             errors.append({
                 "phase": "all_unique_fps_check",
                 "error": (
-                    f"Only {distinct_content_fps}/11 unique content fingerprints. "
+                    f"Only {distinct_content_fps}/12 unique content fingerprints. "
                     f"{len(duplicates)} duplicate pair(s) found — these surfaces have "
                     "identical content, indicating navigation did not work for them."
                 ),
@@ -1289,7 +1290,7 @@ def main() -> int:
                 ),
             })
             print(
-                f"ERROR: only {distinct_content_fps}/11 unique content fps "
+                f"ERROR: only {distinct_content_fps}/12 unique content fps "
                 f"({len(duplicates)} duplicate pair(s)): {duplicates}",
                 file=sys.stderr,
             )
@@ -1337,14 +1338,15 @@ def main() -> int:
         "at_spi_method": (
             "pyatspi DFS traversal (read-only) + screenshots; "
             "sidebar navigation: Dashboard (index 0) = initial state (no click); "
-            "indices 1..10 = ONLY xdotool positional grid "
+            "indices 1..11 = ONLY xdotool positional grid "
             "(x=win_x+100, y=win_y+23+38*i, dynamic window origin via "
             "xdotool search + getwindowgeometry, Xvfb fixed fallback (0,0)); "
             "activation_method recorded as xdotool_grid:index=N; "
             "each navigation verified by content fingerprint change; "
-            "all 11 content fingerprints must be unique "
+            "all 12 content fingerprints must be unique "
             "(pass 8: AT-SPI doAction/component-extent navigation fully removed "
-            "after run 29643626991 proved it produces mislabeled captures)"
+            "after run 29643626991 proved it produces mislabeled captures); "
+            "DISC-03: Monitoring added as 12th surface (index 11, y=win_y+441)"
         ),
         "element_count": total_elements,
         "surfaces_count": len(surfaces_data),

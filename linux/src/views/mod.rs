@@ -5,6 +5,7 @@ pub mod dashboard;
 pub mod images;
 pub mod kubernetes;
 pub mod machines;
+pub mod monitoring;
 pub mod networks;
 pub mod onboarding;
 pub mod profiles;

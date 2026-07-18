@@ -4,7 +4,8 @@
 /// over gRPC (CONTRACT v1: Parts A + B + C).
 ///
 /// Surfaces: Dashboard · Containers · Images · Volumes · Networks · Machines ·
-///           Kubernetes · Configuration · Runtime · AI Workloads · Profiles
+///           Kubernetes · Configuration · Runtime · AI Workloads · Profiles ·
+///           Monitoring
 ///
 /// DependencyManager (CONTRACT Part C): detects/installs colima + deps on first launch.
 /// AT-SPI: every interactive widget carries a widget_name + accessible Property::Label.
@@ -79,6 +80,7 @@ fn build_main_window(app: &Application, handle: AppHandle) {
         ("runtime", "Runtime"),
         ("ai_workloads", "AI Workloads"),
         ("profiles", "Profiles"),
+        ("monitoring", "Monitoring"),
     ];
 
     // Stack (right panel)
@@ -100,6 +102,7 @@ fn build_main_window(app: &Application, handle: AppHandle) {
             "runtime" => views::runtime::build(handle.clone()),
             "ai_workloads" => views::ai_workloads::build(handle.clone()),
             "profiles" => views::profiles::build(handle.clone()),
+            "monitoring" => views::monitoring::build(handle.clone()),
             _ => unreachable!(),
         };
         stack.add_named(&view, Some(id));

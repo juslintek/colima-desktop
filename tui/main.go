@@ -11,8 +11,8 @@ import (
 )
 
 func main() {
-	socket     := flag.String("socket", "/tmp/colima-desktop.sock", "daemon unix socket")
-	profile    := flag.String("profile", "default", "colima profile")
+	socket := flag.String("socket", "/tmp/colima-desktop.sock", "daemon unix socket")
+	profile := flag.String("profile", "default", "colima profile")
 	onboarding := flag.Bool("onboarding", false, "show dependency onboarding screen on startup")
 	flag.Parse()
 

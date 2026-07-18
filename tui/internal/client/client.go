@@ -3,6 +3,7 @@ package client
 
 import (
 	"context"
+	"io"
 	"time"
 
 	pb "github.com/colima-desktop/daemon/proto"
@@ -77,6 +78,41 @@ func (c *Client) KubernetesStatus(profile string) (*pb.VMStatus, error) {
 	cx, cancel := ctx()
 	defer cancel()
 	return c.Colima.Status(cx, &pb.StatusRequest{Profile: profile})
+}
+
+// VMStats reads one sample from the VMStats stream (bounded: reads until first
+// message or timeout, then cancels the stream). Returns nil if unimplemented.
+func (c *Client) VMStats(profile string) (*pb.VMStatsEvent, error) {
+	cx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	stream, err := c.Colima.VMStats(cx, &pb.ProfileRequest{Profile: profile})
+	if err != nil {
+		return nil, err
+	}
+	evt, err := stream.Recv()
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+	return evt, nil
+}
+
+// ProcessList returns the process list for the given profile.
+func (c *Client) ProcessList(profile string) (*pb.ProcessListResponse, error) {
+	cx, cancel := ctx()
+	defer cancel()
+	return c.Colima.ProcessList(cx, &pb.ProfileRequest{Profile: profile})
+}
+
+// KillProcess sends a kill signal to a process in the VM.
+func (c *Client) KillProcess(profile string, pid int32, signal int32) error {
+	cx, cancel := ctx()
+	defer cancel()
+	_, err := c.Colima.KillProcess(cx, &pb.KillProcessRequest{
+		Profile: profile,
+		Pid:     pid,
+		Signal:  signal,
+	})
+	return err
 }
 
 // ─── DockerService methods ───────────────────────────────────────────────────

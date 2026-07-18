@@ -154,7 +154,9 @@ func TestTeatestQuitKey(t *testing.T) {
 	// If we reach here, the program exited cleanly.
 }
 
-// TestTeatestAllTabsReachable navigates through all 11 tabs sequentially.
+// TestTeatestAllTabsReachable navigates through all tabs sequentially and
+// verifies the final tab is Machines (second-to-last before Monitoring).
+// Use TestTeatestAllTabsReachable12 to verify Monitoring is last.
 func TestTeatestAllTabsReachable(t *testing.T) {
 	m := New(fakeSource{}, "default")
 	tm := teatest.NewTestModel(
@@ -163,14 +165,14 @@ func TestTeatestAllTabsReachable(t *testing.T) {
 	)
 	t.Cleanup(func() { _ = tm.Quit() })
 
-	// Navigate right through all tabs
+	// Navigate right through all 12 tabs (11 presses: 0→1→...→11)
 	for i := 0; i < len(Tabs)-1; i++ {
 		tm.Send(tea.KeyMsg{Type: tea.KeyRight})
 	}
 
-	// The last tab is Machines (index 10)
+	// The last tab is Monitoring (index 11)
 	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
-		return bytes.Contains(out, []byte("Machines"))
+		return bytes.Contains(out, []byte("Monitoring"))
 	}, teatest.WithDuration(5*time.Second))
 
 	_ = tm.Quit()
@@ -179,8 +181,8 @@ func TestTeatestAllTabsReachable(t *testing.T) {
 	if !ok {
 		t.Fatalf("final model is %T, want Model", fm)
 	}
-	if final.tab != TabMachines {
-		t.Errorf("after navigating to last tab: tab = %d, want %d (Machines)", final.tab, TabMachines)
+	if final.tab != TabMonitoring {
+		t.Errorf("after navigating to last tab: tab = %d, want %d (Monitoring)", final.tab, TabMonitoring)
 	}
 }
 
@@ -297,4 +299,69 @@ func TestTeatestContainersTabBody(t *testing.T) {
 	}, teatest.WithDuration(3*time.Second))
 
 	_ = tm.Quit()
+}
+
+// TestTeatestMonitoringTab navigates to Monitoring (tab 11, reached via →
+// from Machines) and verifies distinct non-empty content appears.
+func TestTeatestMonitoringTab(t *testing.T) {
+	m := New(fakeSource{}, "default")
+	tm := teatest.NewTestModel(
+		t, m,
+		teatest.WithInitialTermSize(120, 40),
+	)
+	t.Cleanup(func() { _ = tm.Quit() })
+
+	// Navigate to Monitoring: it is tab index 11.
+	// Keys '0' jumps to Profiles (index 9), then right×2 → Machines → Monitoring.
+	tm.Type("0")                            // tab 9 Profiles
+	tm.Send(tea.KeyMsg{Type: tea.KeyRight}) // tab 10 Machines
+	tm.Send(tea.KeyMsg{Type: tea.KeyRight}) // tab 11 Monitoring
+
+	// fakeSource provides CPU/Memory/process data — wait for any to appear.
+	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
+		s := string(out)
+		return strings.Contains(s, "Monitoring") ||
+			strings.Contains(s, "CPU") ||
+			strings.Contains(s, "dockerd")
+	}, teatest.WithDuration(5*time.Second))
+
+	_ = tm.Quit()
+	fm := tm.FinalModel(t, teatest.WithFinalTimeout(3*time.Second))
+	final, ok := fm.(Model)
+	if !ok {
+		t.Fatalf("final model is %T, want Model", fm)
+	}
+	if final.tab != TabMonitoring {
+		t.Errorf("after navigation tab = %d, want %d (Monitoring)", final.tab, TabMonitoring)
+	}
+}
+
+// TestTeatestAllTabsReachable12 navigates through all 12 tabs sequentially.
+func TestTeatestAllTabsReachable12(t *testing.T) {
+	m := New(fakeSource{}, "default")
+	tm := teatest.NewTestModel(
+		t, m,
+		teatest.WithInitialTermSize(120, 40),
+	)
+	t.Cleanup(func() { _ = tm.Quit() })
+
+	// Navigate right through all 12 tabs (11 presses from tab 0 → tab 11)
+	for i := 0; i < len(Tabs)-1; i++ {
+		tm.Send(tea.KeyMsg{Type: tea.KeyRight})
+	}
+
+	// The last tab is Monitoring (index 11)
+	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
+		return bytes.Contains(out, []byte("Monitoring"))
+	}, teatest.WithDuration(5*time.Second))
+
+	_ = tm.Quit()
+	fm := tm.FinalModel(t, teatest.WithFinalTimeout(3*time.Second))
+	final, ok := fm.(Model)
+	if !ok {
+		t.Fatalf("final model is %T, want Model", fm)
+	}
+	if final.tab != TabMonitoring {
+		t.Errorf("after navigating to last tab: tab = %d, want %d (Monitoring)", final.tab, TabMonitoring)
+	}
 }

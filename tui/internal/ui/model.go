@@ -20,11 +20,28 @@ type DataSource interface {
 	GetConfig(profile string) (*pb.ColimaConfig, error)
 	KubernetesStatus(profile string) (*pb.VMStatus, error)
 
+	// Monitoring (CONTRACT Part A)
+	// VMStats reads one bounded sample from the stream. May return (nil, nil)
+	// when the daemon has not implemented the RPC yet.
+	VMStats(profile string) (*pb.VMStatsEvent, error)
+	// ProcessList returns the current process list for the VM.
+	ProcessList(profile string) (*pb.ProcessListResponse, error)
+	// KillProcess sends signal to pid (9 = SIGKILL).
+	KillProcess(profile string, pid int32, signal int32) error
+
 	// DockerService
 	Containers(profile string) (string, error)
 	Images(profile string) (string, error)
 	Volumes(profile string) (string, error)
 	Networks(profile string) (string, error)
+}
+
+// monitoringData holds a combined snapshot for the Monitoring tab.
+type monitoringData struct {
+	stats     *pb.VMStatsEvent
+	processes *pb.ProcessListResponse
+	statsErr  string
+	procsErr  string
 }
 
 // Model is the root Bubble Tea model for the TUI.
@@ -170,6 +187,44 @@ func (m Model) loadTab(tab int) tea.Cmd {
 			}
 			return bodyMsg{tab, renderMachines(ml), ""}
 
+		case TabMonitoring:
+			// Collect stats + process list concurrently via two goroutines.
+			type statsResult struct {
+				evt *pb.VMStatsEvent
+				err error
+			}
+			type procsResult struct {
+				pl  *pb.ProcessListResponse
+				err error
+			}
+			statsCh := make(chan statsResult, 1)
+			procsCh := make(chan procsResult, 1)
+
+			go func() {
+				evt, err := m.cli.VMStats(m.profile)
+				statsCh <- statsResult{evt, err}
+			}()
+			go func() {
+				pl, err := m.cli.ProcessList(m.profile)
+				procsCh <- procsResult{pl, err}
+			}()
+
+			sr := <-statsCh
+			pr := <-procsCh
+
+			md := monitoringData{}
+			if sr.err != nil {
+				md.statsErr = sr.err.Error()
+			} else {
+				md.stats = sr.evt
+			}
+			if pr.err != nil {
+				md.procsErr = pr.err.Error()
+			} else {
+				md.processes = pr.pl
+			}
+			return bodyMsg{tab, renderMonitoring(md), ""}
+
 		default:
 			return bodyMsg{tab, Tabs[tab] + ": (not wired)", ""}
 		}
@@ -229,7 +284,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if len(msg.String()) == 1 {
 			ch := msg.String()[0]
 			if ch >= '1' && ch <= '9' {
-				idx := int(ch-'1')
+				idx := int(ch - '1')
 				if idx < len(Tabs) {
 					m.tab = idx
 					m.body, m.err = "Loading…", ""
@@ -249,12 +304,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // ─── styles ──────────────────────────────────────────────────────────────────
 
 var (
-	activeTabStyle = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212")).Padding(0, 1)
-	dimTabStyle    = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 1)
-	barStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
-	errStyle       = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
-	helpStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("243")).Italic(true)
-	titleStyle     = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
+	activeTabStyle   = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("212")).Padding(0, 1)
+	dimTabStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Padding(0, 1)
+	barStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("245"))
+	errStyle         = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	helpStyle        = lipgloss.NewStyle().Foreground(lipgloss.Color("243")).Italic(true)
+	titleStyle       = lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("39"))
+	gaugeFilledStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("212"))
+	gaugeEmptyStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("238"))
 )
 
 // View renders the full TUI screen.
@@ -263,14 +320,17 @@ func (m Model) View() string {
 		return m.onboarding.View()
 	}
 
-	// Header: tab bar (two rows for 11 tabs)
+	// Header: tab bar split into two rows of 6 tabs each (12 total).
+	// Row 1: tabs 0-5  Row 2: tabs 6-11
 	var row1, row2 []string
 	for i, t := range Tabs {
-		label := fmt.Sprintf("%s", t)
-		if i < 9 {
+		label := t
+		switch {
+		case i < 9:
 			label = fmt.Sprintf("%d %s", i+1, t)
-		} else if i == 9 {
+		case i == 9:
 			label = fmt.Sprintf("0 %s", t)
+			// tabs 10 (Machines) and 11 (Monitoring) have no digit shortcut
 		}
 		if i == m.tab {
 			s := activeTabStyle.Render(label)
@@ -321,7 +381,7 @@ func helpView() string {
 		"  1 Dashboard    2 Containers   3 Images",
 		"  4 Volumes      5 Networks     6 Kubernetes",
 		"  7 Configuration 8 Runtime     9 AI Workloads",
-		"  0 Profiles    (→) Machines",
+		"  0 Profiles    (→) Machines  (→) Monitoring",
 	}
 	return helpStyle.Render(strings.Join(lines, "\n"))
 }
@@ -333,7 +393,7 @@ func dashboardBody() string {
 		"Surfaces available:\n" +
 		"  Dashboard · Containers · Images · Volumes · Networks\n" +
 		"  Kubernetes · Configuration · Runtime · AI Workloads\n" +
-		"  Profiles · Machines\n\n" +
+		"  Profiles · Machines · Monitoring\n\n" +
 		"Backed live by the colima-desktop daemon (gRPC).\n" +
 		"Use ←/→ or 1-0 to switch tabs, r to refresh, q to quit.\n" +
 		"Press ? for full help."
@@ -350,6 +410,96 @@ func aiWorkloadsBody(profile string) string {
 			"Backend: colima model subcommand via daemon gRPC.\n"+
 			"Supports docker runner and ramalama runner.",
 		profile)
+}
+
+// renderGauge renders a simple ASCII progress bar for a percentage value.
+func renderGauge(label string, used, total int64, unit string, width int) string {
+	if total <= 0 {
+		return fmt.Sprintf("%-12s  (unavailable)", label)
+	}
+	pct := float64(used) / float64(total) * 100
+	barWidth := width - 30
+	if barWidth < 10 {
+		barWidth = 10
+	}
+	filled := int(float64(barWidth) * pct / 100)
+	if filled > barWidth {
+		filled = barWidth
+	}
+	bar := gaugeFilledStyle.Render(strings.Repeat("█", filled)) +
+		gaugeEmptyStyle.Render(strings.Repeat("░", barWidth-filled))
+	return fmt.Sprintf("%-12s [%s] %5.1f%%  %s/%s %s",
+		label, bar,
+		pct,
+		formatBytes(used), formatBytes(total), unit)
+}
+
+func formatBytes(b int64) string {
+	const (
+		_  = iota
+		KB = 1 << (10 * iota)
+		MB
+		GB
+	)
+	switch {
+	case b >= GB:
+		return fmt.Sprintf("%.1fG", float64(b)/GB)
+	case b >= MB:
+		return fmt.Sprintf("%.1fM", float64(b)/MB)
+	case b >= KB:
+		return fmt.Sprintf("%.1fK", float64(b)/KB)
+	default:
+		return fmt.Sprintf("%dB", b)
+	}
+}
+
+// renderMonitoring builds the Monitoring tab body from a combined snapshot.
+func renderMonitoring(md monitoringData) string {
+	var b strings.Builder
+
+	b.WriteString(titleStyle.Render("VM Monitoring") + "\n\n")
+
+	// ── Resource gauges ──────────────────────────────────────────────────────
+	if md.statsErr != "" {
+		b.WriteString(fmt.Sprintf("Stats:  (unavailable: %s)\n", md.statsErr))
+	} else if md.stats == nil {
+		b.WriteString("Stats:  (not yet sampled — press r to refresh)\n")
+	} else {
+		s := md.stats
+		// CPU — stats only carry cpu_percent; use 100 as the ceiling
+		cpuUsed := int64(s.CpuPercent)
+		b.WriteString(renderGauge("CPU", cpuUsed, 100, "%", 72) + "\n")
+		b.WriteString(renderGauge("Memory", s.MemoryUsed, s.MemoryTotal, "", 72) + "\n")
+		b.WriteString(renderGauge("Disk", s.DiskUsed, s.DiskTotal, "", 72) + "\n")
+	}
+
+	b.WriteString("\n")
+
+	// ── Process list ─────────────────────────────────────────────────────────
+	if md.procsErr != "" {
+		b.WriteString(fmt.Sprintf("Processes:  (unavailable: %s)\n", md.procsErr))
+	} else if md.processes == nil || len(md.processes.Processes) == 0 {
+		b.WriteString("Processes:  (none)\n")
+	} else {
+		fmt.Fprintf(&b, "%-7s  %-10s  %5s  %5s  %-18s  %s\n",
+			"PID", "USER", "CPU%", "MEM%", "CONTAINER", "COMMAND")
+		fmt.Fprintf(&b, "%s\n", strings.Repeat("─", 75))
+		for _, p := range md.processes.Processes {
+			container := p.Container
+			if container == "" {
+				container = "—"
+			}
+			cmd := p.Command
+			if len(cmd) > 30 {
+				cmd = cmd[:27] + "…"
+			}
+			fmt.Fprintf(&b, "%-7d  %-10s  %5.1f  %5.1f  %-18s  %s\n",
+				p.Pid, p.User, p.CpuPercent, p.MemoryPercent, container, cmd)
+		}
+		fmt.Fprintf(&b, "\nActions:  [k] kill selected process   [r] refresh")
+	}
+
+	return b.String()
 }
 
 func renderProfiles(pl *pb.ProfileList) string {

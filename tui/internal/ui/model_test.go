@@ -44,6 +44,22 @@ func (fakeSource) GetConfig(string) (*pb.ColimaConfig, error) {
 func (fakeSource) KubernetesStatus(string) (*pb.VMStatus, error) {
 	return &pb.VMStatus{Running: true, Kubernetes: false, Runtime: "docker"}, nil
 }
+func (fakeSource) VMStats(string) (*pb.VMStatsEvent, error) {
+	return &pb.VMStatsEvent{
+		CpuPercent:  42.5,
+		MemoryUsed:  1 * 1024 * 1024 * 1024,
+		MemoryTotal: 2 * 1024 * 1024 * 1024,
+		DiskUsed:    20 * 1024 * 1024 * 1024,
+		DiskTotal:   100 * 1024 * 1024 * 1024,
+	}, nil
+}
+func (fakeSource) ProcessList(string) (*pb.ProcessListResponse, error) {
+	return &pb.ProcessListResponse{Processes: []*pb.ProcessInfo{
+		{Pid: 1001, User: "root", CpuPercent: 12.3, MemoryPercent: 5.6, Command: "dockerd", Container: ""},
+		{Pid: 2042, User: "user", CpuPercent: 0.5, MemoryPercent: 1.2, Command: "nginx", Container: "/web"},
+	}}, nil
+}
+func (fakeSource) KillProcess(string, int32, int32) error { return nil }
 func (fakeSource) Containers(string) (string, error) {
 	return `[{"Names":["/web"],"Image":"nginx","State":"running","Status":"Up 2h"}]`, nil
 }
@@ -72,9 +88,9 @@ func TestViewRendersAllTabs(t *testing.T) {
 	}
 }
 
-func TestTabCountIs11(t *testing.T) {
-	if len(Tabs) != 11 {
-		t.Errorf("expected 11 tabs, got %d: %v", len(Tabs), Tabs)
+func TestTabCountIs12(t *testing.T) {
+	if len(Tabs) != 12 {
+		t.Errorf("expected 12 tabs, got %d: %v", len(Tabs), Tabs)
 	}
 }
 
@@ -94,6 +110,7 @@ func TestTabConstantsMatchSlice(t *testing.T) {
 		{TabAI, "AI Workloads"},
 		{TabProfiles, "Profiles"},
 		{TabMachines, "Machines"},
+		{TabMonitoring, "Monitoring"},
 	}
 	for _, c := range cases {
 		if Tabs[c.idx] != c.name {
@@ -424,8 +441,6 @@ func TestLoadTabMachines(t *testing.T) {
 	}
 }
 
-// ─── onboarding model tests ──────────────────────────────────────────────────
-
 func TestOnboardingViewWhileChecking(t *testing.T) {
 	ob := NewOnboardingModel()
 	view := ob.View()
@@ -614,5 +629,130 @@ func TestOrEmpty(t *testing.T) {
 	}
 	if orEmpty("hello", "fallback") != "hello" {
 		t.Error("non-empty string should return itself")
+	}
+}
+
+// ─── monitoring tab tests ─────────────────────────────────────────────────────
+
+func TestLoadTabMonitoring(t *testing.T) {
+	m := newModel()
+	msg := m.loadTab(TabMonitoring)()
+	bm, ok := msg.(bodyMsg)
+	if !ok {
+		t.Fatalf("expected bodyMsg, got %T", msg)
+	}
+	if bm.err != "" {
+		t.Errorf("unexpected top-level error: %s", bm.err)
+	}
+	if bm.tab != TabMonitoring {
+		t.Errorf("tab = %d, want %d", bm.tab, TabMonitoring)
+	}
+	// Must mention CPU, Memory and show process data from fakeSource
+	for _, want := range []string{"CPU", "Memory", "Disk", "dockerd", "nginx"} {
+		if !strings.Contains(bm.text, want) {
+			t.Errorf("monitoring body missing %q:\n%s", want, bm.text)
+		}
+	}
+}
+
+func TestMonitoringTabReachableByNavigation(t *testing.T) {
+	m := newModel()
+	// Navigate right from Dashboard (0) all the way to Monitoring (11)
+	for i := 0; i < TabMonitoring; i++ {
+		nm, _ := m.Update(tea.KeyMsg{Type: tea.KeyRight})
+		m = nm.(Model)
+	}
+	if m.tab != TabMonitoring {
+		t.Errorf("tab after %d right-keys = %d, want %d (Monitoring)",
+			TabMonitoring, m.tab, TabMonitoring)
+	}
+}
+
+func TestMonitoringTabInView(t *testing.T) {
+	m := newModel()
+	view := m.View()
+	if !strings.Contains(view, "Monitoring") {
+		t.Errorf("view should contain 'Monitoring' tab label: %q", view)
+	}
+}
+
+func TestRenderMonitoringWithData(t *testing.T) {
+	md := monitoringData{
+		stats: &pb.VMStatsEvent{
+			CpuPercent:  55.0,
+			MemoryUsed:  1 * 1024 * 1024 * 1024,
+			MemoryTotal: 4 * 1024 * 1024 * 1024,
+			DiskUsed:    10 * 1024 * 1024 * 1024,
+			DiskTotal:   50 * 1024 * 1024 * 1024,
+		},
+		processes: &pb.ProcessListResponse{
+			Processes: []*pb.ProcessInfo{
+				{Pid: 100, User: "root", CpuPercent: 8.0, MemoryPercent: 2.5,
+					Command: "containerd", Container: ""},
+			},
+		},
+	}
+	out := renderMonitoring(md)
+	for _, want := range []string{"CPU", "55.0", "Memory", "Disk", "containerd", "root"} {
+		if !strings.Contains(out, want) {
+			t.Errorf("renderMonitoring missing %q:\n%s", want, out)
+		}
+	}
+}
+
+func TestRenderMonitoringStatsError(t *testing.T) {
+	md := monitoringData{
+		statsErr: "rpc unimplemented",
+		processes: &pb.ProcessListResponse{
+			Processes: []*pb.ProcessInfo{
+				{Pid: 1, User: "root", Command: "init"},
+			},
+		},
+	}
+	out := renderMonitoring(md)
+	if !strings.Contains(out, "unavailable") {
+		t.Errorf("should show 'unavailable' when statsErr is set: %q", out)
+	}
+	if !strings.Contains(out, "init") {
+		t.Errorf("should still show processes even when stats fail: %q", out)
+	}
+}
+
+func TestRenderMonitoringNoProcesses(t *testing.T) {
+	md := monitoringData{
+		stats:     &pb.VMStatsEvent{CpuPercent: 10.0, MemoryUsed: 512, MemoryTotal: 1024},
+		processes: &pb.ProcessListResponse{Processes: []*pb.ProcessInfo{}},
+	}
+	out := renderMonitoring(md)
+	if !strings.Contains(out, "(none)") {
+		t.Errorf("empty process list should show '(none)': %q", out)
+	}
+}
+
+func TestRenderMonitoringNilStats(t *testing.T) {
+	md := monitoringData{stats: nil, processes: nil}
+	out := renderMonitoring(md)
+	if !strings.Contains(out, "not yet sampled") {
+		t.Errorf("nil stats should show 'not yet sampled': %q", out)
+	}
+}
+
+func TestFormatBytes(t *testing.T) {
+	cases := []struct {
+		in   int64
+		want string
+	}{
+		{0, "0B"},
+		{500, "500B"},
+		{1024, "1.0K"},
+		{1536, "1.5K"},
+		{1024 * 1024, "1.0M"},
+		{2 * 1024 * 1024 * 1024, "2.0G"},
+	}
+	for _, c := range cases {
+		got := formatBytes(c.in)
+		if got != c.want {
+			t.Errorf("formatBytes(%d) = %q, want %q", c.in, got, c.want)
+		}
 	}
 }

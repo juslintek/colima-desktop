@@ -5,7 +5,7 @@
 // Run with: go run driver_explore.go
 // (must be invoked from within the tui/ directory)
 //
-// Outputs 11 View() frames as a JSON array to stdout.
+// Outputs 12 View() frames as a JSON array to stdout.
 // Uses a deterministic fakeDS (no daemon needed).
 package main
 
@@ -51,6 +51,23 @@ func (fakeDS) GetConfig(string) (*pb.ColimaConfig, error) {
 func (fakeDS) KubernetesStatus(string) (*pb.VMStatus, error) {
 	return &pb.VMStatus{Running: true, Kubernetes: false, Runtime: "docker", Arch: "aarch64"}, nil
 }
+func (fakeDS) VMStats(string) (*pb.VMStatsEvent, error) {
+	return &pb.VMStatsEvent{
+		CpuPercent:  38.7,
+		MemoryUsed:  3 * 1024 * 1024 * 1024,
+		MemoryTotal: 8 * 1024 * 1024 * 1024,
+		DiskUsed:    22 * 1024 * 1024 * 1024,
+		DiskTotal:   100 * 1024 * 1024 * 1024,
+	}, nil
+}
+func (fakeDS) ProcessList(string) (*pb.ProcessListResponse, error) {
+	return &pb.ProcessListResponse{Processes: []*pb.ProcessInfo{
+		{Pid: 1001, User: "root", CpuPercent: 15.2, MemoryPercent: 8.3, Command: "dockerd", Container: ""},
+		{Pid: 2042, User: "user", CpuPercent: 3.1, MemoryPercent: 1.2, Command: "nginx: worker", Container: "/web-nginx"},
+		{Pid: 3107, User: "999", CpuPercent: 0.4, MemoryPercent: 2.7, Command: "postgres", Container: "/db-postgres"},
+	}}, nil
+}
+func (fakeDS) KillProcess(string, int32, int32) error { return nil }
 func (fakeDS) Containers(string) (string, error) {
 	return `[{"Names":["/web-nginx"],"Image":"nginx:latest","State":"running","Status":"Up 2h"},{"Names":["/db-postgres"],"Image":"postgres:15","State":"running","Status":"Up 5h"},{"Names":["/cache-redis"],"Image":"redis:7","State":"exited","Status":"Exited 1h"}]`, nil
 }
@@ -96,14 +113,24 @@ func main() {
 		case i < 9:
 			key = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{rune('1' + i)}}
 		case i == 9:
+			// Tab 9 (Profiles) — key '0'
 			key = tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'0'}}
 		default:
-			// Tab 10 (Machines): '0' → tab 9, then right-arrow → tab 10
+			// Tabs 10 (Machines) and 11 (Monitoring) have no digit shortcut.
+			// Jump to Profiles (tab 9 via '0'), then right-arrow for each remaining tab.
 			k0 := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'0'}}
 			m3, c3 := m.Update(k0)
 			m = m3.(ui.Model)
 			m = applyCmd(m, c3)
-			key = tea.KeyMsg{Type: tea.KeyRight}
+			// Press right (i - 9) times to reach tab i
+			for step := 0; step < i-9; step++ {
+				kRight := tea.KeyMsg{Type: tea.KeyRight}
+				m3, c3 = m.Update(kRight)
+				m = m3.(ui.Model)
+				m = applyCmd(m, c3)
+			}
+			frames[i] = m.View()
+			continue
 		}
 
 		m3, cmd3 := m.Update(key)
