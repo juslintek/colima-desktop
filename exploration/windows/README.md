@@ -14,7 +14,11 @@ This directory is populated by the `explore-windows` GitHub Actions workflow.
   "platform": "Windows",
   "timestamp": "<ISO-8601>",
   "host": { "os_version": "...", "arch": "x64" },
-  "app": { "name": "Colima Desktop", "exe_path": "...", "launch_mode": "unpackaged WinUI3" },
+  "app": {
+    "name": "Colima Desktop",
+    "exe_path": "...",
+    "launch_mode": "unpackaged WinUI3 (WindowsPackageType=None, WindowsAppSDKSelfContained=true)"
+  },
   "exploration_method": "FlaUI 4.0.0 / UIA3",
   "window": { "process_id": 0, "window_title": "...", "automation_id": "...", "bounding_box": {...} },
   "surfaces_explored": 13,
@@ -36,13 +40,23 @@ This directory is populated by the `explore-windows` GitHub Actions workflow.
 ## Running Locally (Windows)
 
 ```powershell
-# 1. Build app (unpackaged)
+# 1. Build app (unpackaged, WinAppSDK self-contained)
 cd windows
-dotnet publish ColimaDesktop.Windows.csproj -c Release -r win-x64 -p:WindowsPackageType=None -p:SelfContained=true -o ..\app-out
+dotnet publish ColimaDesktop.Windows.csproj `
+  -c Release `
+  -r win-x64 `
+  -p:WindowsPackageType=None `
+  -p:WindowsAppSDKSelfContained=true `
+  -p:SelfContained=true `
+  -o ..\app-out
 
 # 2. Build explorer
 cd ..\scripts\windows
-dotnet publish explore-uia.csproj -c Release -r win-x64 -p:SelfContained=true -o ..\..\explorer-out
+dotnet publish explore-uia.csproj `
+  -c Release `
+  -r win-x64 `
+  -p:SelfContained=true `
+  -o ..\..\explorer-out
 
 # 3. Run
 ..\..\explorer-out\explore-uia.exe `
@@ -54,11 +68,44 @@ dotnet publish explore-uia.csproj -c Release -r win-x64 -p:SelfContained=true -o
 pwsh validate-ground-truth.ps1 ..\..\exploration\windows\ground-truth.json
 ```
 
+## Root Cause & Fix (diagnostic pass 2)
+
+**Root cause (run 29641371990):** The app was built with `SelfContained=true` (bundles .NET runtime)
+but **without** `-p:WindowsAppSDKSelfContained=true` (which bundles the WinAppSDK/WinUI3 DLLs).
+At startup, the WinUI3 bootstrap (`Bootstrap::Initialize`) called out to the Windows Package Manager
+to locate the installed WinAppSDK DDLM packages. The runtime installer in CI returned exit code
+`-2147024736` (HRESULT `0x80070060`/sharing-violation/conflict), silently continued, and the
+packages were not available. Windows displayed an OS error dialog titled
+`"ColimaDesktop.Windows.exe - This application could not be started"`, FlaUI captured that dialog
+window instead of the real app window, found zero nav elements after 13 × 8-second timeouts (~2 min),
+and reported zero elements captured.
+
+**Fix applied:**
+
+1. **`-p:WindowsAppSDKSelfContained=true`** added to the `dotnet publish` command in the workflow.
+   This embeds `Microsoft.WindowsAppRuntime.Bootstrap.dll` and all WinAppSDK/WinUI3 DLLs directly
+   in the output directory, so no runtime package installation is required.
+
+2. **Runtime installer step removed** — it was unreliable (returned -2147024736), covered by
+   `continue-on-error: true` which silently proceeded to a broken app launch. Replaced by the
+   self-contained publish approach.
+
+3. **OS error dialog detection** added to `Program.cs`: the explorer now checks the window title
+   against known error dialog patterns immediately after the main window appears. If detected, it
+   emits full diagnostics (bootstrap DLL presence, process exit code, WinAppSDK DLL inventory),
+   writes a failure JSON, and exits with code 1 immediately — no longer spending minutes on 13×8s
+   nav timeouts.
+
+4. **Diagnostics** added: bootstrap DLL presence check, WinAppSDK DLL inventory, process exit
+   code, Event Log delta in the workflow's Run UIAutomation exploration step.
+
+5. **Verify step** enhanced: logs total publish dir size and bootstrap DLL presence to catch
+   misconfigured builds before the app is even launched.
+
 ## Known Runner Constraints
 
 - The GitHub `windows-latest` runner has a desktop/window session (DWM running), so WinUI 3 apps can render.
-- WinUI 3 unpackaged apps require the **Windows App SDK runtime redistributable** — the workflow installs it via `windowsappruntimeinstall-x64.exe` before launch.
-- `WindowsPackageType=None` is passed at publish time (not in the csproj) so the original csproj is not modified.
+- `WindowsPackageType=None` disables MSIX packaging; `WindowsAppSDKSelfContained=true` embeds the
+  WinAppSDK framework, making the app fully portable with no runtime install required.
 - FlaUI 4.0.0 uses UIA3 (UIAutomationClient COM) — no additional driver install needed.
 - Screenshots use FlaUI's `Capture.Element()` which calls GDI BitBlt — requires DWM compositing.
-- If the app fails to start (missing runtime, etc.), the explorer exits with code 1 but the artifact is still uploaded for diagnostics.

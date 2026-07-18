@@ -41,9 +41,21 @@ internal static class Program
         ("NavSettings",      "Settings & Deps"),
     ];
 
-    private static readonly TimeSpan AppStartTimeout   = TimeSpan.FromSeconds(30);
-    private static readonly TimeSpan NavigationSettle  = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan AppStartTimeout    = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan NavigationSettle   = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan ElementFindTimeout = TimeSpan.FromSeconds(8);
+
+    // Known OS error dialog title substrings that indicate the app failed to start.
+    // These are checked BEFORE spending ElementFindTimeout on each nav item.
+    private static readonly string[] ErrorDialogTitles =
+    [
+        "could not be started",
+        "Application Error",
+        "has stopped working",
+        "stopped working",
+        "not a valid Win32 application",
+        "side-by-side configuration is incorrect",
+    ];
 
     internal static int Main(string[] args)
     {
@@ -68,8 +80,8 @@ internal static class Program
 
         Console.WriteLine($"[explorer] Launching: {appExePath}");
 
-        Application?   app       = null;
-        UIA3Automation? automation = null;
+        Application?    app        = null;
+        UIA3Automation? automation  = null;
 
         try
         {
@@ -114,7 +126,30 @@ internal static class Program
 
             if (mainWindow == null)
             {
-                Console.Error.WriteLine("[explorer] ERROR: Main window did not appear within timeout.");
+                // Emit diagnostics before bailing out
+                WriteLaunchDiagnostics(app, appExePath, "No window appeared within timeout");
+                WriteFailJson(outputJsonPath, "No window appeared within timeout", app.ProcessId, appExePath);
+                return 1;
+            }
+
+            // ── CRITICAL: Detect OS error dialog and abort immediately ────────
+            // When the WinAppSDK bootstrap fails, Windows shows a dialog titled
+            // "ColimaDesktop.Windows.exe - This application could not be started".
+            // Traversing it wastes minutes finding zero app elements.
+            var windowTitle = SafeGet(() => mainWindow.Title, "");
+            if (IsErrorDialog(windowTitle))
+            {
+                var msg = $"OS error dialog detected: '{windowTitle}'";
+                Console.Error.WriteLine($"[explorer] FATAL: {msg}");
+                Console.Error.WriteLine("[explorer] The app failed to bootstrap (WinAppSDK runtime issue).");
+                Console.Error.WriteLine("[explorer] Ensure the publish used -p:WindowsAppSDKSelfContained=true");
+
+                // Dismiss the dialog so it doesn't linger
+                try { mainWindow.Close(); } catch { /* best effort */ }
+
+                // Emit diagnostics before bailing
+                WriteLaunchDiagnostics(app, appExePath, msg);
+                WriteFailJson(outputJsonPath, msg, app.ProcessId, appExePath);
                 return 1;
             }
 
@@ -122,14 +157,16 @@ internal static class Program
             Thread.Sleep(2000);
 
             // Capture process metadata
-            var procInfo    = Process.GetProcessById(app.ProcessId);
-            var processName = procInfo.ProcessName;
-            var windowTitle = SafeGet(() => mainWindow.Title, "");
-            var autoId      = SafeGet(() => mainWindow.AutomationId, "");
+            Process? procInfo    = null;
+            string   processName = "";
+            try { procInfo = Process.GetProcessById(app.ProcessId); processName = procInfo.ProcessName; }
+            catch { /* process may have exited */ }
+
+            var autoId = SafeGet(() => mainWindow.AutomationId, "");
 
             Console.WriteLine($"[explorer] title='{windowTitle}' automationId='{autoId}'");
 
-            var surfaces     = new List<SurfaceResult>();
+            var surfaces      = new List<SurfaceResult>();
             var captureErrors = new List<string>();
 
             for (int i = 0; i < NavigationItems.Length; i++)
@@ -138,6 +175,45 @@ internal static class Program
                 var surfaceKey = navId.Replace("Nav", "").ToLowerInvariant();
 
                 Console.WriteLine($"[explorer] → Navigating to: {label}");
+
+                // Check whether app is still alive before each nav attempt
+                try
+                {
+                    var alive = Process.GetProcessById(app.ProcessId);
+                    _ = alive.HasExited; // probe
+                }
+                catch
+                {
+                    var err = $"App process (PID {app.ProcessId}) no longer running before '{label}'";
+                    Console.Error.WriteLine($"[explorer] FATAL: {err}");
+                    captureErrors.Add(err);
+                    // Fill remaining surfaces with empty and break
+                    for (int j = i; j < NavigationItems.Length; j++)
+                    {
+                        var (nid, lbl) = NavigationItems[j];
+                        surfaces.Add(EmptySurface(nid.Replace("Nav","").ToLowerInvariant(), lbl, err));
+                    }
+                    break;
+                }
+
+                // Re-detect error dialog (could appear after initial window opens)
+                try
+                {
+                    var currentTitle = SafeGet(() => mainWindow.Title, "");
+                    if (IsErrorDialog(currentTitle))
+                    {
+                        var err = $"OS error dialog appeared during navigation: '{currentTitle}'";
+                        Console.Error.WriteLine($"[explorer] FATAL: {err}");
+                        captureErrors.Add(err);
+                        for (int j = i; j < NavigationItems.Length; j++)
+                        {
+                            var (nid, lbl) = NavigationItems[j];
+                            surfaces.Add(EmptySurface(nid.Replace("Nav","").ToLowerInvariant(), lbl, err));
+                        }
+                        break;
+                    }
+                }
+                catch { /* window may have closed */ }
 
                 try
                 {
@@ -204,16 +280,16 @@ internal static class Program
                 {
                     Name       = windowTitle.Length > 0 ? windowTitle : "Colima Desktop",
                     ExePath    = appExePath,
-                    LaunchMode = "unpackaged WinUI3 (WindowsPackageType=None)",
+                    LaunchMode = "unpackaged WinUI3 (WindowsPackageType=None, WindowsAppSDKSelfContained=true)",
                 },
                 ExplorationMethod = "FlaUI 4.0.0 / UIA3 (UIAutomationClient COM)",
                 Window = new WindowMetadata
                 {
-                    ProcessId   = app.ProcessId,
-                    ProcessName = processName,
-                    WindowTitle = windowTitle,
+                    ProcessId    = app.ProcessId,
+                    ProcessName  = processName,
+                    WindowTitle  = windowTitle,
                     AutomationId = autoId,
-                    BoundingBox = SafeGetRect(mainWindow),
+                    BoundingBox  = SafeGetRect(mainWindow),
                 },
                 SurfacesExplored  = surfaces.Count(s => s.ElementCount > 0),
                 TotalElements     = totalElements,
@@ -247,6 +323,9 @@ internal static class Program
         catch (Exception ex)
         {
             Console.Error.WriteLine($"[explorer] FATAL: {ex}");
+            if (app != null)
+                WriteLaunchDiagnostics(app, appExePath, ex.Message);
+            WriteFailJson(outputJsonPath, ex.Message, app?.ProcessId ?? -1, appExePath);
             return 1;
         }
         finally
@@ -256,7 +335,107 @@ internal static class Program
         }
     }
 
-    // ─── Helpers ───────────────────────────────────────────────────────────
+    // ─── OS error dialog detection ─────────────────────────────────────────
+
+    private static bool IsErrorDialog(string title) =>
+        ErrorDialogTitles.Any(s => title.Contains(s, StringComparison.OrdinalIgnoreCase));
+
+    // ─── Launch diagnostics ────────────────────────────────────────────────
+
+    /// <summary>
+    /// Emits process exit code, stderr, and a best-effort note about the WinAppSDK
+    /// bootstrap DLL when the app fails to start.
+    /// </summary>
+    private static void WriteLaunchDiagnostics(Application app, string appExePath, string reason)
+    {
+        Console.Error.WriteLine($"[explorer] --- LAUNCH DIAGNOSTICS ---");
+        Console.Error.WriteLine($"[explorer] Reason: {reason}");
+        Console.Error.WriteLine($"[explorer] PID: {app.ProcessId}");
+
+        // Check whether bootstrap DLL is present in the app directory
+        var appDir      = Path.GetDirectoryName(appExePath) ?? "";
+        var bootstrapDll = Path.Combine(appDir, "Microsoft.WindowsAppRuntime.Bootstrap.dll");
+        if (File.Exists(bootstrapDll))
+            Console.Error.WriteLine($"[explorer] Bootstrap DLL: PRESENT ({bootstrapDll})");
+        else
+            Console.Error.WriteLine($"[explorer] Bootstrap DLL: MISSING — " +
+                "build did not use -p:WindowsAppSDKSelfContained=true");
+
+        // List key WinAppSDK DLLs
+        var sdkDlls = new[] { "WinRT.Runtime.dll", "Microsoft.UI.Xaml.dll",
+                               "Microsoft.Windows.ApplicationModel.DynamicDependency.dll" };
+        foreach (var dll in sdkDlls)
+        {
+            var path = Path.Combine(appDir, dll);
+            Console.Error.WriteLine($"[explorer] {dll}: {(File.Exists(path) ? "PRESENT" : "MISSING")}");
+        }
+
+        // Process exit status
+        try
+        {
+            var p = Process.GetProcessById(app.ProcessId);
+            if (p.HasExited)
+                Console.Error.WriteLine($"[explorer] Process exit code: {p.ExitCode}");
+            else
+                Console.Error.WriteLine("[explorer] Process still running (OS error dialog may be blocking)");
+        }
+        catch
+        {
+            Console.Error.WriteLine("[explorer] Process already exited (could not query exit code)");
+        }
+
+        Console.Error.WriteLine($"[explorer] --- END DIAGNOSTICS ---");
+    }
+
+    // ─── Failure JSON ──────────────────────────────────────────────────────
+
+    private static void WriteFailJson(string outputJsonPath, string reason, int pid, string appExePath)
+    {
+        try
+        {
+            var capture = new GroundTruthCapture
+            {
+                Platform          = "Windows",
+                Timestamp         = DateTime.UtcNow.ToString("O"),
+                Host = new HostInfo
+                {
+                    OsVersion = Environment.OSVersion.VersionString,
+                    Arch      = Environment.Is64BitOperatingSystem ? "x64" : "x86",
+                },
+                App = new AppInfo
+                {
+                    Name       = "Colima Desktop",
+                    ExePath    = appExePath,
+                    LaunchMode = "FAILED",
+                },
+                ExplorationMethod = "FlaUI 4.0.0 / UIA3 (UIAutomationClient COM)",
+                Window = new WindowMetadata
+                {
+                    ProcessId    = pid,
+                    ProcessName  = "",
+                    WindowTitle  = "",
+                    AutomationId = "",
+                    BoundingBox  = null,
+                },
+                SurfacesExplored  = 0,
+                TotalElements     = 0,
+                CaptureErrors     = [$"Launch failed: {reason}"],
+                Surfaces          = [],
+            };
+
+            var json = JsonSerializer.Serialize(capture, new JsonSerializerOptions { WriteIndented = true });
+            var dir  = Path.GetDirectoryName(outputJsonPath);
+            if (dir != null) Directory.CreateDirectory(dir);
+            File.WriteAllText(outputJsonPath, json);
+            Console.WriteLine($"[explorer] Failure JSON written: {outputJsonPath}");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[explorer] Could not write failure JSON: {ex.Message}");
+        }
+    }
+
+    // ─── Navigation helpers ────────────────────────────────────────────────
 
     private static AutomationElement? WaitForElement(
         Window window,

@@ -23,9 +23,6 @@ jobs:
     env:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
       DOTNET_CLI_TELEMETRY_OPTOUT: "1"
-      # WinAppSDK unpackaged apps require an interactive session;
-      # GitHub windows-latest runners have a user desktop session.
-      WINAPPRUNTIME_BOOTSTRAP_OPT_OUT: "0"
 
     steps:
       # ── 1. Checkout ──────────────────────────────────────────────────────
@@ -38,94 +35,58 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      # ── 3. Build app (unpackaged, Release) ──────────────────────────────
-      # We pass WindowsPackageType=None to produce a standalone .exe
-      # without requiring MSIX deploy/trust-cert on the runner.
-      # SelfContained=true bundles the .NET runtime so we don't need it
-      # installed separately.  RuntimeIdentifier=win-x64 forces the single
-      # target RID needed for self-contained.
+      # ── 3. Build app (unpackaged, WindowsAppSDK self-contained) ──────────
+      # WindowsAppSDKSelfContained=true embeds the WinAppSDK framework DLLs
+      # directly in the output directory so the app never calls Bootstrap::
+      # Initialize against installed packages at runtime.  This eliminates
+      # the "This application could not be started" OS error dialog that
+      # appears when the WinAppSDK runtime installer fails on CI.
+      # (SelfContained=true bundles .NET runtime; WindowsAppSDKSelfContained
+      #  is a separate, WinUI-specific property that bundles the AppSDK DLLs.)
       - name: Restore app NuGet packages
         working-directory: windows
         run: |
           dotnet restore ColimaDesktop.Windows.csproj
         timeout-minutes: 5
 
-      - name: Build app (unpackaged, self-contained)
+      - name: Build app (unpackaged, WinAppSDK self-contained)
         working-directory: windows
         run: |
           dotnet publish ColimaDesktop.Windows.csproj `
             -c Release `
             -r win-x64 `
             -p:WindowsPackageType=None `
+            -p:WindowsAppSDKSelfContained=true `
             -p:SelfContained=true `
             -p:PublishSingleFile=false `
             -o "$env:GITHUB_WORKSPACE\app-out"
         timeout-minutes: 10
 
       - name: Verify app binary exists
-        run: |
-          $exe = "$env:GITHUB_WORKSPACE\app-out\ColimaDesktop.Windows.exe"
-          if (-not (Test-Path $exe)) {
-            Write-Error "App binary not found at: $exe"
-            Get-ChildItem "$env:GITHUB_WORKSPACE\app-out" | Select-Object Name
-            exit 1
-          }
-          Write-Host "App binary: $exe  ($((Get-Item $exe).Length) bytes)"
-
-      # ── 4. Install WinAppSDK runtime (unpackaged bootstrap) ─────────────
-      # WinUI3 unpackaged apps call Microsoft.Windows.ApplicationModel.
-      # DynamicDependency.Bootstrap::Initialize at startup which requires
-      # the WindowsAppSDK runtime redistributable to be present.
-      # The runner may or may not have it pre-installed; we install/update it.
-      # The csproj uses WindowsAppSDK 1.5.240607001; runtime major.minor = 1.5.
-      - name: Install Windows App SDK runtime
         shell: pwsh
         run: |
-          # Try the stable aka.ms redirect for 1.5 latest runtime installer
-          # Falls back to winget if the download fails.
-          $ProgressPreference = 'SilentlyContinue'
-          $installer  = "$env:TEMP\WinAppRTInstall.exe"
-          $downloaded = $false
-
-          $urls = @(
-            "https://aka.ms/windowsappsdk/1.5/latest/windowsappruntimeinstall-x64.exe",
-            "https://github.com/microsoft/WindowsAppSDK/releases/download/v1.5.5/WindowsAppRuntimeInstall-x64.exe"
-          )
-
-          foreach ($url in $urls) {
-            try {
-              Write-Host "Trying: $url"
-              Invoke-WebRequest -Uri $url -OutFile $installer -TimeoutSec 120 -ErrorAction Stop
-              $downloaded = $true
-              Write-Host "Downloaded OK"
-              break
-            } catch {
-              Write-Warning "Download failed: $_"
-            }
+          $dir = "$env:GITHUB_WORKSPACE\app-out"
+          $exe = "$dir\ColimaDesktop.Windows.exe"
+          if (-not (Test-Path $exe)) {
+            Write-Error "App binary not found at: $exe"
+            Write-Host "Contents of $dir :"
+            Get-ChildItem $dir | Select-Object Name, Length | Format-Table -AutoSize
+            exit 1
           }
-
-          if ($downloaded) {
-            Write-Host "Running WinAppSDK runtime installer..."
-            $proc = Start-Process -FilePath $installer `
-                      -ArgumentList '--quiet','--norestart','--force-package-manager-recovery' `
-                      -PassThru -Wait
-            Write-Host "Installer exit code: $($proc.ExitCode)"
-            # 0=success, 1638=already installed — both fine
-            if ($proc.ExitCode -notin @(0, 1638)) {
-              Write-Warning "WinAppSDK installer returned $($proc.ExitCode) — proceeding anyway"
-            }
+          $size = (Get-Item $exe).Length
+          Write-Host "App binary: $exe  ($size bytes)"
+          # Sanity: a WinAppSDK self-contained publish is large (>30 MB total dir)
+          $total = (Get-ChildItem $dir -Recurse | Measure-Object -Property Length -Sum).Sum
+          Write-Host "Output dir total size: $([math]::Round($total/1MB,1)) MB"
+          # Log presence of bootstrap DLL — its absence is the original root cause
+          $bootstrap = Join-Path $dir "Microsoft.WindowsAppRuntime.Bootstrap.dll"
+          if (Test-Path $bootstrap) {
+            Write-Host "Bootstrap DLL present: $bootstrap"
           } else {
-            Write-Warning "Could not download WinAppSDK runtime installer — trying winget fallback"
-            try {
-              winget install --id Microsoft.WindowsAppRuntime.1.5 --silent --accept-package-agreements --accept-source-agreements
-            } catch {
-              Write-Warning "winget also failed: $_ — will attempt app launch anyway"
-            }
+            Write-Warning "Bootstrap DLL NOT found — self-contained embed may have failed"
           }
-        timeout-minutes: 8
-        continue-on-error: true  # if runtime install fails, we still attempt explore
 
-      # ── 5. Build FlaUI explorer ──────────────────────────────────────────
+      # ── 4. Build FlaUI explorer ──────────────────────────────────────────
       - name: Restore explorer NuGet packages
         working-directory: scripts/windows
         run: dotnet restore explore-uia.csproj
@@ -142,16 +103,15 @@ jobs:
             -o "$env:GITHUB_WORKSPACE\explorer-out"
         timeout-minutes: 5
 
-      # ── 6. Prepare output directories ───────────────────────────────────
+      # ── 5. Prepare output directories ────────────────────────────────────
       - name: Create output directories
         run: |
           New-Item -ItemType Directory -Force -Path "exploration\windows\screenshots" | Out-Null
           Write-Host "Output dirs created."
 
-      # ── 7. Launch app + run UIAutomation explorer ────────────────────────
-      # We run inside a 25-minute timeout to ensure the job can always upload
-      # the artifact.  The explorer itself times-out individual operations
-      # internally (see NavigationTimeout / ElementFindTimeout in Program.cs).
+      # ── 6. Launch app + run UIAutomation explorer ─────────────────────────
+      # The explorer binary handles app launch, OS-dialog detection, navigation,
+      # element capture, and screenshot saving internally.  It exits 0 on success.
       - name: Run UIAutomation exploration
         shell: pwsh
         run: |
@@ -164,6 +124,10 @@ jobs:
           Write-Host "Explorer: $explorerExe"
           Write-Host "Output:   $outputJson"
 
+          # Collect Event Log Application errors from before launch for later delta
+          $beforeErrors = @(Get-EventLog -LogName Application -EntryType Error `
+            -Newest 20 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Message)
+
           # Run explorer (it launches the app internally)
           $proc = Start-Process `
             -FilePath $explorerExe `
@@ -171,10 +135,36 @@ jobs:
             -PassThru -Wait -NoNewWindow
           $code = $proc.ExitCode
           Write-Host "Explorer exit code: $code"
+
+          if ($code -ne 0) {
+            Write-Host ""
+            Write-Host "=== POST-FAILURE DIAGNOSTICS ==="
+            # New Application Event Log errors since we started
+            $afterErrors = @(Get-EventLog -LogName Application -EntryType Error `
+              -Newest 30 -ErrorAction SilentlyContinue)
+            $newErrors = $afterErrors | Where-Object {
+              $beforeErrors -notcontains $_.Message
+            }
+            if ($newErrors) {
+              Write-Host "New Application Event Log errors:"
+              foreach ($ev in $newErrors) {
+                Write-Host "  [$($ev.Source)] $($ev.Message.Substring(0, [Math]::Min(300,$ev.Message.Length)))"
+              }
+            } else {
+              Write-Host "No new Application Event Log errors."
+            }
+            # List running processes named ColimaDesktop
+            $procs = Get-Process -Name "ColimaDesktop*" -ErrorAction SilentlyContinue
+            if ($procs) {
+              Write-Host "Lingering ColimaDesktop processes: $($procs | Select-Object -ExpandProperty Id)"
+              $procs | Stop-Process -Force -ErrorAction SilentlyContinue
+            }
+          }
+
           exit $code
         timeout-minutes: 25
 
-      # ── 8. Validate JSON ─────────────────────────────────────────────────
+      # ── 7. Validate JSON ──────────────────────────────────────────────────
       - name: Validate ground-truth.json
         shell: pwsh
         run: |
@@ -182,7 +172,7 @@ jobs:
             exploration/windows/ground-truth.json
         timeout-minutes: 2
 
-      # ── 9. Print summary ─────────────────────────────────────────────────
+      # ── 8. Print summary ──────────────────────────────────────────────────
       - name: Print capture summary
         if: always()
         shell: pwsh
@@ -197,8 +187,8 @@ jobs:
             Write-Host "Surfaces explored: $($doc.surfaces_explored)"
             if ($doc.surfaces) {
               foreach ($s in $doc.surfaces) {
-                $flag = if ([int]$s.element_count -gt 0) { "✓" } else { "✗" }
-                Write-Host "  $flag $($s.surface_label): $($s.element_count) elements"
+                $flag = if ([int]$s.element_count -gt 0) { "OK" } else { "MISS" }
+                Write-Host "  [$flag] $($s.surface_label): $($s.element_count) elements"
               }
             }
             if ($doc.capture_errors -and $doc.capture_errors.Count -gt 0) {
@@ -212,7 +202,7 @@ jobs:
           $shots = Get-ChildItem "exploration\windows\screenshots" -Filter "*.png" -ErrorAction SilentlyContinue
           Write-Host "Screenshots: $($shots.Count) files"
 
-      # ── 10. Upload artifact (always — even on failure for diagnostics) ────
+      # ── 9. Upload artifact (always — even on failure for diagnostics) ─────
       - name: Upload windows-ground-truth artifact
         uses: actions/upload-artifact@v4
         if: always()

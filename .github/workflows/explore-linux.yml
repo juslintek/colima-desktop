@@ -35,11 +35,16 @@ jobs:
             dbus \
             dbus-x11 \
             at-spi2-core \
+            at-spi2-doc \
             python3-pyatspi \
+            python3-gi \
+            gir1.2-atspi-2.0 \
+            gir1.2-gtk-4.0 \
             scrot \
             imagemagick \
             x11-utils \
-            gir1.2-atspi-2.0
+            xdotool \
+            gsettings-desktop-schemas
 
       # ── Rust toolchain (pinned stable) ─────────────────────────────────
       - name: Install Rust stable
@@ -65,56 +70,148 @@ jobs:
 
       # ── Prepare output directory ────────────────────────────────────────
       - name: Prepare exploration output directory
-        run: |
-          mkdir -p exploration/linux/screenshots
+        run: mkdir -p exploration/linux/screenshots
 
       # ── AT-SPI2 exploration ─────────────────────────────────────────────
       #
-      # We wrap the entire session inside dbus-run-session to get a clean
-      # D-Bus environment, then start Xvfb + at-spi-bus-launcher before
-      # invoking the Python explorer.
+      # Session setup order (critical):
+      #   1. Xvfb  — provides the DISPLAY
+      #   2. dbus-daemon (via dbus-launch) — provides DBUS_SESSION_BUS_ADDRESS
+      #   3. gsettings set toolkit-accessibility true — tells GTK4 to register ATs
+      #   4. at-spi-bus-launcher --launch-immediately — starts the AT-SPI D-Bus
+      #      registry; path is resolved at runtime to handle Ubuntu 22/24 both
+      #   5. sleep 2 — allow AT-SPI bus to fully start
+      #   6. python3 explore_atspi.py — run with all env vars exported
       #
-      # ALLOW_FAILURE: the step itself uses `|| true` so the artifact upload
-      # always runs (diagnostics on failure). The final validation step
-      # checks the exit code stored in EXPLORE_EXIT.
+      # GTK4 accessibility env vars:
+      #   GTK_A11Y=1         — enable GTK4 accessibility module (NOT GTK_MODULES)
+      #   NO_AT_BRIDGE=0     — allow AT-SPI bridge (default 1 in headless envs blocks it)
+      #   GTK_MODULES must NOT be set to gail:atk-bridge (GTK2/3 only, breaks GTK4)
+      #
+      # ALLOW_FAILURE: the explore step uses || true so the artifact upload
+      # always runs. The final assertion step enforces the nonzero gate.
       - name: Run AT-SPI2 exploration
         id: explore
-        timeout-minutes: 10
-        env:
-          DISPLAY: ":99"
-          NO_AT_BRIDGE: "0"
-          GTK_A11Y: "1"
-          GSETTINGS_BACKEND: "memory"
-          G_MESSAGES_DEBUG: "none"
+        timeout-minutes: 12
         run: |
-          # Start Xvfb
-          Xvfb :99 -screen 0 1280x800x24 -ac &
+          set -euo pipefail
+
+          # ── 1. Start Xvfb ────────────────────────────────────────────
+          Xvfb :99 -screen 0 1280x800x24 -ac +extension RANDR &
           XVFB_PID=$!
+          export DISPLAY=:99
+          sleep 1
+          echo "[explore] Xvfb started (pid=$XVFB_PID, DISPLAY=$DISPLAY)"
+
+          # ── 2. Start D-Bus session bus ────────────────────────────────
+          eval "$(dbus-launch --sh-syntax)"
+          export DBUS_SESSION_BUS_ADDRESS
+          echo "[explore] D-Bus started: $DBUS_SESSION_BUS_ADDRESS"
+
+          # ── 3. Enable toolkit-accessibility via gsettings ─────────────
+          # GSETTINGS_BACKEND defaults to dconf; use memory backend since
+          # no dconf daemon is running.  The key must be set BEFORE the app
+          # starts so GTK4 reads it during gtk_init().
+          export GSETTINGS_BACKEND=memory
+          gsettings set org.gnome.desktop.interface toolkit-accessibility true 2>/dev/null || true
+          echo "[explore] gsettings toolkit-accessibility=true (backend=memory)"
+
+          # ── 4. Locate and start at-spi-bus-launcher ───────────────────
+          # Ubuntu 22.04: /usr/lib/at-spi2-core/at-spi-bus-launcher
+          # Ubuntu 24.04: /usr/lib/x86_64-linux-gnu/at-spi2-core/at-spi-bus-launcher
+          # Also check PATH (some distros put it there)
+          ATSPI_LAUNCHER=""
+          for candidate in \
+              "/usr/lib/at-spi2-core/at-spi-bus-launcher" \
+              "/usr/lib/x86_64-linux-gnu/at-spi2-core/at-spi-bus-launcher" \
+              "/usr/libexec/at-spi-bus-launcher" \
+              "$(which at-spi-bus-launcher 2>/dev/null || true)"; do
+            if [[ -x "$candidate" ]]; then
+              ATSPI_LAUNCHER="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$ATSPI_LAUNCHER" ]]; then
+            echo "[explore] WARNING: at-spi-bus-launcher not found; trying at-spi2-registryd fallback"
+            # at-spi2-registryd is an older launcher on some distros
+            for candidate in \
+                "$(which at-spi2-registryd 2>/dev/null || true)" \
+                "/usr/lib/x86_64-linux-gnu/at-spi2-core/at-spi2-registryd"; do
+              if [[ -x "$candidate" ]]; then
+                ATSPI_LAUNCHER="$candidate"
+                break
+              fi
+            done
+          fi
+
+          echo "[explore] AT-SPI launcher: ${ATSPI_LAUNCHER:-NOT FOUND}"
+          find /usr/lib -name 'at-spi*' 2>/dev/null | sort || true
+
+          if [[ -n "$ATSPI_LAUNCHER" ]]; then
+            "$ATSPI_LAUNCHER" --launch-immediately &
+            ATSPI_PID=$!
+            echo "[explore] at-spi-bus-launcher started (pid=$ATSPI_PID)"
+          else
+            echo "[explore] WARNING: could not start at-spi-bus-launcher; AT-SPI registration may fail"
+            ATSPI_PID=0
+          fi
+
+          # Give the AT-SPI bus time to fully register on D-Bus
           sleep 2
 
-          # Run the explorer inside a fresh D-Bus session
-          # (dbus-run-session provides DBUS_SESSION_BUS_ADDRESS automatically)
+          # ── 5. Diagnostic: list accessible applications before our app ─
+          echo "--- AT-SPI accessible applications (before launch) ---"
+          python3 - <<'PYEOF' || true
+          import pyatspi
+          try:
+              desktop = pyatspi.Registry.getDesktop(0)
+              print(f"Desktop childCount: {desktop.childCount}")
+              for i in range(desktop.childCount):
+                  app = desktop.getChildAtIndex(i)
+                  print(f"  [{i}] name={app.name!r}")
+          except Exception as e:
+              print(f"  Error listing apps: {e}")
+          PYEOF
+          echo "------------------------------------------------------"
+
+          # ── 6. Run exploration ────────────────────────────────────────
           EXIT_CODE=0
-          dbus-run-session -- bash -c '
-            # Start AT-SPI bus
-            /usr/lib/at-spi2-core/at-spi-bus-launcher --launch-immediately &
-            sleep 1
+          python3 scripts/linux/explore_atspi.py \
+            --app linux/target/release/colima-desktop \
+            --outdir exploration/linux \
+            --timeout 60 \
+            --surface-pause 1.5 || EXIT_CODE=$?
 
-            python3 scripts/linux/explore_atspi.py \
-              --app linux/target/release/colima-desktop \
-              --outdir exploration/linux \
-              --timeout 60 \
-              --surface-pause 1.5
-          ' || EXIT_CODE=$?
+          echo "[explore] Explorer exit code: $EXIT_CODE"
 
-          # Stop Xvfb
+          # ── 7. Post-run diagnostics ────────────────────────────────────
+          echo "--- AT-SPI accessible applications (after exploration) ---"
+          python3 - <<'PYEOF' || true
+          import pyatspi
+          try:
+              desktop = pyatspi.Registry.getDesktop(0)
+              print(f"Desktop childCount: {desktop.childCount}")
+              for i in range(desktop.childCount):
+                  app = desktop.getChildAtIndex(i)
+                  print(f"  [{i}] name={app.name!r}")
+          except Exception as e:
+              print(f"  Error: {e}")
+          PYEOF
+          echo "--- Process status ---"
+          ps aux | grep -E 'at-spi|dbus|Xvfb|colima' | grep -v grep || true
+          echo "------------------------------------------------------"
+
+          # ── 8. Cleanup ────────────────────────────────────────────────
+          [[ "$ATSPI_PID" -gt 0 ]] && kill "$ATSPI_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
+          kill "$DBUS_PID" 2>/dev/null || true
 
           echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           # Exit 0 here so the artifact upload step always runs
           exit 0
 
-      # ── Validate JSON (always) ──────────────────────────────────────────
+      # ── Validate ground-truth.json (always) ────────────────────────────
       - name: Validate ground-truth.json
         run: |
           python3 - <<'PYEOF'
@@ -168,11 +265,13 @@ jobs:
         if: always()
         run: |
           EXIT_CODE="${{ steps.explore.outputs.exit_code }}"
+          if [[ -z "$EXIT_CODE" ]]; then
+            echo "ERROR: explore step did not emit an exit_code output."
+            exit 1
+          fi
           if [[ "$EXIT_CODE" != "0" ]]; then
             echo "AT-SPI exploration exited with code $EXIT_CODE."
-            echo "This is expected when running outside an interactive desktop session."
-            echo "The artifact has been uploaded for diagnostics."
-            echo "See exploration/linux/ground-truth.json (environment_blocked field)."
+            echo "Review the 'linux-ground-truth' artifact and the step log above."
             exit "$EXIT_CODE"
           fi
           echo "Exploration succeeded."
