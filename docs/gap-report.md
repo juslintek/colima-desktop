@@ -1,23 +1,22 @@
 # CLI-Parity Gap Report
 
-> **Updated:** 2026-07-18 (runtime artifact analysis — M3.9/M3.10)
+> **Updated:** 2026-07-18 (post DISC-03 resolution — M3.9/M3.10 final)
 > **Method:** Unified analysis of all four per-platform runtime ground-truth artifacts
 > (`exploration/{macos,windows,linux,tui}/ground-truth.json`) plus static source analysis
-> of `daemon/`, `tui/`, `windows/`, `linux/`, and `Sources/`. Previous static-only version
-> has been superseded; stale claims removed and replaced with evidence-based findings.
+> of `daemon/`, `tui/`, `windows/`, `linux/`, and `Sources/`. Evidence-based findings only.
 >
 > **Evidence baseline:**
 > - macOS: 13 surfaces, 1,847 real AX elements, live colima 0.10.1, real Docker socket
 > - Windows: 13 surfaces, 699 UIA elements, CI runner (no live daemon), FlaUI/UIA3
-> - Linux: 11 surfaces, 778 AT-SPI elements, CI runner (no live daemon), pyatspi + xdotool
-> - TUI: 11 PTY surfaces, fakeDS stub data, all fingerprints unique, validation_pass=true
+> - Linux: 12 surfaces, 887 AT-SPI elements, CI runner (no live daemon), pyatspi + xdotool
+> - TUI: 12 PTY surfaces, fakeDS stub data, all fingerprints unique, validation_pass=true
 
 ---
 
 ## Parity Dimension Definitions
 
-This report distinguishes four independent dimensions of parity. Previous versions
-conflated them; they have different verification methods and different owners.
+This report distinguishes four independent dimensions of parity. They have different
+verification methods and different owners.
 
 | Dimension | Definition | How Verified |
 |-----------|------------|-------------|
@@ -40,10 +39,6 @@ GitHub Actions run `29635550954` — all 9 jobs green:
 | `daemon-macos / -ubuntu / -windows` | ✅ PASS (3/3) |
 | `tui-macos / -ubuntu / -windows` | ✅ PASS (3/3) |
 
-Compile fixes applied in the pipeline: WinUI 3 protobuf codegen ordering, gRPC
-streaming extensions, `x:Bind` type conversions; Linux `TokioIo` unix connector,
-GTK `!Send` widget-in-tokio-spawn refactor via async-channel + `spawn_future_local`.
-
 ---
 
 ## Surface Presence — Runtime Evidence
@@ -52,34 +47,32 @@ GTK `!Send` widget-in-tokio-spawn refactor via async-channel + `spawn_future_loc
 
 | Surface | macOS | Windows | Linux | TUI | Notes |
 |---------|:-----:|:-------:|:-----:|:---:|-------|
-| dashboard | ✅ 140 | ✅ 45 | ✅ 87 | ✅ | All 4 platforms |
-| containers | ✅ 95 | ✅ 70 | ✅ 82 | ✅ | All 4 platforms |
-| images | ✅ 95 | ✅ 60 | ✅ 71 | ✅ | All 4 platforms |
-| volumes | ✅ 94 | ✅ 52 | ✅ 67 | ✅ | All 4 platforms |
-| networks | ✅ 94 | ✅ 56 | ✅ 73 | ✅ | All 4 platforms |
-| kubernetes | ✅ 111 | ✅ 52 | ✅ 64 | ✅ | All 4 platforms |
-| configuration | ✅ 448 | ✅ 69 | ✅ 75 | ✅ | All 4 platforms; macOS richest (448 elem) |
-| machines | ✅ 98 | ✅ 39 | ✅ 55 | ✅ | All 4 platforms |
-| profiles | ✅ 123 | ✅ 45 | ✅ 68 | ✅ | All 4 platforms |
-| ai_workloads | ✅ 114 | ✅ 53 | ✅ 71 | ✅ | All 4 platforms; label differs per platform |
-| runtime | ✅ 181 | ✅ 42 | ✅ 65 | ✅ | All 4 platforms; macOS key='runtimeControls' |
-| **monitoring** | ✅ 111 | ✅ 47 | ❌ | ❌ | **GAP: absent from Linux + TUI** |
+| dashboard | ✅ 140 | ✅ 45 | ✅ 90 | ✅ | All 4 platforms |
+| containers | ✅ 95 | ✅ 70 | ✅ 85 | ✅ | All 4 platforms |
+| images | ✅ 95 | ✅ 60 | ✅ 74 | ✅ | All 4 platforms |
+| volumes | ✅ 94 | ✅ 52 | ✅ 70 | ✅ | All 4 platforms |
+| networks | ✅ 94 | ✅ 56 | ✅ 76 | ✅ | All 4 platforms |
+| kubernetes | ✅ 111 | ✅ 52 | ✅ 67 | ✅ | All 4 platforms |
+| configuration | ✅ 448 | ✅ 69 | ✅ 78 | ✅ | All 4 platforms; macOS richest (448 elem) |
+| machines | ✅ 98 | ✅ 39 | ✅ 58 | ✅ | All 4 platforms |
+| profiles | ✅ 123 | ✅ 45 | ✅ 71 | ✅ | All 4 platforms |
+| ai_workloads | ✅ 114 | ✅ 53 | ✅ 74 | ✅ | All 4 platforms; label differs per platform |
+| runtime | ✅ 181 | ✅ 42 | ✅ 68 | ✅ | All 4 platforms; macOS key='runtimeControls' |
+| monitoring | ✅ 111 | ✅ 47 | ✅ 76 | ✅ | All 4 platforms (DISC-03 resolved) |
 | community | ✅ 143 | — | — | — | macOS-only extra; not in CONTRACT |
 | settings | — | ✅ 69 | — | — | Windows-only extra; not in CONTRACT |
 
-Numbers are AX/UIA/AT-SPI element counts from the runtime artifact. Element counts
-reflect UI chrome only for non-macOS platforms (daemon was not running in CI).
+Numbers are AX/UIA/AT-SPI element counts from the runtime artifact. TUI uses PTY
+frames (no element count — verified via content fingerprints). Element counts on
+non-macOS platforms reflect UI chrome only (daemon was not running in CI).
 
 ### Surface-presence gaps
 
-**GAP-SP-01: Monitoring absent from Linux and TUI (runtime-confirmed)**
-- CONTRACT Part A requires: `VMStats (stream)`, `ProcessList`, `KillProcess`
-- macOS has a full Monitoring tab (111 AX elements including VM stats charts and
-  process table). Windows has 47 UIA elements on a monitoring page.
-- Linux `linux/src/views/` directory listing shows views for 11 surfaces — no
-  monitoring view file. TUI `tui/internal/ui/` has no monitoring tab.
-- **Owner:** linux-native-dev (linux/), tui-dev (tui/)
-- **Priority:** P1
+**None.** All 12 CONTRACT-required surfaces are now present on all 4 platforms.
+DISC-03 (Monitoring absent from Linux + TUI) was resolved — both frontends now
+include a Monitoring surface verified in runtime captures (Linux: 76 AT-SPI elements
+with CPU/Memory/Disk usage + Process list + PID kill; TUI: distinct PTY frame with
+VM Monitoring stats and kill action).
 
 ---
 
@@ -108,13 +101,6 @@ All 13 surfaces captured (699 UIA elements). Element counts confirm UI chrome
 (navigation items, labels, buttons) renders correctly. Because no daemon was running,
 list views (containers, images, volumes, networks, profiles) show empty content.
 
-**Interaction coverage by source analysis:**
-- `DaemonClient.cs` wires: `StatusAsync`, `ProfilesAsync`, `ContainersAsync` (3 RPCs)
-- `ContainersPage.xaml`: start/stop/kill/restart/pause/unpause buttons present in XAML
-- `ConfigurationPage.xaml`: CPU/memory/disk/vmType/arch form fields present
-- All remaining RPCs (Start/Stop VM, Kubernetes, AI Models, Monitoring streams) are
-  defined in `DaemonClient.cs` stubs but not connected to UI actions
-
 **Interaction gaps (source-confirmed, runtime-inferred):**
 - VM lifecycle buttons exist on DashboardPage but Start/Stop/Restart are not
   wired to RPCs in `DashboardViewModel.cs`
@@ -124,38 +110,44 @@ list views (containers, images, volumes, networks, profiles) show empty content.
 
 ### Linux (GTK4 / Rust) — UI Chrome Verified; Most Interactions Unimplemented
 
-All 11 surfaces captured (778 AT-SPI elements). AT-SPI fingerprints for each
+All 12 surfaces captured (887 AT-SPI elements). AT-SPI fingerprints for each
 surface are unique, confirming distinct widget trees. Element name fingerprints
-show action labels (`+ Create`, `↺ Restart`, `▶ Start`, `▪ Stop`) on multiple surfaces.
+show action labels (`+ Create`, `↺ Restart`, `▶ Start`, `▪ Stop`, `✕ Kill`) on
+multiple surfaces including Monitoring.
 
 **Verified via AT-SPI element_names_fingerprint:**
 - dashboard: `▶ Start`, `▪ Stop`, `↺ Restart`, `↻ Refresh` buttons visible
 - containers: `+ Create` button visible; list area present
 - volumes, networks, profiles: `+ Create` buttons present
 - configuration: `Arch`, `CPU`, `Disk`, `Memory` labels present — form exists
+- monitoring: `CPU`, `Memory`, `Disk`, `Process list`, `PID`, `✕ Kill` present
 
-**Interaction gaps (source-confirmed):**
-- `linux/src/client.rs` wires only `Status` and `ListContainers`
-- Button click handlers in views trigger gRPC calls but only for 2 RPCs
-- All Kubernetes, AI, Monitoring, Runtime switch operations are UI stubs with
-  no handler logic
+**Interaction status (source-confirmed):**
+- Monitoring is wired in `linux/src/views/monitoring.rs`: bounded `VMStats` sampling,
+  `ProcessList` refresh, and `KillProcess` with PID/signal all call daemon gRPC.
+- The AT-SPI capture proves controls and distinct navigation, not successful backend
+  mutations. Other Linux actions still require a live-daemon, per-action audit.
 
 ### TUI (Bubble Tea) — Surface Render Verified via PTY; Data via fakeDS Only
 
-All 11 surfaces render distinct non-empty PTY frames (fakeDS). Navigation via
-number keys (1–0 + Machines key) confirmed working.
+All 12 surfaces render distinct non-empty PTY frames (fakeDS). Navigation via
+number keys (1–0 + Machines + Monitoring) confirmed working.
 
 **Verified via normalized PTY frames:**
-- Tab bar renders all 11 surface labels on every frame ✅
+- Tab bar renders all 12 surface labels on every frame ✅
 - Containers: shows 3 stub container rows (`/web-nginx`, `/db-postgres`, `/cache-redis`)
 - Profiles: shows 3 stub profiles with status/arch/cpu columns
+- Monitoring: PTY frame shows CPU/Memory/Disk, selectable processes, and the kill
+  affordance; focused model/teatest coverage verifies `k` dispatches
+  `KillProcess(profile, pid, 9)`
 - Key-binding footer visible on all surfaces
 
 **Interaction gaps (source-confirmed):**
-- No write key-bindings (start/stop VM, container actions) implemented
+- No VM lifecycle or Docker write key-bindings (start/stop VM, container actions);
+  Monitoring process kill is the verified write action
 - Volumes/Networks tabs were showing placeholder text before fakeDS — stub rows
   now injected for verification purposes only
-- No live data streaming
+- No continuous live streaming; `VMStats` reads one bounded sample per refresh
 - No detail/inspect sub-views
 
 ---
@@ -172,18 +164,6 @@ need a live environment with a running colima daemon to verify this dimension.
 | Linux | ❌ | CI runner had no daemon; shows transport error in fingerprint |
 | TUI | ❌ (fakeDS) | fakeDS stubs; real daemon unreachable |
 
-**macOS live-backend findings (from ground-truth):**
-- VM status, CPU/mem/disk stats live in dashboard (140 real elements including populated stat cards)
-- Container list, image list, volume list, network list all populated from real Docker socket
-- All 13 surfaces navigated successfully with real data
-
-**Expected Windows/Linux/TUI behavior with live daemon (from source analysis):**
-- Windows: DaemonClient.cs connects to gRPC; Status + ListProfiles + ListContainers
-  would return real data; remaining pages would remain empty until RPCs are wired
-- Linux: client.rs connects; Status + ListContainers would return real data
-- TUI: DataSource interface allows swapping fakeDS for a real gRPC client; all surfaces
-  would then show live data for the 5 wired RPCs
-
 ---
 
 ## Per-Frontend Summary Table
@@ -193,23 +173,22 @@ need a live environment with a running colima daemon to verify this dimension.
 | macOS (SwiftUI) | ✅ | 13/13 ✅ | ~95% ✅ | ✅ Live | **Full** |
 | Daemon (Go gRPC) | ✅ | 53/53 RPCs ✅ | 100% RPCs ✅ | ✅ Tested | **Full** |
 | Windows (WinUI 3) | ✅ | 13/13 ✅ | ~20% 🟡 | ❌ Not verified | **Scaffold** |
-| Linux (GTK4) | ✅ | 11/11 (no monitoring) 🟡 | ~15% 🟡 | ❌ Not verified | **Scaffold** |
-| TUI (Bubble Tea) | ✅ | 11/11 (no monitoring) 🟡 | ~25% 🟡 | ❌ fakeDS only | **Scaffold+** |
+| Linux (GTK4) | ✅ | 12/12 ✅ | ~15% 🟡 | ❌ Not verified | **Scaffold** |
+| TUI (Bubble Tea) | ✅ | 12/12 ✅ | ~25% 🟡 | ❌ fakeDS only | **Scaffold+** |
 
-"Scaffold+" for TUI because it has more gRPC RPCs wired (5) and a gRPC DataSource
-interface, making it the closest non-macOS frontend to a functional daily driver.
+"Scaffold+" for TUI because its current `DataSource` exposes 12 wired operations,
+including `VMStats`, `ProcessList`, and `KillProcess`, making it the closest non-macOS
+frontend to a functional daily driver.
 
 ---
 
 ## Gap Priority Matrix
 
-Ordered by impact. Monitoring gap added from runtime evidence; old static-analysis
-estimates for Windows/Linux updated to reflect actual compiled source.
+Ordered by impact. Surface-presence gaps fully resolved (DISC-03 closed).
+Remaining gaps are interaction coverage and backend-connected runtime verification.
 
 | Priority | Frontend | Gap | RPCs / Surfaces | Evidence Source |
 |:--------:|----------|-----|:---------------:|:----------------|
-| P0 | Linux | Monitoring surface absent | 3 RPCs | Runtime artifact — DISC-03 |
-| P0 | TUI | Monitoring surface absent | 3 RPCs | Runtime artifact — DISC-03 |
 | P0 | TUI | VM lifecycle write actions | 7 RPCs | Source analysis |
 | P0 | TUI | Docker container write ops | 11 RPCs | Source analysis |
 | P0 | Windows | VM lifecycle + most ops | ~47 RPCs | Source analysis |
@@ -220,7 +199,6 @@ estimates for Windows/Linux updated to reflect actual compiled source.
 | P1 | Windows | Kubernetes, AI, Monitoring streams | 12 RPCs | Source analysis |
 | P2 | TUI | AI models | 5 RPCs | Source analysis |
 | P2 | TUI | Configuration | 4 RPCs | Source analysis |
-| P2 | TUI | Monitoring | 3 RPCs | Source analysis |
 | P2 | macOS | Template UI (GetTemplate/SetTemplate) | 2 RPCs | Source analysis |
 | P3 | All | DependencyManager turnkey | Part C | Source analysis |
 | P3 | Daemon | GetConfig/SetConfig/GetTemplate/SetTemplate | 4 RPCs | Source analysis |
@@ -245,25 +223,21 @@ Residual unimplemented handlers confirmed in `daemon/internal/server/`:
 
 ## Recommendations
 
-1. **Monitoring surface (P0)** — Linux and TUI confirmed missing at runtime. Wire
-   `VMStats` stream + `ProcessList` + `KillProcess` RPCs and add a monitoring view.
-   Both platforms have the gRPC client stubs available; this is a UI + handler task.
-
-2. **TUI is closest to useful** — has gRPC DataSource interface, 5 wired RPCs, and all
-   11 surface renders confirmed. Adding Start/Stop VM and container action key-bindings
+1. **TUI is closest to useful** — has a gRPC DataSource interface, 12 wired operations,
+   and all 12 surface renders confirmed. Adding Start/Stop VM and container action key-bindings
    would make it a functional daily driver. Estimated: 2–3 day effort for P0 gaps.
 
-3. **Windows and Linux need VM lifecycle wiring** — DashboardPage/main.rs have the
+2. **Windows and Linux need VM lifecycle wiring** — DashboardPage/main.rs have the
    UI buttons; they need to be connected to the gRPC RPCs in DaemonClient.cs/client.rs.
 
-4. **Daemon config RPCs** — `GetConfig`/`SetConfig` are the highest-leverage daemon
+3. **Daemon config RPCs** — `GetConfig`/`SetConfig` are the highest-leverage daemon
    gaps. Without them, Windows/Linux cannot provide configuration editing.
 
-5. **Live-backend verification** — Windows and Linux need a CI environment with a
+4. **Live-backend verification** — Windows and Linux need a CI environment with a
    running colima daemon (or a dedicated integration test profile like macOS's
    `desktop-e2e`) to verify backend-connected behavior.
 
-6. **Template UI** — macOS has the proto methods; a small UI card would close this gap.
+5. **Template UI** — macOS has the proto methods; a small UI card would close this gap.
 
 ---
 
@@ -273,8 +247,8 @@ GitHub Actions run `29635550954` — all 9 frontends.yml jobs green.
 Explorer pipelines:
 - `explore-macos`: ground-truth captured (13 surfaces, 1,847 elem, live backend)
 - `explore-windows`: ground-truth captured (13 surfaces, 699 elem, CI/no daemon)
-- `explore-linux`: ground-truth captured (11 surfaces, 778 elem, CI/no daemon)
-- `explore-tui`: ground-truth captured (11 surfaces, fakeDS, all fingerprints unique)
+- `explore-linux`: ground-truth captured (12 surfaces, 887 elem, CI/no daemon)
+- `explore-tui`: ground-truth captured (12 surfaces, fakeDS, all fingerprints unique)
 
 ---
 

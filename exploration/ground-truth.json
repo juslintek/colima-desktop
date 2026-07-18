@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "generated_at": "2026-07-18T15:41:52+03:00",
-  "generator": "crossplatform-parity-auditor (agent/parity-final)",
+  "generated_at": "2026-07-18T16:17:31+03:00",
+  "generator": "crossplatform-parity-auditor (agent/parity-monitoring-final)",
   "description": "Unified, machine-readable ground-truth across all four Colima Desktop frontends. Embeds per-platform summaries and a canonical surface matrix. Raw element arrays live in the per-platform source files referenced below.",
 
   "source_artifacts": {
@@ -17,7 +17,7 @@
     "windows": {
       "path": "exploration/windows/ground-truth.json",
       "sha256": "8f930336f38ce3f7eeeb9cdd5ebd0dc7cb39a87704376afce73ed6eef3c7f793",
-      "size_bytes": 462367,
+      "size_bytes": 446204,
       "capture_timestamp": "2026-07-18T11:53:34.0668307Z",
       "capture_method": "FlaUI 4.0.0 / UIA3 (UIAutomationClient COM); Click-first navigation; Dashboard uses no-navigation (initial selected page); mainWindow re-resolved per iteration; navAutomationId eagerly captured before scroll",
       "capture_environment": "GitHub Actions runner, Windows NT 10.0.26100.0 (x64), unpackaged WinUI 3 (WindowsPackageType=None, WindowsAppSDKSelfContained=true), no live daemon",
@@ -25,21 +25,21 @@
     },
     "linux": {
       "path": "exploration/linux/ground-truth.json",
-      "sha256": "a349ebc0b017c0360df406eb327fff37de634548dbfc1334c563e8a4b610803b",
-      "size_bytes": 243272,
-      "capture_timestamp": "2026-07-18T12:20:19.784355+00:00",
-      "capture_method": "pyatspi DFS traversal (read-only) + screenshots; navigation via xdotool positional grid (x=win_x+100, y=win_y+23+38*i); Dashboard = initial state; each navigation verified by content fingerprint change; AT-SPI doAction/component-extent nav removed (pass 8 — proved to produce mislabeled captures). GTK_A11Y=atspi",
+      "sha256": "0e9fcdb33d1d51ab6819070865ca85b6eebe91c000ba0ae4849aeabe425a7846",
+      "size_bytes": 276752,
+      "capture_timestamp": "2026-07-18T13:10:25.635145+00:00",
+      "capture_method": "pyatspi DFS traversal (read-only) + screenshots; sidebar navigation: Dashboard initial state + xdotool positional grid (x=win_x+100, y=win_y+23+38*i) for surfaces 1–11; each navigation verified by content fingerprint change; all 12 content fingerprints unique. GTK_A11Y=atspi. DISC-03 resolved: Monitoring added as 12th surface (index 11).",
       "capture_environment": "GitHub Actions runner, Ubuntu, Xvfb :99, no live daemon; colima presence shimmed by CI-only scripts/linux/colima_shim.sh so main window loads instead of onboarding",
-      "verified_status": "VERIFIED — 11 surfaces, 11 unique content fingerprints, all element_counts nonzero, zero errors; daemon not running (backend-unavailable surfaces show stub/empty data)"
+      "verified_status": "VERIFIED — 12 surfaces, 12 unique content fingerprints, all element_counts nonzero, zero errors; daemon not running (backend-unavailable surfaces show stub/empty data)"
     },
     "tui": {
       "path": "exploration/tui/ground-truth.json",
-      "sha256": "c00986d3b5442dec56e99804e273dd0bea67d7356747ebb0a906aca9614d78ce",
-      "size_bytes": 49595,
-      "capture_timestamp": "2026-07-18T12:38:13.695417+00:00",
-      "capture_method": "hybrid: PTY screenshots + model-direct content (fakeDS). PTY frames captured by headless terminal driver (tui/driver_explore.go); content fingerprints unique per surface. model-direct: fakeDS DataSource injects stub data (3 mock containers, 3 mock profiles, etc.) to populate normally-empty views when daemon is unreachable.",
-      "capture_environment": "macOS darwin/arm64, Go 1.26.2, 120×40 PTY, no live daemon; fakeDS provides plausible stub content for surfaces that would otherwise show only error text",
-      "verified_status": "VERIFIED — 11 surfaces, all_nonempty=true, all_distinct=true, validation_pass=true; content is structurally correct but DATA IS STUB (fakeDS) — does not represent live daemon state"
+      "sha256": "693c8ad53add7e734742d419aa961019d4a3dd03357179068c7c113f1a95b016",
+      "size_bytes": 28845,
+      "capture_timestamp": "2026-07-18T13:16:19.295644+00:00",
+      "capture_method": "hybrid: PTY screenshots + model-direct content (fakeDS). PTY frames captured by headless terminal driver (tui/driver_explore.go); content fingerprints unique per surface. model-direct: fakeDS DataSource injects stub data to populate normally-empty views when daemon is unreachable. DISC-03 resolved: Monitoring added as 12th surface.",
+      "capture_environment": "GitHub Actions runner, linux/amd64, Go 1.25.0, 120×40 PTY, no live daemon; fakeDS provides plausible stub content for surfaces that would otherwise show only error text",
+      "verified_status": "VERIFIED — 12 surfaces, all_nonempty=true, all_distinct=true, validation_pass=true, zero errors; content is structurally correct but DATA IS STUB (fakeDS) — does not represent live daemon state"
     }
   },
 
@@ -107,22 +107,23 @@
       "platform": "Linux (GTK4 / Rust / gtk4-rs)",
       "frontend_toolkit": "GTK4, gtk4-rs, tonic (gRPC)",
       "backend_connection": "gRPC over Unix socket (client.rs); CI runner had no live daemon; colima shimmed",
-      "surfaces_captured": 11,
-      "total_atspi_elements": 778,
+      "surfaces_captured": 12,
+      "total_atspi_elements": 887,
       "per_surface_element_counts": {
-        "dashboard": 87,
-        "containers": 82,
-        "images": 71,
-        "volumes": 67,
-        "networks": 73,
-        "machines": 55,
-        "kubernetes": 64,
-        "configuration": 75,
-        "runtime": 65,
-        "ai_workloads": 71,
-        "profiles": 68
+        "dashboard": 90,
+        "containers": 85,
+        "images": 74,
+        "volumes": 70,
+        "networks": 76,
+        "machines": 58,
+        "kubernetes": 67,
+        "configuration": 78,
+        "runtime": 68,
+        "ai_workloads": 74,
+        "profiles": 71,
+        "monitoring": 76
       },
-      "screenshots": 12,
+      "screenshots": 13,
       "capture_limitations": [
         "xdotool positional grid navigation: clicks are coordinate-based (not AT-SPI widget refs) — accurate for fixed sidebar grid but brittle if sidebar row height changes",
         "AT-SPI doAction/component-extent navigation removed (pass 8) after proving it produced mislabeled captures — xdotool grid is the authoritative method",
@@ -134,28 +135,29 @@
     },
     "tui": {
       "platform": "TUI (Bubble Tea / Go)",
-      "frontend_toolkit": "Bubble Tea, lipgloss, gRPC client (tonic equiv: google.golang.org/grpc)",
+      "frontend_toolkit": "Bubble Tea, lipgloss, gRPC client (google.golang.org/grpc)",
       "backend_connection": "gRPC over Unix socket; headless PTY driver (driver_explore.go); fakeDS DataSource for stub content",
-      "surfaces_captured": 11,
-      "total_pty_frames": 11,
+      "surfaces_captured": 12,
+      "total_pty_frames": 12,
       "terminal_size": {"cols": 120, "rows": 40},
       "per_surface_fingerprints": {
-        "Dashboard": "a6eb395fd1fb4a70",
-        "Containers": "a67cf9dfbdc97e46",
-        "Images": "f42d885879a5a48b",
-        "Volumes": "fdc725264da8c78b",
-        "Networks": "74b808fc70b0b21e",
-        "Kubernetes": "1ab9c6d528e7dac2",
-        "Configuration": "33b310af38997e0b",
-        "Runtime": "3719e2e8ec1ad8d7",
-        "AI Workloads": "5ba4feda32d6bd2a",
-        "Profiles": "3d134f78dd157ab0",
-        "Machines": "f0ebcb6e30621b22"
+        "Dashboard": "28ea7f648af66313",
+        "Containers": "d7afc28543119089",
+        "Images": "84a2d1d15c6b9763",
+        "Volumes": "c497e9a51644a4fb",
+        "Networks": "2385d9b20d9d2ec3",
+        "Kubernetes": "8bc3f211ab2acd03",
+        "Configuration": "91018030606beef8",
+        "Runtime": "bed5458bc93d43d1",
+        "AI Workloads": "9bd833949c87ff1b",
+        "Profiles": "55559eae4f99283a",
+        "Machines": "1b2d34a093505ccf",
+        "Monitoring": "426c0fa142250c03"
       },
       "screenshots": "ANSI + plaintext .ansi/.txt files in exploration/tui/screenshots/",
       "capture_limitations": [
         "STUB DATA: fakeDS DataSource injects mock container/image/volume/network/profile/machine rows — these are not live daemon responses; purpose is to confirm surfaces render populated tables, not to validate backend data",
-        "TUI navigation is keyboard-driven (1–0 number keys + Machines); uniqueness validated by content fingerprint diff, not AT-SPI/UIA widget inspection",
+        "TUI navigation is keyboard-driven (1–0 number keys + Machines + Monitoring); uniqueness validated by content fingerprint diff, not AT-SPI/UIA widget inspection",
         "No accessibility tree — PTY character grids are the only introspection method for terminal apps"
       ],
       "backend_connected": false,
@@ -165,90 +167,92 @@
 
   "canonical_surface_matrix": {
     "description": "Normalized mapping of every surface across all four platforms. Names are lowercased/de-spaced canonical keys. 'captured' = surface appears in ground-truth with nonzero element count. 'backend_dependent' = data rows require a live daemon/colima to show real content. Source-aligned labels provided per platform.",
+    "common_surface_count": 12,
+    "common_surface_note": "12 surfaces are present across all four platforms (runtime-confirmed). Two additional surfaces are platform-specific extras.",
     "surfaces": [
       {
         "canonical": "dashboard",
-        "platform_labels": {"macOS": "Dashboard", "Windows": "dashboard", "Linux": "dashboard", "TUI": "Dashboard"},
+        "platform_labels": {"macOS": "Dashboard", "Windows": "dashboard", "Linux": "Dashboard", "TUI": "Dashboard"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "VM status, CPU/mem/disk stats, start/stop/restart buttons. All 4 platforms render. macOS shows live colima status; Windows/Linux/TUI show error/stub."
       },
       {
         "canonical": "containers",
-        "platform_labels": {"macOS": "containers", "Windows": "containers", "Linux": "containers", "TUI": "Containers"},
+        "platform_labels": {"macOS": "containers", "Windows": "containers", "Linux": "Containers", "TUI": "Containers"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "Docker container list + CRUD. All 4 platforms captured. Live data on macOS only; TUI shows fakeDS stub rows."
       },
       {
         "canonical": "images",
-        "platform_labels": {"macOS": "images", "Windows": "images", "Linux": "images", "TUI": "Images"},
+        "platform_labels": {"macOS": "images", "Windows": "images", "Linux": "Images", "TUI": "Images"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "Docker image list + pull/remove/push. All 4 platforms captured."
       },
       {
         "canonical": "volumes",
-        "platform_labels": {"macOS": "volumes", "Windows": "volumes", "Linux": "volumes", "TUI": "Volumes"},
+        "platform_labels": {"macOS": "volumes", "Windows": "volumes", "Linux": "Volumes", "TUI": "Volumes"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "Docker volume list + CRUD. All 4 platforms captured."
       },
       {
         "canonical": "networks",
-        "platform_labels": {"macOS": "networks", "Windows": "networks", "Linux": "networks", "TUI": "Networks"},
+        "platform_labels": {"macOS": "networks", "Windows": "networks", "Linux": "Networks", "TUI": "Networks"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "Docker network list + connect/disconnect. All 4 platforms captured."
       },
       {
         "canonical": "kubernetes",
-        "platform_labels": {"macOS": "kubernetes", "Windows": "kubernetes", "Linux": "kubernetes", "TUI": "Kubernetes"},
+        "platform_labels": {"macOS": "kubernetes", "Windows": "kubernetes", "Linux": "Kubernetes", "TUI": "Kubernetes"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "k3s start/stop/reset/exec. All 4 platforms captured."
       },
       {
         "canonical": "configuration",
-        "platform_labels": {"macOS": "configuration", "Windows": "configuration", "Linux": "configuration", "TUI": "Configuration"},
+        "platform_labels": {"macOS": "configuration", "Windows": "configuration", "Linux": "Configuration", "TUI": "Configuration"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": false,
-        "notes": "CPU/mem/disk/arch/runtime/network/kubernetes config form. macOS has 448 AX elements (richest); Windows 69, Linux 75, TUI renders a config form."
+        "notes": "CPU/mem/disk/arch/runtime/network/kubernetes config form. macOS has 448 AX elements (richest); Windows 69, Linux 78, TUI renders a config form."
       },
       {
         "canonical": "machines",
-        "platform_labels": {"macOS": "machines", "Windows": "machines", "Linux": "machines", "TUI": "Machines"},
+        "platform_labels": {"macOS": "machines", "Windows": "machines", "Linux": "Machines", "TUI": "Machines"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "Lima VM list (limactl list). All 4 platforms captured. Live data on macOS only."
       },
       {
         "canonical": "profiles",
-        "platform_labels": {"macOS": "profiles", "Windows": "profiles", "Linux": "profiles", "TUI": "Profiles"},
+        "platform_labels": {"macOS": "profiles", "Windows": "profiles", "Linux": "Profiles", "TUI": "Profiles"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
         "notes": "Colima profile list + create/delete/clone. All 4 platforms captured. TUI shows fakeDS stub profiles."
       },
       {
         "canonical": "ai_workloads",
-        "platform_labels": {"macOS": "ai", "Windows": "aiworkloads", "Linux": "ai_workloads", "TUI": "AI Workloads"},
+        "platform_labels": {"macOS": "ai", "Windows": "aiworkloads", "Linux": "AI Workloads", "TUI": "AI Workloads"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
-        "notes": "AI model list/pull/run/serve. All 4 platforms captured. macOS uses tab label 'ai'; Windows 'aiworkloads'; Linux 'ai_workloads'; TUI 'AI Workloads'. Normalized as ai_workloads."
+        "notes": "AI model list/pull/run/serve. All 4 platforms captured. macOS uses tab label 'ai'; Windows 'aiworkloads'; Linux 'AI Workloads'; TUI 'AI Workloads'. Normalized as ai_workloads."
       },
       {
         "canonical": "runtime",
-        "platform_labels": {"macOS": "runtimeControls", "Windows": "runtime", "Linux": "runtime", "TUI": "Runtime"},
+        "platform_labels": {"macOS": "runtimeControls", "Windows": "runtime", "Linux": "Runtime", "TUI": "Runtime"},
         "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": false,
         "notes": "Runtime switch (docker/containerd/incus) + update. macOS uses tab key 'runtimeControls' (181 AX elements — richest). All 4 platforms have this surface. DISCREPANCY: macOS tab label is 'runtimeControls'; other platforms use 'runtime' or 'Runtime'."
       },
       {
         "canonical": "monitoring",
-        "platform_labels": {"macOS": "monitoring", "Windows": "monitoring", "Linux": null, "TUI": null},
-        "captured":   {"macOS": true,  "Windows": true,  "Linux": false,  "TUI": false},
+        "platform_labels": {"macOS": "monitoring", "Windows": "monitoring", "Linux": "Monitoring", "TUI": "Monitoring"},
+        "captured":   {"macOS": true,  "Windows": true,  "Linux": true,  "TUI": true},
         "backend_dependent": true,
-        "notes": "VMStats stream, process list, kill. PRESENT on macOS (111 elem) and Windows (47 elem). ABSENT from Linux and TUI ground-truth — these frontends do not have a Monitoring surface in the runtime artifact."
+        "notes": "VMStats stream, process list, kill. PRESENT on all 4 platforms. macOS 111 elem, Windows 47 elem, Linux 76 elem (AT-SPI verified: CPU/Memory/Disk usage, Process list, PID kill), TUI renders VM Monitoring frame with CPU/Memory/Disk stats and process kill. DISC-03 RESOLVED."
       },
       {
         "canonical": "community",
@@ -267,57 +271,62 @@
     ]
   },
 
-  "runtime_only_discrepancies": [
-    {
-      "id": "DISC-01",
-      "surface": "runtime",
-      "finding": "macOS tab key is 'runtimeControls' (SwiftUI NavigationItem enum value); Windows/Linux/TUI all use 'runtime'. AX element count on macOS is 181 vs 42–65 on other platforms, indicating a richer UI (update button, runtime detail cards). Runtime capability parity exists but the surface name differs.",
-      "severity": "low",
-      "action": "Informational — no contract violation. Consider aligning tab key to 'runtime' in macOS NavigationItem if cross-platform automation is needed."
-    },
-    {
-      "id": "DISC-02",
-      "surface": "ai_workloads",
-      "finding": "Surface is named 'ai' (tab key) in macOS, 'aiworkloads' in Windows, 'ai_workloads' in Linux, 'AI Workloads' in TUI. All four have captured the surface; naming is cosmetically inconsistent but functionally equivalent.",
-      "severity": "low",
-      "action": "Informational — recommend canonical label 'AI Workloads' / key 'ai_workloads' across all platforms."
-    },
-    {
-      "id": "DISC-03",
-      "surface": "monitoring",
-      "finding": "Monitoring surface is present on macOS (111 AX elements: VMStats stream, process list, kill) and Windows (47 UIA elements). ABSENT from Linux and TUI runtime artifacts. Linux has 11 captured surfaces (no monitoring). TUI has 11 surfaces (no monitoring).",
-      "severity": "medium",
-      "action": "Gap: Linux and TUI need a Monitoring surface. VMStats stream + ProcessList + KillProcess RPCs exist in daemon but are not wired in linux/src/views/ or tui/internal/ui/. Flag to linux-native-dev and tui-dev."
-    },
-    {
-      "id": "DISC-04",
-      "surface": "community",
-      "finding": "Community tab is macOS-only (143 AX elements). Not required by CONTRACT. No action needed.",
-      "severity": "info",
-      "action": "None — macOS-specific extra surface."
-    },
-    {
-      "id": "DISC-05",
-      "surface": "settings",
-      "finding": "Settings page is Windows-only (69 UIA elements). Not in CONTRACT, not required. Reasonable for platform-specific connection/dependency configuration.",
-      "severity": "info",
-      "action": "None — Windows-specific extra surface. Consider whether Linux and macOS need equivalent settings."
-    },
-    {
-      "id": "DISC-06",
-      "surface": "all_backend_dependent",
-      "finding": "Windows, Linux, and TUI captures were taken without a live daemon. Backend-dependent surfaces (containers, images, volumes, networks, machines, profiles, dashboard VM stats, kubernetes status) show placeholder/empty/error content. This is expected for CI captures; it does NOT indicate a UI bug — it confirms the daemon connection path exists.",
-      "severity": "info",
-      "action": "Real-backend interaction coverage requires a live colima environment. macOS is the only platform with live-backend ground truth."
-    },
-    {
-      "id": "DISC-07",
-      "surface": "tui/all",
-      "finding": "TUI capture_method is 'hybrid: PTY screenshots + model-direct content (fakeDS)'. Stub container/image/profile/machine rows were injected by fakeDS DataSource to produce non-empty table renders. These are NOT live daemon responses. TUI surface structure is verified; data accuracy is not.",
-      "severity": "medium",
-      "action": "TUI data-layer testing requires a live daemon connection. fakeDS fulfills structural verification only."
-    }
-  ],
+  "runtime_only_discrepancies": {
+    "active": [
+      {
+        "id": "DISC-01",
+        "surface": "runtime",
+        "finding": "macOS tab key is 'runtimeControls' (SwiftUI NavigationItem enum value); Windows/Linux/TUI all use 'runtime'/'Runtime'. AX element count on macOS is 181 vs 42–68 on other platforms, indicating a richer UI (update button, runtime detail cards). Runtime capability parity exists but the surface name differs.",
+        "severity": "low",
+        "action": "Informational — no contract violation. Consider aligning tab key to 'runtime' in macOS NavigationItem if cross-platform automation is needed."
+      },
+      {
+        "id": "DISC-02",
+        "surface": "ai_workloads",
+        "finding": "Surface is named 'ai' (tab key) in macOS, 'aiworkloads' in Windows, 'AI Workloads' in Linux, 'AI Workloads' in TUI. All four have captured the surface; naming is cosmetically inconsistent but functionally equivalent.",
+        "severity": "low",
+        "action": "Informational — recommend canonical label 'AI Workloads' / key 'ai_workloads' across all platforms."
+      },
+      {
+        "id": "DISC-04",
+        "surface": "community",
+        "finding": "Community tab is macOS-only (143 AX elements). Not required by CONTRACT. No action needed.",
+        "severity": "info",
+        "action": "None — macOS-specific extra surface."
+      },
+      {
+        "id": "DISC-05",
+        "surface": "settings",
+        "finding": "Settings page is Windows-only (69 UIA elements). Not in CONTRACT, not required. Reasonable for platform-specific connection/dependency configuration.",
+        "severity": "info",
+        "action": "None — Windows-specific extra surface. Consider whether Linux and macOS need equivalent settings."
+      },
+      {
+        "id": "DISC-06",
+        "surface": "all_backend_dependent",
+        "finding": "Windows, Linux, and TUI captures were taken without a live daemon. Backend-dependent surfaces (containers, images, volumes, networks, machines, profiles, dashboard VM stats, kubernetes status) show placeholder/empty/error content. This is expected for CI captures; it does NOT indicate a UI bug — it confirms the daemon connection path exists.",
+        "severity": "info",
+        "action": "Real-backend interaction coverage requires a live colima environment. macOS is the only platform with live-backend ground truth."
+      },
+      {
+        "id": "DISC-07",
+        "surface": "tui/all",
+        "finding": "TUI capture_method is 'hybrid: PTY screenshots + model-direct content (fakeDS)'. Stub container/image/profile/machine rows were injected by fakeDS DataSource to produce non-empty table renders. These are NOT live daemon responses. TUI surface structure is verified; data accuracy is not.",
+        "severity": "medium",
+        "action": "TUI data-layer testing requires a live daemon connection. fakeDS fulfills structural verification only."
+      }
+    ],
+    "resolved": [
+      {
+        "id": "DISC-03",
+        "surface": "monitoring",
+        "resolution": "RESOLVED — Monitoring surface implemented in Linux (GTK4) and TUI (Bubble Tea). Linux ground-truth now shows 12 surfaces with Monitoring at 76 AT-SPI elements (CPU/Memory/Disk usage, Process list, PID kill). TUI ground-truth shows 12 surfaces with Monitoring (unique fingerprint 426c0fa142250c03, VM Monitoring frame with stats + kill). Both verified in fresh CI captures (2026-07-18T13:10Z Linux, 2026-07-18T13:16Z TUI).",
+        "original_finding": "Monitoring surface was absent from Linux and TUI ground-truth (11 surfaces each). VMStats stream + ProcessList + KillProcess RPCs existed in daemon but were not wired in linux/src/views/ or tui/internal/ui/.",
+        "original_severity": "medium",
+        "resolved_date": "2026-07-18"
+      }
+    ]
+  },
 
   "explicit_limitations": [
     "macOS is the ONLY platform with a live-backend capture (real colima 0.10.1, real Docker socket, live containers). Element counts on macOS reflect real populated data rows.",
@@ -325,7 +334,6 @@
     "TUI has no accessibility tree — PTY character grids are the only introspection method. Semantic element roles, automation IDs, and interactive element boundaries are not capturable.",
     "Linux navigation uses xdotool positional grid (coordinate-based); accurate for fixed sidebar layout but not self-describing — sidebar row indices are positionally inferred, not accessibility-label-verified.",
     "macOS 'community' and Windows 'settings' are platform-specific extras not required by CONTRACT v1.",
-    "Monitoring surface is absent from Linux and TUI runtime artifacts — this is a real gap (CONTRACT RPCs VMStats/ProcessList/KillProcess are not wired in those frontends).",
     "Template editing (GetTemplate/SetTemplate RPCs) is not surfaced in any platform UI — only configuration YAML (GetConfig/SetConfig) is accessible.",
     "DependencyManager (Part C, M4.13) is wired on macOS and Windows (DependencyManager.cs) but not verified via runtime interaction.",
     "Windows capture is from GitHub Actions runner, which may have display scaling, DPI, or COM marshaling differences from a real developer machine.",
@@ -338,14 +346,14 @@
     "total_surfaces_captured": {
       "macOS": 13,
       "Windows": 13,
-      "Linux": 11,
-      "TUI": 11
+      "Linux": 12,
+      "TUI": 12
     },
     "total_elements_captured": {
       "macOS": 1847,
       "Windows": 699,
-      "Linux": 778,
-      "TUI": "11 PTY frames (no element count; character-grid introspection)"
+      "Linux": 887,
+      "TUI": "12 PTY frames (no element count; character-grid introspection)"
     },
     "zero_error_captures": {
       "macOS": true,
@@ -356,8 +364,8 @@
     "unique_surface_fingerprints": {
       "macOS": "not computed (verified by AX traversal, each tab independently navigated)",
       "Windows": "not computed (13 distinct UIA trees verified)",
-      "Linux": "11 unique frozenset fingerprints confirmed",
-      "TUI": "11 unique xxhash content_fingerprints confirmed (all_distinct=true)"
+      "Linux": "12 unique frozenset fingerprints confirmed",
+      "TUI": "12 unique content_fingerprints confirmed (all_distinct=true)"
     },
     "live_backend_verified": {
       "macOS": true,
@@ -367,16 +375,13 @@
     },
     "canonical_surfaces_covered_all_four_platforms": [
       "dashboard", "containers", "images", "volumes", "networks",
-      "kubernetes", "configuration", "machines", "profiles", "ai_workloads", "runtime"
-    ],
-    "canonical_surfaces_covered_two_or_three_platforms": [
-      "monitoring (macOS + Windows only)"
+      "kubernetes", "configuration", "machines", "profiles", "ai_workloads",
+      "runtime", "monitoring"
     ],
     "canonical_surfaces_platform_specific": [
       "community (macOS only)", "settings (Windows only)"
     ],
     "gaps_requiring_action": [
-      "DISC-03: Monitoring surface absent from Linux + TUI — needs implementation",
       "DISC-07: TUI data layer unverified (fakeDS stub) — real-backend test needed",
       "DISC-06: Windows/Linux backend-connected verification deferred to live environments"
     ]

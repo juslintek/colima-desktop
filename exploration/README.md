@@ -11,8 +11,8 @@ produced by a platform-specific accessibility/automation explorer.
 | `ground-truth.json` | **Unified** — schema v1.0, surface matrix, discrepancies, validation summary | crossplatform-parity-auditor (M3.10) |
 | `macos/ground-truth.json` | 13 surfaces, 1,847 AX elements, **live backend** | explore-ax.sh + Peekaboo |
 | `windows/ground-truth.json` | 13 surfaces, 699 UIA elements, CI capture | FlaUI/UIA3 (scripts/windows/Program.cs) |
-| `linux/ground-truth.json` | 11 surfaces, 778 AT-SPI elements, CI capture | pyatspi + xdotool (scripts/linux/explore_atspi.py) |
-| `tui/ground-truth.json` | 11 PTY surfaces, fakeDS stub data, all fingerprints unique | PTY driver (tui/driver_explore.go) |
+| `linux/ground-truth.json` | 12 surfaces, 887 AT-SPI elements, CI capture | pyatspi + xdotool (scripts/linux/explore_atspi.py) |
+| `tui/ground-truth.json` | 12 PTY surfaces, fakeDS stub data, all fingerprints unique | PTY driver (tui/driver_explore.go) |
 
 ## Key Facts
 
@@ -28,9 +28,10 @@ produced by a platform-specific accessibility/automation explorer.
   navigation was removed after proving it produced mislabeled captures (pass 8). The
   xdotool positional grid is the authoritative method.
 
-- **Monitoring is absent from Linux and TUI.** Runtime captures confirm neither frontend
-  has a Monitoring surface (CONTRACT Part A: VMStats/ProcessList/KillProcess). This is
-  a real gap requiring implementation.
+- **12 surfaces are common to all 4 platforms** (runtime-verified): Dashboard,
+  Containers, Images, Volumes, Networks, Kubernetes, Configuration, Machines, Profiles,
+  AI Workloads, Runtime, Monitoring. Two extras are platform-specific: Community
+  (macOS-only), Settings (Windows-only).
 
 ## Unified Ground-Truth Schema
 
@@ -42,7 +43,7 @@ produced by a platform-specific accessibility/automation explorer.
   source_artifacts: { macos, windows, linux, tui → path, sha256, capture_method, verified_status },
   platform_summaries: { per-platform element counts, limitations, backend_connected },
   canonical_surface_matrix: [ 14 surfaces × {captured per platform, notes} ],
-  runtime_only_discrepancies: [ DISC-01 … DISC-07 ],
+  runtime_only_discrepancies: { active: [DISC-01…07 excl. 03], resolved: [DISC-03] },
   explicit_limitations: [ ... ],
   validation_summary: { overall_status, gaps_requiring_action, ... }
 }
@@ -70,12 +71,14 @@ the unified file embeds summaries and references, not all elements.
 - Method: pyatspi DFS (read-only) + xdotool positional grid; GTK_A11Y=atspi;
   colima shimmed via `scripts/linux/colima_shim.sh`
 - Environment: GitHub Actions, Ubuntu, Xvfb :99, no live daemon
-- Screenshots: 12 PNG files in `linux/screenshots/`
-- Pass history: 8 diagnostic passes; see `linux/README.md` for root-cause chronicle
+- Surfaces: 12 (including Monitoring — added after DISC-03 implementation)
+- Screenshots: 13 PNG files in `linux/screenshots/`
+- Pass history: 8+ diagnostic passes; see `linux/README.md`
 
 ### TUI (`tui/`)
 - Method: PTY headless driver (tui/driver_explore.go), 120×40 terminal, fakeDS stub data
-- Environment: macOS darwin/arm64, Go 1.26.2, no live daemon
+- Environment: GitHub Actions, linux/amd64, Go 1.25.0, no live daemon
+- Surfaces: 12 (including Monitoring — added after DISC-03 implementation)
 - Screenshots: ANSI + plaintext files in `tui/screenshots/`
 - See `tui/README.md` for capture methodology details
 

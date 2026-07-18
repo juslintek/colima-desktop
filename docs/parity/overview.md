@@ -30,14 +30,13 @@ Parity is not binary. Each frontend is assessed across four independent dimensio
 | Dimension | macOS | Windows | Linux | TUI |
 |-----------|:-----:|:-------:|:-----:|:---:|
 | **Compile** (CI green) | ✅ | ✅ | ✅ | ✅ |
-| **Surface presence** (runtime-verified) | 13/13 ✅ | 13/13 ✅ | 11/11 🟡 | 11/11 🟡 |
+| **Surface presence** (runtime-verified) | 13/13 ✅ | 13/13 ✅ | 12/12 ✅ | 12/12 ✅ |
 | **Interaction coverage** (source + AX) | ~95% ✅ | ~20% 🟡 | ~15% 🟡 | ~25% 🟡 |
 | **Backend-connected runtime** | ✅ Live | ❌ Not verified | ❌ Not verified | ❌ fakeDS |
 
 Surface presence is runtime-verified from `exploration/ground-truth.json` (M3.9
-artifacts). The numbers in parentheses reflect runtime captures, not static claims.
-"🟡" for Linux and TUI indicates 11 surfaces are confirmed present but the Monitoring
-surface (CONTRACT Part A: VMStats/ProcessList/KillProcess) is absent.
+artifacts). All 12 CONTRACT-required surfaces are present on all 4 platforms.
+Two additional platform-specific extras exist: Community (macOS), Settings (Windows).
 
 ## Frontend Status
 
@@ -45,10 +44,12 @@ surface (CONTRACT Part A: VMStats/ProcessList/KillProcess) is absent.
 |----------|---------|------------|:-------:|:--------:|:-------:|
 | macOS | SwiftUI + AppKit | Direct (colima CLI + Docker socket) | ✅ | 13/13 | ✅ Live |
 | Windows | WinUI 3 / .NET 8 | gRPC over TCP | ✅ | 13/13 | ❌ CI only |
-| Linux | GTK4 / Rust | gRPC over Unix socket | ✅ | 11/11† | ❌ CI only |
-| TUI | Bubble Tea / Go | gRPC over Unix socket | ✅ | 11/11† | ❌ fakeDS |
+| Linux | GTK4 / Rust | gRPC over Unix socket | ✅ | 12/12 | ❌ CI only |
+| TUI | Bubble Tea / Go | gRPC over Unix socket | ✅ | 12/12 | ❌ fakeDS |
 
-† Missing Monitoring surface (runtime-confirmed gap). All other CONTRACT surfaces present.
+All CONTRACT surfaces present on all platforms. Linux and TUI have 12 surfaces
+(matching the 12 CONTRACT-required capabilities); macOS and Windows include
+platform-specific extras (community, settings).
 
 See [gap-report.md](../gap-report.md) for the detailed per-frontend analysis.
 
@@ -79,9 +80,9 @@ authoritative surface inventories:
 - **Windows** (`exploration/windows/ground-truth.json`): FlaUI/UIA3 traversal.
   13 surfaces, 699 UIA elements. CI runner, no live daemon.
 - **Linux** (`exploration/linux/ground-truth.json`): pyatspi DFS + xdotool grid.
-  11 surfaces, 778 AT-SPI elements. CI runner, no live daemon. colima shimmed.
+  12 surfaces, 887 AT-SPI elements. CI runner, no live daemon. colima shimmed.
 - **TUI** (`exploration/tui/ground-truth.json`): PTY screenshots + fakeDS.
-  11 surfaces, all fingerprints unique. No live daemon; stub data.
+  12 surfaces, all fingerprints unique. No live daemon; stub data.
 
 The unified summary is in `exploration/ground-truth.json` (M3.10 artifact).
 
@@ -102,7 +103,7 @@ and XCUITest E2E. Other frontends have minimal test coverage currently.
 
 ## Canonical Surface List
 
-Eleven surfaces are present across all four platforms (runtime-confirmed):
+Twelve surfaces are present across all four platforms (runtime-confirmed):
 
 | # | Surface | CONTRACT Part |
 |---|---------|:-------------:|
@@ -117,9 +118,10 @@ Eleven surfaces are present across all four platforms (runtime-confirmed):
 | 9 | Profiles | A |
 | 10 | AI Workloads | A |
 | 11 | Runtime | A |
+| 12 | Monitoring | A |
 
-Two additional surfaces: Monitoring (macOS + Windows only — **gap on Linux + TUI**),
-Community (macOS-only extra), Settings (Windows-only extra).
+Two additional platform-specific surfaces: Community (macOS-only extra),
+Settings (Windows-only extra).
 
 ## Categories
 
@@ -141,8 +143,7 @@ The parity matrix is organized into these categories:
 The path to 100% parity on each frontend:
 
 1. **Wire the gRPC client** — connect to each RPC the daemon exposes
-2. **Build UI surfaces** — create views/pages for each operation category
-   (Monitoring surface missing on Linux + TUI)
+2. **Build UI surfaces** — all 12 CONTRACT surfaces are now present ✅
 3. **Add user interactions** — buttons, forms, keybindings for write operations
 4. **Implement streaming** — progress bars, live logs, real-time stats
 5. **Test** — unit + integration + live-backend E2E verification
@@ -153,5 +154,5 @@ The path to 100% parity on each frontend:
 - [Parity Matrix](../parity-matrix.md) — detailed per-row tracking
 - [Gap Report](../gap-report.md) — analysis of current gaps
 - [Architecture](../ARCHITECTURE.md) — system design
-- [CONTRACT](.kiro/board/CONTRACT.md) — frozen API surface
+- [CONTRACT](../../.kiro/board/CONTRACT.md) — frozen API surface
 - [exploration/ground-truth.json](../../exploration/ground-truth.json) — unified runtime artifact (M3.10)
