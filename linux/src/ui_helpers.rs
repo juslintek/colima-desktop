@@ -1,8 +1,7 @@
 /// Shared UI helpers used across all surface views.
 use gtk::prelude::*;
 use gtk::{
-    Box as GtkBox, Button, Label, Orientation, ScrolledWindow, Spinner,
-    TextView, TextBuffer,
+    Box as GtkBox, Button, Label, Orientation, ScrolledWindow, Spinner, TextBuffer, TextView,
 };
 
 /// Create a titled section box with a spinner and a refresh button.
@@ -48,10 +47,7 @@ pub fn make_output_view(at_spi_name: &str) -> (ScrolledWindow, TextBuffer) {
     tv.set_widget_name(at_spi_name);
     tv.update_property(&[gtk::accessible::Property::Label(at_spi_name)]);
 
-    let sw = ScrolledWindow::builder()
-        .child(&tv)
-        .vexpand(true)
-        .build();
+    let sw = ScrolledWindow::builder().child(&tv).vexpand(true).build();
     sw.set_widget_name(&format!("{at_spi_name}_scroll"));
     (sw, buf)
 }

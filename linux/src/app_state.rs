@@ -1,7 +1,9 @@
 /// Shared application state threaded through the GTK4 UI via `glib::MainContext`.
 ///
-/// Callers send async work to the Tokio runtime via `tokio_rt`; results arrive
-/// on the GTK main thread through glib channels / `glib::idle_add_once`.
+/// Callers send async work to the Tokio runtime via `rt.spawn`; results are sent
+/// back through `async_channel` and received on the GTK main thread via
+/// `glib::spawn_future_local`, which runs on the main context and can safely
+/// access GTK widgets (`!Send`).
 use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 

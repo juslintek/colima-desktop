@@ -3,12 +3,12 @@
 /// Surfaces: Status · Version · Start/Stop/Restart · VMStats (streaming) · Prune.
 /// All interactive widgets carry AT-SPI accessible names.
 use gtk::prelude::*;
-use gtk::{
-    Box as GtkBox, Button, Grid, Label, Orientation, ProgressBar, Separator,
-};
+use gtk::{Box as GtkBox, Button, Grid, Label, Orientation, ProgressBar, Separator};
 
 use crate::app_state::AppHandle;
-use crate::client::proto::{Empty, ProfileRequest, PruneRequest, RestartRequest, StartRequest, StopRequest};
+use crate::client::proto::{
+    Empty, ProfileRequest, PruneRequest, RestartRequest, StartRequest, StopRequest,
+};
 use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
 
 pub fn build(handle: AppHandle) -> GtkBox {
@@ -110,6 +110,22 @@ pub fn build(handle: AppHandle) -> GtkBox {
 
     // ── Wire up buttons ──────────────────────────────────────────────────────
 
+    // Result type for the status+version refresh: carry only plain Send data.
+    enum StatusResult {
+        Ok {
+            running: bool,
+            runtime: String,
+            arch: String,
+            cpu: i32,
+            memory: i64,
+            disk: i64,
+            ip_address: String,
+            kubernetes: bool,
+            version: String,
+        },
+        Err(String),
+    }
+
     // Refresh / Status
     {
         let h = handle.clone();
@@ -130,37 +146,85 @@ pub fn build(handle: AppHandle) -> GtkBox {
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.colima.clone();
-                let vs = vs.clone(); let vr = vr.clone(); let va = va.clone();
-                let vc = vc.clone(); let vm = vm.clone(); let vd = vd.clone();
-                let vi = vi.clone(); let vk = vk.clone(); let vv = vv.clone();
-                let sp2 = sp.clone(); let lb2 = lb.clone();
+                let sp2 = sp.clone();
+                let lb2 = lb.clone();
+                let vs2 = vs.clone();
+                let vr2 = vr.clone();
+                let va2 = va.clone();
+                let vc2 = vc.clone();
+                let vm2 = vm.clone();
+                let vd2 = vd.clone();
+                let vi2 = vi.clone();
+                let vk2 = vk.clone();
+                let vv2 = vv.clone();
+                let (tx, rx) = async_channel::bounded::<StatusResult>(1);
                 h.rt.spawn(async move {
-                    let status_res = c.status(crate::client::proto::StatusRequest {
-                        profile: profile.clone(), extended: true,
-                    }).await;
+                    let status_res = c
+                        .status(crate::client::proto::StatusRequest {
+                            profile: profile.clone(),
+                            extended: true,
+                        })
+                        .await;
                     let version_res = c.version(Empty {}).await;
-                    glib::idle_add_once(move || {
-                        sp2.set_spinning(false);
-                        match status_res {
-                            Ok(r) => {
-                                let s = r.into_inner();
-                                vs.set_label(if s.running { "Running ✓" } else { "Stopped" });
-                                vr.set_label(&s.runtime);
-                                va.set_label(&s.arch);
-                                vc.set_label(&s.cpu.to_string());
-                                vm.set_label(&format!("{:.1} GiB", s.memory as f64 / 1_073_741_824.0));
-                                vd.set_label(&format!("{:.1} GiB", s.disk as f64 / 1_073_741_824.0));
-                                vi.set_label(if s.ip_address.is_empty() { "—" } else { &s.ip_address });
-                                vk.set_label(if s.kubernetes { "Enabled" } else { "Disabled" });
-                            }
-                            Err(e) => {
-                                set_text(&lb2, &format!("Status error: {e}"));
+                    let result = match status_res {
+                        Ok(r) => {
+                            let s = r.into_inner();
+                            let version = version_res
+                                .map(|v| v.into_inner().version)
+                                .unwrap_or_default();
+                            StatusResult::Ok {
+                                running: s.running,
+                                runtime: s.runtime,
+                                arch: s.arch,
+                                cpu: s.cpu,
+                                memory: s.memory,
+                                disk: s.disk,
+                                ip_address: s.ip_address,
+                                kubernetes: s.kubernetes,
+                                version,
                             }
                         }
-                        if let Ok(ver) = version_res {
-                            vv.set_label(&ver.into_inner().version);
+                        Err(e) => StatusResult::Err(format!("Status error: {e}")),
+                    };
+                    let _ = tx.send(result).await;
+                });
+                glib::spawn_future_local(async move {
+                    sp2.set_spinning(false);
+                    if let Ok(result) = rx.recv().await {
+                        match result {
+                            StatusResult::Ok {
+                                running,
+                                runtime,
+                                arch,
+                                cpu,
+                                memory,
+                                disk,
+                                ip_address,
+                                kubernetes,
+                                version,
+                            } => {
+                                vs2.set_label(if running { "Running ✓" } else { "Stopped" });
+                                vr2.set_label(&runtime);
+                                va2.set_label(&arch);
+                                vc2.set_label(&cpu.to_string());
+                                vm2.set_label(&format!(
+                                    "{:.1} GiB",
+                                    memory as f64 / 1_073_741_824.0
+                                ));
+                                vd2.set_label(&format!("{:.1} GiB", disk as f64 / 1_073_741_824.0));
+                                vi2.set_label(if ip_address.is_empty() {
+                                    "—"
+                                } else {
+                                    &ip_address
+                                });
+                                vk2.set_label(if kubernetes { "Enabled" } else { "Disabled" });
+                                if !version.is_empty() {
+                                    vv2.set_label(&version);
+                                }
+                            }
+                            StatusResult::Err(e) => set_text(&lb2, &e),
                         }
-                    });
+                    }
                 });
             } else {
                 sp.set_spinning(false);
@@ -180,24 +244,34 @@ pub fn build(handle: AppHandle) -> GtkBox {
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.colima.clone();
-                let lb2 = lb.clone(); let sp2 = sp.clone();
+                let lb2 = lb.clone();
+                let sp2 = sp.clone();
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
-                    match c.start(StartRequest { profile, config: None }).await {
+                    let result = match c
+                        .start(StartRequest {
+                            profile,
+                            config: None,
+                        })
+                        .await
+                    {
                         Ok(mut stream) => {
                             let mut log = String::new();
                             while let Ok(Some(evt)) = stream.get_mut().message().await {
                                 log.push_str(&format!("[{}] {}\n", evt.stage, evt.message));
                             }
-                            glib::idle_add_once(move || {
-                                sp2.set_spinning(false);
-                                set_text(&lb2, &log);
-                            });
+                            Ok(log)
                         }
-                        Err(e) => {
-                            glib::idle_add_once(move || {
-                                sp2.set_spinning(false);
-                                set_text(&lb2, &format!("Start error: {e}"));
-                            });
+                        Err(e) => Err(format!("Start error: {e}")),
+                    };
+                    let _ = tx.send(result).await;
+                });
+                glib::spawn_future_local(async move {
+                    sp2.set_spinning(false);
+                    if let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(log) => set_text(&lb2, &log),
+                            Err(e) => set_text(&lb2, &e),
                         }
                     }
                 });
@@ -219,16 +293,28 @@ pub fn build(handle: AppHandle) -> GtkBox {
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.colima.clone();
-                let lb2 = lb.clone(); let sp2 = sp.clone();
+                let lb2 = lb.clone();
+                let sp2 = sp.clone();
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
-                    let res = c.stop(StopRequest { profile, force: false }).await;
-                    glib::idle_add_once(move || {
-                        sp2.set_spinning(false);
-                        match res {
-                            Ok(r) => set_text(&lb2, &r.into_inner().message),
-                            Err(e) => set_text(&lb2, &format!("Stop error: {e}")),
+                    let result = c
+                        .stop(StopRequest {
+                            profile,
+                            force: false,
+                        })
+                        .await
+                        .map(|r| r.into_inner().message)
+                        .map_err(|e| format!("Stop error: {e}"));
+                    let _ = tx.send(result).await;
+                });
+                glib::spawn_future_local(async move {
+                    sp2.set_spinning(false);
+                    if let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(msg) => set_text(&lb2, &msg),
+                            Err(e) => set_text(&lb2, &e),
                         }
-                    });
+                    }
                 });
             } else {
                 sp.set_spinning(false);
@@ -248,24 +334,28 @@ pub fn build(handle: AppHandle) -> GtkBox {
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.colima.clone();
-                let lb2 = lb.clone(); let sp2 = sp.clone();
+                let lb2 = lb.clone();
+                let sp2 = sp.clone();
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
-                    match c.restart(RestartRequest { profile }).await {
+                    let result = match c.restart(RestartRequest { profile }).await {
                         Ok(mut stream) => {
                             let mut log = String::new();
                             while let Ok(Some(evt)) = stream.get_mut().message().await {
                                 log.push_str(&format!("[{}] {}\n", evt.stage, evt.message));
                             }
-                            glib::idle_add_once(move || {
-                                sp2.set_spinning(false);
-                                set_text(&lb2, &log);
-                            });
+                            Ok(log)
                         }
-                        Err(e) => {
-                            glib::idle_add_once(move || {
-                                sp2.set_spinning(false);
-                                set_text(&lb2, &format!("Restart error: {e}"));
-                            });
+                        Err(e) => Err(format!("Restart error: {e}")),
+                    };
+                    let _ = tx.send(result).await;
+                });
+                glib::spawn_future_local(async move {
+                    sp2.set_spinning(false);
+                    if let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(log) => set_text(&lb2, &log),
+                            Err(e) => set_text(&lb2, &e),
                         }
                     }
                 });
@@ -286,16 +376,25 @@ pub fn build(handle: AppHandle) -> GtkBox {
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.colima.clone();
-                let lb2 = lb.clone(); let sp2 = sp.clone();
+                let lb2 = lb.clone();
+                let sp2 = sp.clone();
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
-                    let res = c.prune(PruneRequest { all: false }).await;
-                    glib::idle_add_once(move || {
-                        sp2.set_spinning(false);
-                        match res {
-                            Ok(r) => set_text(&lb2, &r.into_inner().message),
-                            Err(e) => set_text(&lb2, &format!("Prune error: {e}")),
+                    let result = c
+                        .prune(PruneRequest { all: false })
+                        .await
+                        .map(|r| r.into_inner().message)
+                        .map_err(|e| format!("Prune error: {e}"));
+                    let _ = tx.send(result).await;
+                });
+                glib::spawn_future_local(async move {
+                    sp2.set_spinning(false);
+                    if let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(msg) => set_text(&lb2, &msg),
+                            Err(e) => set_text(&lb2, &e),
                         }
-                    });
+                    }
                 });
             } else {
                 sp.set_spinning(false);

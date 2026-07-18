@@ -95,10 +95,7 @@ impl DependencyManager {
         }
         // 2. apt-get — Debian/Ubuntu (colima is in official repos ≥ Ubuntu 23.04)
         if which::which("apt-get").is_ok() {
-            let (ok, log) = run_install(
-                "sudo",
-                &["apt-get", "install", "-y", "colima"],
-            );
+            let (ok, log) = run_install("sudo", &["apt-get", "install", "-y", "colima"]);
             if ok {
                 return (true, log);
             }
@@ -168,7 +165,10 @@ impl DependencyManager {
             return run_install("brew", &["upgrade", name]);
         }
         if which::which("apt-get").is_ok() {
-            return run_install("sudo", &["apt-get", "install", "--only-upgrade", "-y", name]);
+            return run_install(
+                "sudo",
+                &["apt-get", "install", "--only-upgrade", "-y", name],
+            );
         }
         (false, format!("No supported updater for {name}"))
     }

@@ -7,14 +7,12 @@ pub mod proto {
 }
 
 pub use proto::{
-    colima_service_client::ColimaServiceClient,
-    docker_service_client::DockerServiceClient,
-    CloneProfileRequest, ContainerActionRequest, CreateContainerRequest,
-    CreateProfileRequest, DeleteProfileRequest, DeleteRequest, DockerScope,
-    Empty, IdRequest, KillProcessRequest, KubeExecRequest, ModelRequest,
-    ModelRunRequest, ModelServeRequest, NameRequest, NetworkContainerRequest,
-    PruneRequest, ProfileRequest, RenameRequest, RestartRequest, SearchRequest,
-    SetConfigRequest, StartRequest, StatusRequest, StopRequest,
+    colima_service_client::ColimaServiceClient, docker_service_client::DockerServiceClient,
+    CloneProfileRequest, ContainerActionRequest, CreateContainerRequest, CreateProfileRequest,
+    DeleteProfileRequest, DeleteRequest, DockerScope, Empty, IdRequest, KillProcessRequest,
+    KubeExecRequest, ModelRequest, ModelRunRequest, ModelServeRequest, NameRequest,
+    NetworkContainerRequest, ProfileRequest, PruneRequest, RenameRequest, RestartRequest,
+    SearchRequest, SetConfigRequest, StartRequest, StatusRequest, StopRequest,
     SwitchRuntimeRequest, TagRequest,
 };
 

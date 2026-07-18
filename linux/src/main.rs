@@ -8,7 +8,6 @@
 ///
 /// DependencyManager (CONTRACT Part C): detects/installs colima + deps on first launch.
 /// AT-SPI: every interactive widget carries a widget_name + accessible Property::Label.
-
 mod app_state;
 mod client;
 mod dependency_manager;
@@ -16,7 +15,10 @@ mod ui_helpers;
 mod views;
 
 use gtk::prelude::*;
-use gtk::{Application, ApplicationWindow, Box as GtkBox, ListBox, ListBoxRow, Label, Orientation, Paned, Stack, StackTransitionType};
+use gtk::{
+    Application, ApplicationWindow, Box as GtkBox, Label, ListBox, ListBoxRow, Orientation, Paned,
+    Stack, StackTransitionType,
+};
 
 use app_state::AppHandle;
 use dependency_manager::DependencyManager;
@@ -66,17 +68,17 @@ fn build_onboarding_window(app: &Application, handle: AppHandle) {
 fn build_main_window(app: &Application, handle: AppHandle) {
     // Sidebar nav items
     const SURFACES: &[(&str, &str)] = &[
-        ("dashboard",      "Dashboard"),
-        ("containers",     "Containers"),
-        ("images",         "Images"),
-        ("volumes",        "Volumes"),
-        ("networks",       "Networks"),
-        ("machines",       "Machines"),
-        ("kubernetes",     "Kubernetes"),
-        ("configuration",  "Configuration"),
-        ("runtime",        "Runtime"),
-        ("ai_workloads",   "AI Workloads"),
-        ("profiles",       "Profiles"),
+        ("dashboard", "Dashboard"),
+        ("containers", "Containers"),
+        ("images", "Images"),
+        ("volumes", "Volumes"),
+        ("networks", "Networks"),
+        ("machines", "Machines"),
+        ("kubernetes", "Kubernetes"),
+        ("configuration", "Configuration"),
+        ("runtime", "Runtime"),
+        ("ai_workloads", "AI Workloads"),
+        ("profiles", "Profiles"),
     ];
 
     // Stack (right panel)
@@ -87,18 +89,18 @@ fn build_main_window(app: &Application, handle: AppHandle) {
     // Build each surface view
     for (id, name) in SURFACES {
         let view: GtkBox = match *id {
-            "dashboard"     => views::dashboard::build(handle.clone()),
-            "containers"    => views::containers::build(handle.clone()),
-            "images"        => views::images::build(handle.clone()),
-            "volumes"       => views::volumes::build(handle.clone()),
-            "networks"      => views::networks::build(handle.clone()),
-            "machines"      => views::machines::build(handle.clone()),
-            "kubernetes"    => views::kubernetes::build(handle.clone()),
+            "dashboard" => views::dashboard::build(handle.clone()),
+            "containers" => views::containers::build(handle.clone()),
+            "images" => views::images::build(handle.clone()),
+            "volumes" => views::volumes::build(handle.clone()),
+            "networks" => views::networks::build(handle.clone()),
+            "machines" => views::machines::build(handle.clone()),
+            "kubernetes" => views::kubernetes::build(handle.clone()),
             "configuration" => views::configuration::build(handle.clone()),
-            "runtime"       => views::runtime::build(handle.clone()),
-            "ai_workloads"  => views::ai_workloads::build(handle.clone()),
-            "profiles"      => views::profiles::build(handle.clone()),
-            _               => unreachable!(),
+            "runtime" => views::runtime::build(handle.clone()),
+            "ai_workloads" => views::ai_workloads::build(handle.clone()),
+            "profiles" => views::profiles::build(handle.clone()),
+            _ => unreachable!(),
         };
         stack.add_named(&view, Some(id));
     }
@@ -204,9 +206,11 @@ fn build_status_bar(handle: &AppHandle) -> GtkBox {
         let st = h.state.lock().unwrap();
         let text = match &st.connection {
             app_state::ConnectionState::Disconnected => "● Disconnected".to_owned(),
-            app_state::ConnectionState::Connecting   => "◌ Connecting…".to_owned(),
-            app_state::ConnectionState::Connected    => "● Connected".to_owned(),
-            app_state::ConnectionState::Error(e)     => format!("✗ Error: {}", e.chars().take(60).collect::<String>()),
+            app_state::ConnectionState::Connecting => "◌ Connecting…".to_owned(),
+            app_state::ConnectionState::Connected => "● Connected".to_owned(),
+            app_state::ConnectionState::Error(e) => {
+                format!("✗ Error: {}", e.chars().take(60).collect::<String>())
+            }
         };
         lbl.set_label(&text);
         glib::ControlFlow::Continue

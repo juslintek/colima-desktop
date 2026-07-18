@@ -17,8 +17,10 @@ pub fn build(handle: AppHandle) -> GtkBox {
     root.append(&header);
 
     let row = GtkBox::new(Orientation::Horizontal, 8);
-    row.set_margin_start(12); row.set_margin_end(12);
-    row.set_margin_top(12); row.set_margin_bottom(12);
+    row.set_margin_start(12);
+    row.set_margin_end(12);
+    row.set_margin_top(12);
+    row.set_margin_bottom(12);
 
     let lbl = Label::new(Some("Runtime:"));
     lbl.set_widget_name("runtime_label");
@@ -48,38 +50,83 @@ pub fn build(handle: AppHandle) -> GtkBox {
 
     // Switch Runtime
     {
-        let h = handle.clone(); let lb = log_buf.clone(); let sp = spinner.clone();
+        let h = handle.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
         let cb = combo.clone();
         btn_switch.connect_clicked(move |_| {
             let runtime = cb.active_text().map(|s| s.to_string()).unwrap_or_default();
-            if runtime.is_empty() { set_text(&lb, "Select a runtime first"); return; }
+            if runtime.is_empty() {
+                set_text(&lb, "Select a runtime first");
+                return;
+            }
             sp.set_spinning(true);
             let profile = h.profile();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
-                let mut c = client.colima.clone(); let lb2 = lb.clone(); let sp2 = sp.clone();
+                let mut c = client.colima.clone();
+                let lb2 = lb.clone();
+                let sp2 = sp.clone();
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
-                    let res = c.switch_runtime(SwitchRuntimeRequest { profile, runtime }).await;
-                    glib::idle_add_once(move || { sp2.set_spinning(false); match res { Ok(r) => set_text(&lb2, &r.into_inner().message), Err(e) => set_text(&lb2, &format!("Error: {e}")), } });
+                    let result = c
+                        .switch_runtime(SwitchRuntimeRequest { profile, runtime })
+                        .await
+                        .map(|r| r.into_inner().message)
+                        .map_err(|e| format!("Error: {e}"));
+                    let _ = tx.send(result).await;
                 });
-            } else { sp.set_spinning(false); set_text(&lb, "Not connected"); }
+                glib::spawn_future_local(async move {
+                    sp2.set_spinning(false);
+                    if let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(msg) => set_text(&lb2, &msg),
+                            Err(e) => set_text(&lb2, &e),
+                        }
+                    }
+                });
+            } else {
+                sp.set_spinning(false);
+                set_text(&lb, "Not connected");
+            }
         });
     }
 
     // Update Runtime
     {
-        let h = handle.clone(); let lb = log_buf.clone(); let sp = spinner.clone();
+        let h = handle.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
         btn_update.connect_clicked(move |_| {
             sp.set_spinning(true);
             let profile = h.profile();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
-                let mut c = client.colima.clone(); let lb2 = lb.clone(); let sp2 = sp.clone();
+                let mut c = client.colima.clone();
+                let lb2 = lb.clone();
+                let sp2 = sp.clone();
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
-                    let res = c.update_runtime(ProfileRequest { profile }).await;
-                    glib::idle_add_once(move || { sp2.set_spinning(false); match res { Ok(r) => set_text(&lb2, &r.into_inner().message), Err(e) => set_text(&lb2, &format!("Error: {e}")), } });
+                    let result = c
+                        .update_runtime(ProfileRequest { profile })
+                        .await
+                        .map(|r| r.into_inner().message)
+                        .map_err(|e| format!("Error: {e}"));
+                    let _ = tx.send(result).await;
                 });
-            } else { sp.set_spinning(false); set_text(&lb, "Not connected"); }
+                glib::spawn_future_local(async move {
+                    sp2.set_spinning(false);
+                    if let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(msg) => set_text(&lb2, &msg),
+                            Err(e) => set_text(&lb2, &e),
+                        }
+                    }
+                });
+            } else {
+                sp.set_spinning(false);
+                set_text(&lb, "Not connected");
+            }
         });
     }
 
