@@ -56,6 +56,11 @@ type Model struct {
 	err        string
 	showHelp   bool
 	onboarding *OnboardingModel // non-nil when dependency check is needed
+
+	// Monitoring tab state: process selection for kill.
+	monProcesses []*pb.ProcessInfo // snapshot of current process list
+	monCursor    int               // index into monProcesses (selected row)
+	monFeedback  string            // transient success/error message after kill
 }
 
 // New creates a new Model. If onboarding is non-nil it is shown first.
@@ -81,6 +86,18 @@ type bodyMsg struct {
 	tab  int
 	text string
 	err  string
+}
+
+// monitoringMsg carries the loaded monitoring data including the process snapshot.
+type monitoringMsg struct {
+	data      monitoringData
+	processes []*pb.ProcessInfo
+}
+
+// killResultMsg is sent after a KillProcess RPC completes.
+type killResultMsg struct {
+	pid int32
+	err error
 }
 
 func (m Model) Init() tea.Cmd {
@@ -223,7 +240,12 @@ func (m Model) loadTab(tab int) tea.Cmd {
 			} else {
 				md.processes = pr.pl
 			}
-			return bodyMsg{tab, renderMonitoring(md), ""}
+
+			var procs []*pb.ProcessInfo
+			if md.processes != nil {
+				procs = md.processes.Processes
+			}
+			return monitoringMsg{data: md, processes: procs}
 
 		default:
 			return bodyMsg{tab, Tabs[tab] + ": (not wired)", ""}
@@ -261,6 +283,30 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.body, m.err = msg.text, msg.err
 		}
 
+	case monitoringMsg:
+		if m.tab == TabMonitoring {
+			m.monProcesses = msg.processes
+			// Clamp cursor to valid range after refresh.
+			if m.monCursor >= len(m.monProcesses) {
+				m.monCursor = max(0, len(m.monProcesses)-1)
+			}
+			m.body = renderMonitoringWithSelection(msg.data, m.monProcesses, m.monCursor)
+			if m.monFeedback != "" {
+				m.body = renderMonitoringFeedback(m.body, m.monFeedback)
+			}
+			m.err = ""
+		}
+
+	case killResultMsg:
+		if msg.err != nil {
+			m.monFeedback = fmt.Sprintf("Kill PID %d failed: %s", msg.pid, msg.err.Error())
+		} else {
+			m.monFeedback = fmt.Sprintf("Killed PID %d (SIGKILL)", msg.pid)
+		}
+		// Re-render with feedback, then auto-refresh the process list.
+		m.body = renderMonitoringFeedback(m.body, m.monFeedback)
+		return m, m.loadTab(TabMonitoring)
+
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
@@ -271,15 +317,46 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "right", "l":
 			m.tab = (m.tab + 1) % len(Tabs)
 			m.body, m.err = "Loading…", ""
+			m.monFeedback = ""
 			return m, m.loadTab(m.tab)
 		case "left", "h":
 			m.tab = (m.tab - 1 + len(Tabs)) % len(Tabs)
 			m.body, m.err = "Loading…", ""
+			m.monFeedback = ""
 			return m, m.loadTab(m.tab)
 		case "r":
 			m.body, m.err = "Loading…", ""
+			m.monFeedback = ""
 			return m, tea.Batch(m.loadStatus, m.loadTab(m.tab))
 		}
+
+		// Monitoring-specific keys: j/down move selection down, k kills.
+		// Use up/down for process navigation (j/k would conflict with
+		// 'k' = kill). We use "j" = down, "up"/"down" = navigate,
+		// "k" = kill on Monitoring tab only.
+		if m.tab == TabMonitoring && len(m.monProcesses) > 0 {
+			switch msg.String() {
+			case "down", "j":
+				m.monCursor = (m.monCursor + 1) % len(m.monProcesses)
+				m.monFeedback = ""
+				m.body = rerenderMonitoringSelection(m.body, m.monProcesses, m.monCursor)
+				return m, nil
+			case "up":
+				m.monCursor = (m.monCursor - 1 + len(m.monProcesses)) % len(m.monProcesses)
+				m.monFeedback = ""
+				m.body = rerenderMonitoringSelection(m.body, m.monProcesses, m.monCursor)
+				return m, nil
+			case "k":
+				pid := m.monProcesses[m.monCursor].Pid
+				profile := m.profile
+				cli := m.cli
+				return m, func() tea.Msg {
+					err := cli.KillProcess(profile, pid, 9)
+					return killResultMsg{pid: pid, err: err}
+				}
+			}
+		}
+
 		// 1-9 and 0 shortcut keys for tabs 1-10 (11th tab = 0)
 		if len(msg.String()) == 1 {
 			ch := msg.String()[0]
@@ -288,12 +365,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if idx < len(Tabs) {
 					m.tab = idx
 					m.body, m.err = "Loading…", ""
+					m.monFeedback = ""
 					return m, m.loadTab(m.tab)
 				}
 			}
 			if ch == '0' && len(Tabs) >= 10 {
 				m.tab = 9
 				m.body, m.err = "Loading…", ""
+				m.monFeedback = ""
 				return m, m.loadTab(m.tab)
 			}
 		}
@@ -454,7 +533,18 @@ func formatBytes(b int64) string {
 }
 
 // renderMonitoring builds the Monitoring tab body from a combined snapshot.
+// (Used only by tests that invoke loadTab directly with the old bodyMsg path.)
 func renderMonitoring(md monitoringData) string {
+	var procs []*pb.ProcessInfo
+	if md.processes != nil {
+		procs = md.processes.Processes
+	}
+	return renderMonitoringWithSelection(md, procs, 0)
+}
+
+// renderMonitoringWithSelection builds the Monitoring tab body with a visible
+// cursor on the selected process row.
+func renderMonitoringWithSelection(md monitoringData, procs []*pb.ProcessInfo, cursor int) string {
 	var b strings.Builder
 
 	b.WriteString(titleStyle.Render("VM Monitoring") + "\n\n")
@@ -466,7 +556,6 @@ func renderMonitoring(md monitoringData) string {
 		b.WriteString("Stats:  (not yet sampled — press r to refresh)\n")
 	} else {
 		s := md.stats
-		// CPU — stats only carry cpu_percent; use 100 as the ceiling
 		cpuUsed := int64(s.CpuPercent)
 		b.WriteString(renderGauge("CPU", cpuUsed, 100, "%", 72) + "\n")
 		b.WriteString(renderGauge("Memory", s.MemoryUsed, s.MemoryTotal, "", 72) + "\n")
@@ -478,13 +567,13 @@ func renderMonitoring(md monitoringData) string {
 	// ── Process list ─────────────────────────────────────────────────────────
 	if md.procsErr != "" {
 		b.WriteString(fmt.Sprintf("Processes:  (unavailable: %s)\n", md.procsErr))
-	} else if md.processes == nil || len(md.processes.Processes) == 0 {
+	} else if len(procs) == 0 {
 		b.WriteString("Processes:  (none)\n")
 	} else {
-		fmt.Fprintf(&b, "%-7s  %-10s  %5s  %5s  %-18s  %s\n",
+		fmt.Fprintf(&b, "  %-7s  %-10s  %5s  %5s  %-18s  %s\n",
 			"PID", "USER", "CPU%", "MEM%", "CONTAINER", "COMMAND")
-		fmt.Fprintf(&b, "%s\n", strings.Repeat("─", 75))
-		for _, p := range md.processes.Processes {
+		fmt.Fprintf(&b, "  %s\n", strings.Repeat("─", 75))
+		for i, p := range procs {
 			container := p.Container
 			if container == "" {
 				container = "—"
@@ -493,13 +582,60 @@ func renderMonitoring(md monitoringData) string {
 			if len(cmd) > 30 {
 				cmd = cmd[:27] + "…"
 			}
-			fmt.Fprintf(&b, "%-7d  %-10s  %5.1f  %5.1f  %-18s  %s\n",
-				p.Pid, p.User, p.CpuPercent, p.MemoryPercent, container, cmd)
+			prefix := "  "
+			if i == cursor {
+				prefix = "> "
+			}
+			fmt.Fprintf(&b, "%s%-7d  %-10s  %5.1f  %5.1f  %-18s  %s\n",
+				prefix, p.Pid, p.User, p.CpuPercent, p.MemoryPercent, container, cmd)
 		}
-		fmt.Fprintf(&b, "\nActions:  [k] kill selected process   [r] refresh")
+		fmt.Fprintf(&b, "\nActions:  [k] kill selected process   [j/↑↓] select   [r] refresh")
 	}
 
 	return b.String()
+}
+
+// rerenderMonitoringSelection re-renders the monitoring body with updated cursor position.
+// It re-derives the full view from the stored monitoringData embedded in the model's body.
+// For simplicity, we parse the existing body and update cursor markers.
+func rerenderMonitoringSelection(currentBody string, procs []*pb.ProcessInfo, cursor int) string {
+	// Replace cursor markers in existing body.
+	lines := strings.Split(currentBody, "\n")
+	procStart := -1
+	procCount := 0
+	for i, line := range lines {
+		if len(line) >= 2 && (line[:2] == "> " || line[:2] == "  ") {
+			// Check if this line looks like a process row (starts with marker + digit)
+			trimmed := strings.TrimSpace(line)
+			if len(trimmed) > 0 && trimmed[0] >= '0' && trimmed[0] <= '9' {
+				if procStart == -1 {
+					procStart = i
+				}
+				procCount++
+			}
+		}
+	}
+	if procStart == -1 || procCount != len(procs) {
+		// Fallback: can't reliably reparse. Just return as-is.
+		return currentBody
+	}
+	for i := 0; i < procCount; i++ {
+		idx := procStart + i
+		if i == cursor {
+			lines[idx] = "> " + lines[idx][2:]
+		} else {
+			lines[idx] = "  " + lines[idx][2:]
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+// renderMonitoringFeedback appends feedback text to the monitoring body.
+func renderMonitoringFeedback(body, feedback string) string {
+	if feedback == "" {
+		return body
+	}
+	return body + "\n" + errStyle.Render(feedback)
 }
 
 func renderProfiles(pl *pb.ProfileList) string {

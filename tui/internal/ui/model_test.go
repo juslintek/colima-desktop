@@ -637,20 +637,19 @@ func TestOrEmpty(t *testing.T) {
 func TestLoadTabMonitoring(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabMonitoring)()
-	bm, ok := msg.(bodyMsg)
+	mm, ok := msg.(monitoringMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected monitoringMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected top-level error: %s", bm.err)
+	// Verify processes are passed through.
+	if len(mm.processes) != 2 {
+		t.Errorf("expected 2 processes, got %d", len(mm.processes))
 	}
-	if bm.tab != TabMonitoring {
-		t.Errorf("tab = %d, want %d", bm.tab, TabMonitoring)
-	}
-	// Must mention CPU, Memory and show process data from fakeSource
+	// Render and check content.
+	body := renderMonitoringWithSelection(mm.data, mm.processes, 0)
 	for _, want := range []string{"CPU", "Memory", "Disk", "dockerd", "nginx"} {
-		if !strings.Contains(bm.text, want) {
-			t.Errorf("monitoring body missing %q:\n%s", want, bm.text)
+		if !strings.Contains(body, want) {
+			t.Errorf("monitoring body missing %q:\n%s", want, body)
 		}
 	}
 }
