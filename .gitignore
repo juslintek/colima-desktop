@@ -25,3 +25,7 @@ daemon/colima-daemon
 colima-desktop.json
 /build/
 /dist/
+
+# Python generated artifacts
+__pycache__/
+*.py[cod]
