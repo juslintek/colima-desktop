@@ -81,7 +81,11 @@ jobs:
       #   4. at-spi-bus-launcher --launch-immediately — starts the AT-SPI D-Bus
       #      registry; path is resolved at runtime to handle Ubuntu 22/24 both
       #   5. sleep 2 — allow AT-SPI bus to fully start
-      #   6. python3 explore_atspi.py — run with all env vars exported
+      #   6. colima shim — create /tmp/ci-colima-bin/colima and prepend to PATH
+      #      so DependencyManager::is_colima_installed() returns true and the app
+      #      shows the real main window (with sidebar) instead of the onboarding
+      #      window. Without the shim all 11 captures are identical onboarding UIs.
+      #   7. python3 explore_atspi.py — run with all env vars exported
       #
       # GTK4 accessibility env vars:
       #   GTK_A11Y=atspi     — select the AT-SPI backend explicitly. Valid values
@@ -186,7 +190,25 @@ jobs:
           PYEOF
           echo "------------------------------------------------------"
 
-          # ── 6. Run exploration ────────────────────────────────────────
+          # ── 6. Create colima shim and prepend to PATH ─────────────────
+          # DependencyManager::is_colima_installed() uses which::which("colima").
+          # Without a colima binary on PATH the app renders the onboarding window,
+          # causing all 11 AT-SPI captures to be identical onboarding snapshots.
+          # We install a CI-only shim that satisfies the presence check so the
+          # app enters build_main_window() and renders the real sidebar UI.
+          CI_COLIMA_BIN="/tmp/ci-colima-bin"
+          mkdir -p "$CI_COLIMA_BIN"
+          cp scripts/linux/colima_shim.sh "$CI_COLIMA_BIN/colima"
+          chmod +x "$CI_COLIMA_BIN/colima"
+          export PATH="$CI_COLIMA_BIN:$PATH"
+          echo "[explore] colima shim: $CI_COLIMA_BIN/colima"
+          echo "[explore] colima shim version: $($CI_COLIMA_BIN/colima --version | head -1)"
+          echo "[explore] which colima: $(which colima)"
+
+          # ── 7. Run exploration ────────────────────────────────────────
+          # PATH already contains the colima shim; explore_atspi.py passes
+          # os.environ to the app subprocess via build_app_env(), so the shim
+          # is visible to which::which("colima") inside the Rust binary.
           EXIT_CODE=0
           python3 scripts/linux/explore_atspi.py \
             --app linux/target/release/colima-desktop \
@@ -196,7 +218,7 @@ jobs:
 
           echo "[explore] Explorer exit code: $EXIT_CODE"
 
-          # ── 7. Post-run diagnostics ────────────────────────────────────
+          # ── 8. Post-run diagnostics ────────────────────────────────────
           echo "--- AT-SPI accessible applications (after exploration) ---"
           python3 - <<'PYEOF' || true
           import pyatspi
@@ -213,10 +235,11 @@ jobs:
           ps aux | grep -E 'at-spi|dbus|Xvfb|colima' | grep -v grep || true
           echo "------------------------------------------------------"
 
-          # ── 8. Cleanup ────────────────────────────────────────────────
+          # ── 9. Cleanup ────────────────────────────────────────────────
           [[ "$ATSPI_PID" -gt 0 ]] && kill "$ATSPI_PID" 2>/dev/null || true
           kill "$XVFB_PID" 2>/dev/null || true
           [[ -n "${DBUS_SESSION_BUS_PID:-}" ]] && kill "$DBUS_SESSION_BUS_PID" 2>/dev/null || true
+          rm -rf "$CI_COLIMA_BIN"
 
           echo "exit_code=$EXIT_CODE" >> "$GITHUB_OUTPUT"
           # Exit 0 here so the artifact upload step always runs

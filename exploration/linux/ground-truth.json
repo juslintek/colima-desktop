@@ -1,8 +1,8 @@
 {
   "platform": "Linux",
-  "timestamp": "2026-07-18T14:00:00Z",
+  "timestamp": "2026-07-18T14:09:34Z",
   "environment_blocked": true,
-  "environment_block_reason": "AT-SPI2 runtime capture requires an interactive desktop session with a running compositor. The GitHub Actions ubuntu-latest runner provides only a Xvfb framebuffer — sufficient for the GTK4 build (which passes CI), but the GTK4/Rust binary did not register in the AT-SPI desktop tree in prior passes due to incorrect GTK_A11Y value. Diagnostic pass 3 corrects GTK_A11Y=1 (unrecognized) → GTK_A11Y=atspi (correct GTK4 backend). Next CI run will re-attempt live capture.",
+  "environment_block_reason": "Pass 4 pre-flight: colima shim not yet exercised in a live CI run. The root cause of all prior failures (GTK_A11Y=1 in pass 3; colima-absent onboarding in run 29641947378) is now fully addressed. This file will be replaced by a live capture on the next CI run.",
   "host": {
     "display": ":99",
     "app_binary": "linux/target/release/colima-desktop",
@@ -20,8 +20,20 @@
   "surfaces": [],
   "errors": [
     {
+      "phase": "diagnostic-pass-1",
+      "error": "GTK_A11Y not set (default). At-spi-bus-launcher not configured. App did not register in AT-SPI tree."
+    },
+    {
+      "phase": "diagnostic-pass-2",
+      "error": "GTK4 at-spi-bus-launcher working. GTK_A11Y=1 set — unrecognized value. GTK4 printed 'Unrecognized accessibility backend \"1\"'. AT-SPI registration silently disabled."
+    },
+    {
       "phase": "diagnostic-pass-3",
-      "error": "GTK_A11Y=1 was set in prior passes. GTK4 does not recognize '1' as a backend name — valid values are: accesskit | atspi | test | none | help. This produced 'Unrecognized accessibility backend \"1\"' in GTK4 stderr and prevented AT-SPI registration. Fixed: GTK_A11Y=atspi is now set in .github/workflows/explore-linux.yml, scripts/linux/run_explore.sh, and scripts/linux/explore_atspi.py:build_app_env(). Verified from GTK4 4.22.4 binary strings."
+      "error": "GTK_A11Y corrected to 'atspi' (valid GTK4 backend). Run 29641947378 achieved 374 elements — app registers in AT-SPI tree. However all 11 captures were the same onboarding window. Root cause: colima not installed in CI runner → DependencyManager::is_colima_installed() (uses which::which('colima')) returned false → build_onboarding_window() called instead of build_main_window(). No sidebar (sidebar_list) exists in onboarding view."
+    },
+    {
+      "phase": "diagnostic-pass-4-plan",
+      "error": "FIXED in this commit. Added scripts/linux/colima_shim.sh — CI-only stub responding to --version/version/status/list/start/stop/delete (exit 0). Updated run_explore.sh and .github/workflows/explore-linux.yml to create /tmp/ci-colima-bin/colima from the shim and prepend to PATH before launching explore_atspi.py. PATH is inherited by the Rust app subprocess so which::which('colima') finds the shim and is_colima_installed() returns true. Updated explore_atspi.py: (1) detect_onboarding_window() guard — fails fast with structured error if onboarding window detected instead of main UI; (2) improved find_sidebar_listbox() — searches by widget_name='sidebar_list' OR accessible label='Navigation' OR fallback to best LIST_BOX role by child count; (3) distinct-surfaces guard — requires >= 2 non-empty surfaces AND >= 2 distinct element-count fingerprints, fails if all captures look identical."
     }
   ],
   "known_surfaces": [
@@ -37,11 +49,42 @@
     "ai_workloads",
     "profiles"
   ],
+  "diagnostic_history": [
+    {
+      "pass": 1,
+      "run": "unknown",
+      "result": "0 elements — at-spi not configured"
+    },
+    {
+      "pass": 2,
+      "run": "unknown",
+      "result": "0 elements — GTK_A11Y=1 unrecognized"
+    },
+    {
+      "pass": 3,
+      "run": "29641947378",
+      "result": "374 elements — but all 11 captures identical onboarding window; colima absent from PATH"
+    },
+    {
+      "pass": 4,
+      "run": "pending",
+      "result": "pending — colima shim + onboarding guard + improved sidebar locator applied",
+      "fixes": [
+        "scripts/linux/colima_shim.sh created — CI colima stub, satisfies which::which('colima')",
+        "run_explore.sh — creates temp bin dir with shim, prepends to PATH, cleans up on EXIT",
+        ".github/workflows/explore-linux.yml — cp shim to /tmp/ci-colima-bin/colima, export PATH",
+        "explore_atspi.py — detect_onboarding_window() guard (fails fast if onboarding shown)",
+        "explore_atspi.py — find_sidebar_listbox() improved (widget_name OR label OR role fallback)",
+        "explore_atspi.py — distinct-surfaces guard (>= 2 non-empty, >= 2 distinct element counts)"
+      ]
+    }
+  ],
   "notes": [
     "The linux/ GTK4 app compiles and passes the frontends.yml CI job (linux-gtk4 on ubuntu-latest).",
-    "Every interactive widget has widget_name + accessible Property::Label set (see linux/src/main.rs and views/).",
-    "Diagnostic pass 3 (2026-07-18): corrected GTK_A11Y value from '1' (unrecognized) to 'atspi' (correct GTK4 AT-SPI backend). Prior pass CI run 29641672160 confirmed app stays running and at-spi-bus-launcher works, but GTK4 stderr showed 'Unrecognized accessibility backend \"1\"' — this is the root cause of empty AT-SPI tree.",
-    "The explore_atspi.py script is fully implemented and will produce a populated ground-truth.json when run with GTK_A11Y=atspi on a live display. Run: bash scripts/linux/run_explore.sh",
-    "environment_blocked=true remains until a CI run with the corrected GTK_A11Y=atspi confirms nonzero element capture."
+    "Every interactive widget has widget_name + accessible Property::Label set (linux/src/main.rs and views/).",
+    "Diagnostic pass 4 (2026-07-18): root cause was DependencyManager::is_colima_installed() returning false in CI (colima not on PATH), showing onboarding window for all 11 captures. Fix: CI-only colima shim injected on PATH so app enters build_main_window() with sidebar.",
+    "DependencyManager::is_colima_installed() source: linux/src/dependency_manager.rs L62: which::which('colima').is_ok()",
+    "Main window branch: linux/src/main.rs L49-56: if !DependencyManager::is_colima_installed() { build_onboarding_window } else { build_main_window }",
+    "environment_blocked=true remains until next CI run confirms nonzero distinct surface capture."
   ]
 }

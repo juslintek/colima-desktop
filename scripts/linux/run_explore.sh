@@ -23,6 +23,14 @@
 #                       kills AT-SPI registration.
 #   NO_AT_BRIDGE=0    — allow AT-SPI bridge (headless runners set this to 1)
 #   Do NOT set GTK_MODULES=gail:atk-bridge — that is GTK2/3 only
+#
+# colima shim (critical for CI / clean development environments):
+#   DependencyManager::is_colima_installed() uses which::which("colima"). If
+#   `colima` is not on PATH the app shows the onboarding window instead of the
+#   real sidebar UI, causing all AT-SPI captures to be identical onboarding
+#   snapshots. We create a temporary bin dir with a CI-only colima shim and
+#   prepend it to PATH before launching the explorer so the app enters the
+#   real main window.
 
 set -euo pipefail
 
@@ -50,6 +58,50 @@ if [[ "$SKIP_BUILD" -eq 0 ]]; then
 fi
 
 [[ -x "$BINARY" ]] || { echo "ERROR: binary not found at $BINARY"; exit 1; }
+
+# ── Create colima shim in a temporary bin directory ───────────────────────
+# This ensures DependencyManager::is_colima_installed() returns true so the
+# app shows the main UI (with sidebar) rather than the onboarding window.
+# The shim directory is cleaned up in the EXIT trap below.
+SHIM_BIN_DIR="$(mktemp -d /tmp/colima-ci-bin.XXXXXX)"
+trap 'rm -rf "$SHIM_BIN_DIR"' EXIT
+
+SHIM_SOURCE="$REPO_ROOT/scripts/linux/colima_shim.sh"
+if [[ -f "$SHIM_SOURCE" ]]; then
+    cp "$SHIM_SOURCE" "$SHIM_BIN_DIR/colima"
+    chmod +x "$SHIM_BIN_DIR/colima"
+    echo "[run_explore] colima shim installed at $SHIM_BIN_DIR/colima"
+    echo "[run_explore] Shim test: $($SHIM_BIN_DIR/colima --version | head -1)"
+else
+    echo "[run_explore] WARNING: colima_shim.sh not found at $SHIM_SOURCE"
+    echo "[run_explore] Creating inline shim…"
+    cat > "$SHIM_BIN_DIR/colima" <<'SHIM'
+#!/usr/bin/env bash
+cmd="${1:-}"
+case "$cmd" in
+    --version|version)
+        echo "colima version 0.6.99-ci-shim"
+        exit 0 ;;
+    status)
+        echo '{"display_name":"colima","driver":"ci-shim","arch":"x86_64","runtime":"docker","cpu":2,"memory":2147483648,"disk":107374182400}'
+        exit 0 ;;
+    list)
+        echo '{"name":"default","status":"Running","arch":"x86_64","cpus":2,"memory":2147483648,"disk":107374182400,"runtime":"docker","ipAddress":""}'
+        exit 0 ;;
+    start|stop|restart|delete|update|prune|kubernetes|k8s|model|clone|template|ssh-config)
+        exit 0 ;;
+    *)
+        echo "colima: unknown command \"${cmd}\" (inline ci-shim)" >&2
+        exit 1 ;;
+esac
+SHIM
+    chmod +x "$SHIM_BIN_DIR/colima"
+fi
+
+# Prepend the shim directory to PATH so which::which("colima") finds it first
+export PATH="$SHIM_BIN_DIR:$PATH"
+echo "[run_explore] PATH prepended: $SHIM_BIN_DIR is now first on PATH"
+echo "[run_explore] which colima: $(which colima)"
 
 # ── Start Xvfb ────────────────────────────────────────────────────────────
 XVFB_DISPLAY=":99"
@@ -106,6 +158,8 @@ export GTK_A11Y=atspi
 export NO_AT_BRIDGE=0
 
 # ── Run explorer ──────────────────────────────────────────────────────────
+# PATH with shim is already exported; explore_atspi.py passes it through to
+# the app subprocess via build_app_env() which copies os.environ.
 echo "[run_explore] Running AT-SPI explorer…"
 EXIT_CODE=0
 python3 "$REPO_ROOT/scripts/linux/explore_atspi.py" \
@@ -115,6 +169,7 @@ python3 "$REPO_ROOT/scripts/linux/explore_atspi.py" \
     --surface-pause 1.5 || EXIT_CODE=$?
 
 # ── Cleanup ───────────────────────────────────────────────────────────────
+# Note: SHIM_BIN_DIR cleanup is handled by the EXIT trap above.
 [[ "$ATSPI_PID" -gt 0 ]] && kill "$ATSPI_PID" 2>/dev/null || true
 kill "$XVFB_PID" 2>/dev/null || true
 [[ -n "${DBUS_SESSION_BUS_PID:-}" ]] && kill "$DBUS_SESSION_BUS_PID" 2>/dev/null || true
