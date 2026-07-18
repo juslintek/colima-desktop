@@ -14,7 +14,7 @@ name: explore-linux
 #     activation_method = "xdotool_grid:index=N"
 #   - Window origin: Stage A xdotool search + getwindowgeometry (dynamic);
 #     Stage B fixed (0,0) Xvfb fallback.
-#   - Validation: ALL 11 content fingerprints must be unique (new hard gate).
+#   - Validation: ALL 12 content fingerprints must be unique (new hard gate).
 
 # Trigger on:
 #   - manual dispatch
@@ -115,9 +115,9 @@ jobs:
       # Pass 8 sidebar navigation (deterministic grid, AT-SPI nav removed):
       #   Run 29643626991 proved AT-SPI extents for all sidebar rows map to
       #   Dashboard coords (95,18), causing mislabeled captures on even-indexed
-      #   surfaces. Fix: Dashboard = initial state (no click). Indices 1..10 use
+      #   surfaces. Fix: Dashboard = initial state (no click). Indices 1..11 use
       #   ONLY xdotool positional grid: abs_x = win_x+100, abs_y = win_y+23+38*i.
-      #   activation_method = "xdotool_grid:index=N". All 11 content fps must be
+      #   activation_method = "xdotool_grid:index=N". All 12 content fps must be
       #   unique (hard gate — any duplicate = run fails).
       #
       # ALLOW_FAILURE: the explore step uses || true so the artifact upload
@@ -309,11 +309,11 @@ jobs:
           nonempty = [s for s in surfaces if s.get("element_count", 0) > 0]
           print(f"nonempty_surfaces : {len(nonempty)}/{len(surfaces)}")
 
-          if len(nonempty) < 11:
-              print(f"VALIDATION FAILED: only {len(nonempty)}/11 nonempty surfaces", file=sys.stderr)
+          if len(nonempty) < 12:
+              print(f"VALIDATION FAILED: only {len(nonempty)}/12 nonempty surfaces", file=sys.stderr)
               sys.exit(1)
 
-          print(f"VALIDATION PASSED: {count} elements, {len(nonempty)}/11 surfaces captured")
+          print(f"VALIDATION PASSED: {count} elements, {len(nonempty)}/12 surfaces captured")
           PYEOF
 
       # ── Upload artifact (always — for diagnostics on failure too) ───────

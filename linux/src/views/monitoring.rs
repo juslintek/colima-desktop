@@ -448,7 +448,7 @@ fn do_refresh(
                         lbl.set_margin_start(8);
                         lbl.set_margin_top(2);
                         lbl.set_margin_bottom(2);
-                        lbl.set_monospace(true);
+                        lbl.add_css_class("monospace");
                         let row = ListBoxRow::new();
                         let pid_name = format!("proc_{}", p.pid);
                         row.set_widget_name(&pid_name);
