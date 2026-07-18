@@ -1,0 +1,23 @@
+ 1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes 
+ 7 Configuration  8 Runtime  9 AI Workloads  0 Profiles  Machines 
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+Colima Desktop — TUI
+
+Surfaces available:
+  Dashboard · Containers · Images · Volumes · Networks
+  Kubernetes · Configuration · Runtime · AI Workloads
+  Profiles · Machines
+
+Backed live by the colima-desktop daemon (gRPC).
+Use ←/→ or 1-0 to switch tabs, r to refresh, q to quit.
+Press ? for full help.
+
+──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+daemon unreachable: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial  1 Dashboard  2 Containers  3 Images  4 Volumes  5 Networks  6 Kubernetes 
+
+
+
+
+
+

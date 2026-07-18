@@ -1,0 +1,24 @@
+]11;?\[6n[?25l[?1049h[2J[H[?25l[?2004h[H [1;38;5;212m1 Dashboard[0m  [38;5;240m2 Containers[0m  [38;5;240m3 Images[0m  [38;5;240m4 Volumes[0m  [38;5;240m5 Networks[0m  [38;5;240m6 Kubernetes[0m [K
+ [38;5;240m7 Configuration[0m  [38;5;240m8 Runtime[0m  [38;5;240m9 AI Workloads[0m  [38;5;240m0 Profiles[0m  [38;5;240mMachines[0m [K
+[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[K
+[K
+[1;38;5;39mColima Desktop — TUI[0m[K
+[K
+Surfaces available:[K
+  Dashboard · Containers · Images · Volumes · Networks[K
+  Kubernetes · Configuration · Runtime · AI Workloads[K
+  Profiles · Machines[K
+[K
+Backed live by the colima-desktop daemon (gRPC).[K
+Use ←/→ or 1-0 to switch tabs, r to refresh, q to quit.[K
+Press ? for full help.[K
+[K
+[38;5;245m──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────[0m[K
+[38;5;245mdaemon unreachable: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial [0m[38;5;245m[0m[17;H[H [38;5;240m1 Dashboard[0m  [38;5;240m2 Containers[0m  [38;5;240m3 Images[0m  [38;5;240m4 Volumes[0m  [1;38;5;212m5 Networks[0m  [38;5;240m6 Kubernetes[0m [K
+
+
+
+
+
+
+[8;H

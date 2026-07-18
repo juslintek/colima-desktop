@@ -1,0 +1,62 @@
+name: explore-tui
+
+on:
+  push:
+    paths:
+      - "tui/**"
+      - "scripts/tui/**"
+      - ".github/workflows/explore-tui.yml"
+  workflow_dispatch:
+
+jobs:
+  explore-tui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: tui/go.mod
+          cache-dependency-path: tui/go.sum
+
+      - name: Build and test TUI
+        run: |
+          cd tui
+          go build ./...
+          go test ./... -count=1
+
+      - name: Run TUI ground-truth exploration
+        run: |
+          python3 scripts/tui/explore.py
+        # Requires Python 3.9+ (installed on ubuntu-latest)
+        # Uses model-direct capture (go run driver_explore.go inside tui/)
+        # PTY capture also attempted; falls back to model-direct if PTY unavailable
+
+      - name: Validate ground-truth JSON
+        run: |
+          python3 - <<'EOF'
+          import json, sys
+          with open("exploration/tui/ground-truth.json") as f:
+              gt = json.load(f)
+          assert gt["validation_pass"], f"validation_pass is False: errors={gt['errors']}"
+          assert gt["total_surfaces"] == 11, f"expected 11 surfaces, got {gt['total_surfaces']}"
+          assert gt["all_nonempty"], "not all surfaces are nonempty"
+          assert gt["all_distinct"], "not all surfaces have distinct fingerprints"
+          print(f"✓ {gt['total_surfaces']}/11 surfaces, all nonempty, all distinct")
+          print(f"  method: {gt['capture_method']}")
+          for s in gt["surfaces"]:
+              print(f"  [{s['index']:2d}] {s['name']:15s}  fp={s['content_fingerprint'][:12]}  nonempty={s['nonempty']}  distinct={s['distinct_from_prev']}")
+          EOF
+
+      - name: Upload exploration artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tui-ground-truth
+          path: |
+            exploration/tui/ground-truth.json
+            exploration/tui/screenshots/
+          retention-days: 30
