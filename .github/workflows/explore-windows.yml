@@ -46,7 +46,10 @@ jobs:
       - name: Restore app NuGet packages
         working-directory: windows
         run: |
-          dotnet restore ColimaDesktop.Windows.csproj
+          # Pass -r win-x64 so NuGet resolves RID-specific assets that match the
+          # subsequent publish command; avoids the "assets generated for different
+          # RID" MSBuild warning that can re-trigger AnyCPU target evaluation.
+          dotnet restore ColimaDesktop.Windows.csproj -r win-x64
         timeout-minutes: 5
 
       - name: Build app (unpackaged, WinAppSDK self-contained)
