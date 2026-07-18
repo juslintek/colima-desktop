@@ -1,0 +1,19 @@
+linux-ui-explorer pass 6 — DONE
+commit: 55e82bd (explore_atspi.py + explore-linux.yml + ground-truth.json)
+commit: a10cb1b (INTENT_LEDGER.md outcome recorded)
+
+Root cause fixed:
+  doAction(0) arbitrary-index fallback falsely accepted as navigation in run
+  29642873493 — all 11 surfaces had 87 elements with identical fingerprints.
+  GTK4 connect_row_selected signal does NOT fire from arbitrary AT-SPI actions.
+
+Key changes (explore_atspi.py):
+  1. Removed doAction(0) entirely — only named 'click'/'activate'/'select' actions
+  2. _get_row_center(row): queryComponent().getExtents(DESKTOP_COORDS)
+  3. _get_content_fingerprint(app_acc): DFS main_stack → frozenset of widget names
+  4. Activation chain: named doAction → generateMouseEvent(cx,cy,'b1c') → xdotool
+  5. Each attempt verified: fp_before vs fp_after (content must change)
+  6. Dashboard skips change check (initial/baseline surface)
+  7. activate_sidebar_row returns (bool, str) for diagnostics per surface
+
+xdotool was already in apt deps (added in pass 5). No workflow dep changes needed.
