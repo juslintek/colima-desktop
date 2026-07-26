@@ -1,0 +1,1348 @@
+{
+  "pbtResults": {
+    "1.5 Write the frozen-contract preservation property test": {
+      "status": "passed",
+      "lastRunTimestamp": 1784664523699
+    },
+    "2.5 Write daemon request-scoping property tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1784701674722
+    },
+    "8.1 Write the template round-trip property test": {
+      "status": "passed",
+      "lastRunTimestamp": 1784751037840
+    },
+    "4.5 Write teatest deterministic dispatch tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1784789046662
+    },
+    "8.2 Write the configuration unknown-key preservation property test": {
+      "status": "passed",
+      "lastRunTimestamp": 1784790665917
+    },
+    "8.3 Write the macOS accessibility-identifier property test": {
+      "status": "passed",
+      "lastRunTimestamp": 1784794697214
+    },
+    "10.3 Write live-env guard and teardown property tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1784798799890
+    },
+    "10.5 Write DependencyManager property + edge-case tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1784799844867
+    },
+    "12.4 Enforce cross-frontend accessibility-identifier uniqueness in hardening tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1784809329327
+    },
+    "13.5 Write the release-blocking property test": {
+      "status": "passed",
+      "lastRunTimestamp": 1784814420599
+    },
+    "14.4 Write notification property tests": {
+      "status": "passed",
+      "lastRunTimestamp": 1784819744353
+    }
+  },
+  "executionHistory": {
+    "1.1 Build the machine-readable per-frontend 65-RPC action inventory": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583763699
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583790214
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784660843344
+      }
+    ],
+    "1.2 Extend the evidence generator to assign evidence levels per cell": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583763775
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784660853933
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784662858068
+      }
+    ],
+    "1.3 Write property tests for the evidence generator": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583763829
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784662865928
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784663687455
+      }
+    ],
+    "1.4 Reconcile the approved pre-v1 additive request-shape into the contract": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583763883
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784662865956
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784663688493
+      }
+    ],
+    "1.5 Write the frozen-contract preservation property test": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583763940
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784663697842
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784696624869
+      }
+    ],
+    "1.6 Regenerate the architect-owned parity matrix and truth table": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583763988
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784663698920
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784696626864
+      }
+    ],
+    "1.7 Regenerate the gap report and retire contradicting legacy docs": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764061
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784663699556
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784696628876
+      }
+    ],
+    "1.8 Refresh the STATUS baseline from real evidence": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764092
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583791133
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784660845106
+      }
+    ],
+    "1.9 Implement the conflict-free merge gate": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764124
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583791373
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784660845148
+      }
+    ],
+    "1.10 Write property tests for the merge gate": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764154
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784660854922
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784662859052
+      }
+    ],
+    "2.1 Implement `DockerService.PullImage` real progress streaming": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764187
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784697140730
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784697476510
+      }
+    ],
+    "2.2 Implement `DockerService.PushImage` real progress streaming": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764220
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784698152309
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784698698146
+      }
+    ],
+    "2.3 Add configurable Unix-socket and loopback-TCP listeners with graceful shutdown": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764261
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784697485956
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784698152104
+      }
+    ],
+    "2.4 Implement profile-scoped targeting and unscoped-request rejection": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764295
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784698698172
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784700413223
+      }
+    ],
+    "2.5 Write daemon request-scoping property tests": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764326
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784700413293
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784701709505
+      }
+    ],
+    "2.6 Reflect the approved pre-v1 additive scope fields in the proto and generated code": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764357
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784696673230
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784697140494
+      }
+    ],
+    "2.7 Write per-RPC bufconn integration tests + race/leak checks": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764390
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784701710488
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784702649285
+      }
+    ],
+    "2.8 Verify daemon cross-compilation for all targets": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764422
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784701711063
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784702649308
+      }
+    ],
+    "3. Checkpoint — daemon green": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764466
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784794889175
+      }
+    ],
+    "4.1 Bind VM lifecycle actions to real profile-scoped RPCs": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764499
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784702664076
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749930515
+      }
+    ],
+    "4.2 Bind container/image/volume/network actions to `DockerService` RPCs": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764530
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749943076
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751136764
+      }
+    ],
+    "4.3 Bind Kubernetes/runtime/profile/config/template/AI-model actions": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764563
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751150250
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752404177
+      }
+    ],
+    "4.4 Add destructive confirmation, streamed cancellation, bounded output, and error-with-context": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764595
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752478395
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754170605
+      }
+    ],
+    "4.5 Write teatest deterministic dispatch tests": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764629
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754205303
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784789135392
+      }
+    ],
+    "4.6 Add the gated live PTY lane against `desktop-e2e`": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764660
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784790806001
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784793378005
+      }
+    ],
+    "5.1 Produce the exact Windows 65-RPC → command-handler binding map": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764694
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784702665348
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749931474
+      }
+    ],
+    "5.2 Invoke real gRPC calls for VM lifecycle/profile/SSH/update/prune": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764728
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749944112
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751137809
+      }
+    ],
+    "5.3 Invoke real gRPC calls for container/image/volume/network mutations + event/log/stat streams": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764760
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751151268
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752405174
+      }
+    ],
+    "5.4 Invoke real gRPC calls for Kubernetes/AI/runtime/config/template/monitoring": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764791
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752479449
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754170752
+      }
+    ],
+    "5.5 Add accessible destructive confirmation, non-reentrant busy state, cancellation, error surfacing, and stable a11y identifiers": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764823
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754206358
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784785024420
+      }
+    ],
+    "5.6 Write Windows view-model/service tests (native `windows-winui` CI runner)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764854
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784790806374
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784793379001
+      }
+    ],
+    "6.1 Produce the exact Linux 65-RPC → callback matrix": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764888
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784702666442
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749932464
+      }
+    ],
+    "6.2 Invoke real gRPC calls for VM lifecycle/profile/SSH/update/prune callbacks": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764921
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749945087
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751138878
+      }
+    ],
+    "6.3 Invoke real gRPC calls for container/image/volume/network mutations + streams": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764953
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751152319
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752407123
+      }
+    ],
+    "6.4 Invoke real gRPC for Kubernetes/AI/runtime/config/template/monitoring; apply GTK mutations on the GLib main context": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583764985
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752481716
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754172526
+      }
+    ],
+    "6.5 Require confirmation before destructive actions": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765017
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754207359
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784785025478
+      }
+    ],
+    "6.6 Write Rust unit tests + clippy (`-D warnings`) + fmt check": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765050
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784790807803
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784792028309
+      }
+    ],
+    "7.1 Build the template read/edit/save interface over `GetTemplate`/`SetTemplate`": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765086
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784702666715
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749933533
+      }
+    ],
+    "7.2 Require confirmation before destructive Docker mutations": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765118
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749946090
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751139768
+      }
+    ],
+    "7.3 Display observed image-pull progress (not synthesized)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765149
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751153327
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752408177
+      }
+    ],
+    "7.4 Load configuration from real profile YAML and preserve unknown keys on save": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765182
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752481658
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754173045
+      }
+    ],
+    "7.5 Resolve the orphaned create-container view": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765215
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784754207932
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784785026443
+      }
+    ],
+    "7.6 Expose the Runtime Controls surface for accessibility traversal with stable identifiers": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765246
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784790808834
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784792029089
+      }
+    ],
+    "8.1 Write the template round-trip property test": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765280
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784749946450
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751140792
+      }
+    ],
+    "8.2 Write the configuration unknown-key preservation property test": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765327
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784789153186
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784790783926
+      }
+    ],
+    "8.3 Write the macOS accessibility-identifier property test": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765360
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784793388345
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784794764206
+      }
+    ],
+    "8.4 Write the macOS destructive-confirmation property test": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765393
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784751153776
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784752409257
+      }
+    ],
+    "9. Checkpoint — frontends parity green": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765427
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784794904351
+      }
+    ],
+    "10.1 Implement the `desktop-e2e` live environment lifecycle": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765460
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784795006101
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784796240815
+      }
+    ],
+    "10.2 Implement the profile safety guard (hard invariant)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765495
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784796242314
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784797673304
+      }
+    ],
+    "10.3 Write live-env guard and teardown property tests": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765526
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784797675574
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784798934737
+      }
+    ],
+    "10.4 Implement DependencyManager live checks": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765559
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784797676897
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784798936193
+      }
+    ],
+    "10.5 Write DependencyManager property + edge-case tests": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765592
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784798936838
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784799940872
+      }
+    ],
+    "10.6 Implement the macOS full-functionality live exercise harness": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765625
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784799941592
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784802225985
+      }
+    ],
+    "10.7 Record Windows/Linux parity evidence via green CI and honest env-blocked labeling": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765658
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784796243208
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784797674760
+      }
+    ],
+    "11. Checkpoint — live evidence complete": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765692
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784802241944
+      }
+    ],
+    "12.1 Enforce the `verify.sh` GREEN + coverage gate and stream safety gates": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765726
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784802268481
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784807871390
+      }
+    ],
+    "12.2 Generate SBOMs and a vulnerability report": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765758
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784807872861
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784809563630
+      }
+    ],
+    "12.3 Record performance budgets": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765792
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784807873809
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784810878829
+      }
+    ],
+    "12.4 Enforce cross-frontend accessibility-identifier uniqueness in hardening tests": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765828
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784807874991
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784809564974
+      }
+    ],
+    "12.5 Wire the release-candidate CI gate": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765863
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784810879571
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784812027081
+      }
+    ],
+    "13.1 Build signed versioned artifacts on tag": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765898
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784812028548
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784813710543
+      }
+    ],
+    "13.2 Configure macOS signing, notarization, and a non-placeholder Sparkle key": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765933
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784813712814
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784815174567
+      }
+    ],
+    "13.3 Sign and package the Windows and Linux deliverables": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765965
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784813714227
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784815176049
+      }
+    ],
+    "13.4 Implement the P0/P1 release-blocking gate": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583765999
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784812029375
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784813712033
+      }
+    ],
+    "13.5 Write the release-blocking property test": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766034
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784813715097
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784815176798
+      }
+    ],
+    "13.6 Finalize the publish job gated on all-green": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766071
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784815178417
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784816079815
+      }
+    ],
+    "13.7 Align v1 documentation with shipped artifacts": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766105
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784815179360
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784816079894
+      }
+    ],
+    "14.1 Implement notification rendering": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766141
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784816119453
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784817473044
+      }
+    ],
+    "14.2 Implement channel delivery with the credentials-absent fallback": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766190
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784817475035
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784818456416
+      }
+    ],
+    "14.3 Implement the secret-hygiene scrub": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766224
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784816120086
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784817473844
+      }
+    ],
+    "14.4 Write notification property tests": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766258
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784818457260
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784819779786
+      }
+    ],
+    "15. Final checkpoint — v1.0.0 ready": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784583766291
+      },
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784819805985
+      }
+    ],
+    "6. R4 — Linux per-action parity (parallel; owner linux-native-dev → `linux/**`)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784792028350
+      }
+    ],
+    "7. R5 — macOS product-gap closure (parallel; owner swiftui-dev → `Sources/**`)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784792029125
+      }
+    ],
+    "4. R2 — TUI per-action parity (parallel; owner tui-dev → `tui/**`)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784793378082
+      }
+    ],
+    "5. R3 — Windows per-action parity (parallel; owner windows-native-dev → `windows/**`)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784793379078
+      }
+    ],
+    "8. R2–R5 — macOS dispatch & property tests (parallel; owner swift-test-engineer → `Tests/**`)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784794764245
+      }
+    ],
+    "1. R0 — Board-vs-reality evidence reconciliation (barrier: read-only audit + regen + gate)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784794846666
+      }
+    ],
+    "2. R1 — Shared daemon and provider completion (serial; must precede frontend consumers)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784794847808
+      }
+    ],
+    "10. R6/R9/R10 — Live environment, full-functionality exercise, and DependencyManager (after frontends)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784802226031
+      }
+    ],
+    "12. R7 — Quality, security, performance, and accessibility hardening (after R6)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784812027382
+      }
+    ],
+    "13. R8 — Cross-platform v1 release (after R7)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784816096414
+      }
+    ],
+    "14. R13 — Completion notification (strictly last; owner devops → `scripts/notify/**`)": [
+      {
+        "executionId": "5c402bab-09c2-4b35-a4f9-8f745252df0a",
+        "chatSessionId": "sess_7c56b450-ab9a-48cb-a189-6a230c7f5a74",
+        "timestamp": 1784819779850
+      }
+    ]
+  }
+}
