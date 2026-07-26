@@ -1,11 +1,14 @@
 package ui
 
 import (
+	"context"
+	"io"
 	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
 	pb "github.com/colima-desktop/daemon/proto"
+	"github.com/colima-desktop/tui/internal/action"
 )
 
 // fakeSource is a fully deterministic DataSource used in unit tests.
@@ -41,6 +44,32 @@ func (fakeSource) GetConfig(string) (*pb.ColimaConfig, error) {
 		},
 	}, nil
 }
+func (fakeSource) GetTemplate() (*pb.ColimaConfig, error) {
+	return &pb.ColimaConfig{Cpu: 4, Memory: 4, Disk: 100, Runtime: "docker", Arch: "aarch64", VmType: "vz", MountType: "virtiofs", Kubernetes: &pb.KubernetesConfig{}}, nil
+}
+func (fakeSource) RunAction(context.Context, action.Request) (action.Result, error) {
+	return action.Result{Text: "ok"}, nil
+}
+func (fakeSource) OpenProgress(context.Context, action.Request) (action.ProgressStream, error) {
+	return &fakeProgressStream{events: []*pb.ProgressEvent{{Stage: "done", Message: "completed", Progress: 1, Done: true}}}, nil
+}
+
+type fakeProgressStream struct {
+	events []*pb.ProgressEvent
+	err    error
+}
+
+func (s *fakeProgressStream) Recv() (*pb.ProgressEvent, error) {
+	if len(s.events) == 0 {
+		if s.err != nil {
+			return nil, s.err
+		}
+		return nil, io.EOF
+	}
+	event := s.events[0]
+	s.events = s.events[1:]
+	return event, nil
+}
 func (fakeSource) KubernetesStatus(string) (*pb.VMStatus, error) {
 	return &pb.VMStatus{Running: true, Kubernetes: false, Runtime: "docker"}, nil
 }
@@ -59,9 +88,8 @@ func (fakeSource) ProcessList(string) (*pb.ProcessListResponse, error) {
 		{Pid: 2042, User: "user", CpuPercent: 0.5, MemoryPercent: 1.2, Command: "nginx", Container: "/web"},
 	}}, nil
 }
-func (fakeSource) KillProcess(string, int32, int32) error { return nil }
 func (fakeSource) Containers(string) (string, error) {
-	return `[{"Names":["/web"],"Image":"nginx","State":"running","Status":"Up 2h"}]`, nil
+	return `[{"Id":"container-web","Names":["/web"],"Image":"nginx","State":"running","Status":"Up 2h"}]`, nil
 }
 func (fakeSource) Images(string) (string, error) {
 	return `[{"RepoTags":["nginx:latest"],"Id":"sha256:abc","Size":142000000}]`, nil
@@ -250,6 +278,17 @@ func TestBodyMsgForInactiveTabIgnored(t *testing.T) {
 	}
 }
 
+func TestStaleScopedLoadIgnoredAfterProfileRefresh(t *testing.T) {
+	m := newModel()
+	m.body = "current-profile-data"
+	m.loadSeq = 2
+	next, _ := m.Update(scopedLoadMsg{seq: 1, msg: bodyMsg{tab: TabDashboard, text: "stale-profile-data"}})
+	m = next.(Model)
+	if m.body != "current-profile-data" {
+		t.Fatalf("stale async load replaced active profile data: %q", m.body)
+	}
+}
+
 func TestStatusMsgUpdatesFooter(t *testing.T) {
 	m := newModel()
 	nm, _ := m.Update(statusMsg{text: "profile=test status=running"})
@@ -288,60 +327,48 @@ func TestLoadTabDashboard(t *testing.T) {
 func TestLoadTabContainers(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabContainers)()
-	bm, ok := msg.(bodyMsg)
+	rm, ok := msg.(resourceMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected resourceMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected error: %s", bm.err)
-	}
-	if !strings.Contains(bm.text, "web") && !strings.Contains(bm.text, "nginx") {
-		t.Errorf("containers body should mention container name or image: %q", bm.text)
+	if len(rm.items) != 1 || rm.items[0].ID != "container-web" || !strings.Contains(rm.items[0].Name, "web") {
+		t.Errorf("unexpected container resources: %#v", rm.items)
 	}
 }
 
 func TestLoadTabImages(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabImages)()
-	bm, ok := msg.(bodyMsg)
+	rm, ok := msg.(resourceMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected resourceMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected error: %s", bm.err)
-	}
-	if !strings.Contains(bm.text, "nginx") {
-		t.Errorf("images body should mention 'nginx': %q", bm.text)
+	if len(rm.items) != 1 || !strings.Contains(rm.items[0].Name, "nginx") {
+		t.Errorf("unexpected image resources: %#v", rm.items)
 	}
 }
 
 func TestLoadTabVolumes(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabVolumes)()
-	bm, ok := msg.(bodyMsg)
+	rm, ok := msg.(resourceMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected resourceMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected error: %s", bm.err)
-	}
-	if !strings.Contains(bm.text, "mydata") {
-		t.Errorf("volumes body should mention 'mydata': %q", bm.text)
+	if len(rm.items) != 1 || rm.items[0].Name != "mydata" {
+		t.Errorf("unexpected volume resources: %#v", rm.items)
 	}
 }
 
 func TestLoadTabNetworks(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabNetworks)()
-	bm, ok := msg.(bodyMsg)
+	rm, ok := msg.(resourceMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected resourceMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected error: %s", bm.err)
-	}
-	if !strings.Contains(bm.text, "bridge") {
-		t.Errorf("networks body should mention 'bridge': %q", bm.text)
+	if len(rm.items) != 1 || rm.items[0].Name != "bridge" {
+		t.Errorf("unexpected network resources: %#v", rm.items)
 	}
 }
 
@@ -363,18 +390,15 @@ func TestLoadTabKubernetes(t *testing.T) {
 func TestLoadTabConfig(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabConfig)()
-	bm, ok := msg.(bodyMsg)
+	cm, ok := msg.(configMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected configMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected error: %s", bm.err)
+	if cm.err != "" {
+		t.Errorf("unexpected error: %s", cm.err)
 	}
-	if !strings.Contains(bm.text, "CPU") {
-		t.Errorf("config body should mention 'CPU': %q", bm.text)
-	}
-	if !strings.Contains(bm.text, "aarch64") {
-		t.Errorf("config body should mention arch 'aarch64': %q", bm.text)
+	if cm.config.GetCpu() != 2 || cm.config.GetArch() != "aarch64" || cm.template == nil {
+		t.Errorf("unexpected config message: %#v", cm)
 	}
 }
 
@@ -414,30 +438,24 @@ func TestLoadTabAI(t *testing.T) {
 func TestLoadTabProfiles(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabProfiles)()
-	bm, ok := msg.(bodyMsg)
+	rm, ok := msg.(resourceMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected resourceMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected error: %s", bm.err)
-	}
-	if !strings.Contains(bm.text, "default") {
-		t.Errorf("profiles body missing 'default': %q", bm.text)
+	if len(rm.items) != 1 || rm.items[0].Name != "default" {
+		t.Errorf("unexpected profile resources: %#v", rm.items)
 	}
 }
 
 func TestLoadTabMachines(t *testing.T) {
 	m := newModel()
 	msg := m.loadTab(TabMachines)()
-	bm, ok := msg.(bodyMsg)
+	rm, ok := msg.(resourceMsg)
 	if !ok {
-		t.Fatalf("expected bodyMsg, got %T", msg)
+		t.Fatalf("expected resourceMsg, got %T", msg)
 	}
-	if bm.err != "" {
-		t.Errorf("unexpected error: %s", bm.err)
-	}
-	if !strings.Contains(bm.text, "default") {
-		t.Errorf("machines body missing 'default': %q", bm.text)
+	if len(rm.items) != 1 || rm.items[0].Name != "default" {
+		t.Errorf("unexpected machine resources: %#v", rm.items)
 	}
 }
 
@@ -598,6 +616,14 @@ func TestRenderJSONListParsesItems(t *testing.T) {
 	}
 	if !strings.Contains(bm.text, "alpha") || !strings.Contains(bm.text, "beta") {
 		t.Errorf("rendered list missing items: %q", bm.text)
+	}
+}
+
+func TestParseResourceListHandlesDockerVolumeEnvelope(t *testing.T) {
+	msg := parseResourceList(TabVolumes, `{"Volumes":[{"Name":"project-data","Driver":"local","Mountpoint":"/data"}],"Warnings":null}`, []string{"Name"}, []string{"Name"}, []string{"Driver", "Mountpoint"})
+	rm, ok := msg.(resourceMsg)
+	if !ok || len(rm.items) != 1 || rm.items[0].Name != "project-data" {
+		t.Fatalf("volume envelope was not parsed into selectable resources: %#v", msg)
 	}
 }
 

@@ -10,11 +10,14 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"io"
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
 	pb "github.com/colima-desktop/daemon/proto"
+	"github.com/colima-desktop/tui/internal/action"
 	"github.com/colima-desktop/tui/internal/ui"
 )
 
@@ -48,6 +51,25 @@ func (fakeDS) GetConfig(string) (*pb.ColimaConfig, error) {
 		Kubernetes: &pb.KubernetesConfig{Enabled: false, Version: "v1.35.0+k3s1"},
 	}, nil
 }
+func (fakeDS) GetTemplate() (*pb.ColimaConfig, error) {
+	return &pb.ColimaConfig{Cpu: 4, Memory: 8, Disk: 100, Arch: "aarch64", VmType: "vz", Runtime: "docker", MountType: "virtiofs", Kubernetes: &pb.KubernetesConfig{}}, nil
+}
+func (fakeDS) RunAction(context.Context, action.Request) (action.Result, error) {
+	return action.Result{Text: "ok"}, nil
+}
+func (fakeDS) OpenProgress(context.Context, action.Request) (action.ProgressStream, error) {
+	return &driverProgressStream{}, nil
+}
+
+type driverProgressStream struct{ sent bool }
+
+func (s *driverProgressStream) Recv() (*pb.ProgressEvent, error) {
+	if s.sent {
+		return nil, io.EOF
+	}
+	s.sent = true
+	return &pb.ProgressEvent{Stage: "done", Message: "completed", Progress: 1, Done: true}, nil
+}
 func (fakeDS) KubernetesStatus(string) (*pb.VMStatus, error) {
 	return &pb.VMStatus{Running: true, Kubernetes: false, Runtime: "docker", Arch: "aarch64"}, nil
 }
@@ -67,9 +89,8 @@ func (fakeDS) ProcessList(string) (*pb.ProcessListResponse, error) {
 		{Pid: 3107, User: "999", CpuPercent: 0.4, MemoryPercent: 2.7, Command: "postgres", Container: "/db-postgres"},
 	}}, nil
 }
-func (fakeDS) KillProcess(string, int32, int32) error { return nil }
 func (fakeDS) Containers(string) (string, error) {
-	return `[{"Names":["/web-nginx"],"Image":"nginx:latest","State":"running","Status":"Up 2h"},{"Names":["/db-postgres"],"Image":"postgres:15","State":"running","Status":"Up 5h"},{"Names":["/cache-redis"],"Image":"redis:7","State":"exited","Status":"Exited 1h"}]`, nil
+	return `[{"Id":"ctr-web","Names":["/web-nginx"],"Image":"nginx:latest","State":"running","Status":"Up 2h"},{"Id":"ctr-db","Names":["/db-postgres"],"Image":"postgres:15","State":"running","Status":"Up 5h"},{"Id":"ctr-cache","Names":["/cache-redis"],"Image":"redis:7","State":"exited","Status":"Exited 1h"}]`, nil
 }
 func (fakeDS) Images(string) (string, error) {
 	return `[{"RepoTags":["nginx:latest"],"Id":"sha256:abc123","Size":142000000},{"RepoTags":["postgres:15"],"Id":"sha256:def456","Size":379000000},{"RepoTags":["redis:7"],"Id":"sha256:ghi789","Size":117000000}]`, nil

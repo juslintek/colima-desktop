@@ -2,6 +2,7 @@ package ui
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -10,9 +11,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/exp/teatest"
 	pb "github.com/colima-desktop/daemon/proto"
+	"github.com/colima-desktop/tui/internal/action"
 )
 
-// killRecordingSource wraps fakeSource to record KillProcess invocations.
+// killRecordingSource wraps fakeSource to record process-kill action requests.
 type killRecordingSource struct {
 	fakeSource
 	killCalls []killCall
@@ -25,9 +27,15 @@ type killCall struct {
 	signal  int32
 }
 
-func (k *killRecordingSource) KillProcess(profile string, pid int32, signal int32) error {
-	k.killCalls = append(k.killCalls, killCall{profile, pid, signal})
-	return k.killErr
+func (k *killRecordingSource) RunAction(ctx context.Context, req action.Request) (action.Result, error) {
+	if req.Kind != action.ProcessKill {
+		return k.fakeSource.RunAction(ctx, req)
+	}
+	k.killCalls = append(k.killCalls, killCall{req.Profile, req.PID, req.Signal})
+	if k.killErr != nil {
+		return action.Result{}, k.killErr
+	}
+	return action.Result{Text: "process killed"}, nil
 }
 
 // ─── Unit tests: process selection state ─────────────────────────────────────
@@ -169,22 +177,24 @@ func TestKillKeyInvokesKillProcess(t *testing.T) {
 	}
 	m.body = renderMonitoringWithSelection(md, m.monProcesses, 1)
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
-	if cmd == nil {
-		t.Fatal("pressing k should return a command")
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	m = next.(Model)
+	if cmd != nil || m.action.phase != actionConfirm {
+		t.Fatal("pressing k must open confirmation without invoking the daemon")
 	}
-
-	// Execute the command synchronously to trigger the KillProcess call.
-	msg := cmd()
-	kr, ok := msg.(killResultMsg)
-	if !ok {
-		t.Fatalf("cmd returned %T, want killResultMsg", msg)
+	if len(src.killCalls) != 0 {
+		t.Fatal("destructive action ran before confirmation")
 	}
-	if kr.pid != 2042 {
-		t.Errorf("kill pid = %d, want 2042", kr.pid)
+	next, cmd = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	m = next.(Model)
+	if cmd == nil || m.action.phase != actionBusy {
+		t.Fatal("confirming kill should start a busy command")
 	}
-	if kr.err != nil {
-		t.Errorf("unexpected error: %v", kr.err)
+	result := cmd()
+	next, _ = m.Update(result)
+	m = next.(Model)
+	if m.action.phase != actionSuccess {
+		t.Fatalf("kill phase = %v, want success: %s", m.action.phase, m.action.message)
 	}
 
 	// Verify the DataSource was called with correct args.
@@ -203,49 +213,6 @@ func TestKillKeyInvokesKillProcess(t *testing.T) {
 	}
 }
 
-func TestKillResultSuccessShowsFeedback(t *testing.T) {
-	m := New(fakeSource{}, "default")
-	m.tab = TabMonitoring
-	m.body = "some monitoring body"
-
-	nm, _ := m.Update(killResultMsg{pid: 2042, err: nil})
-	m2 := nm.(Model)
-
-	if !strings.Contains(m2.monFeedback, "Killed PID 2042") {
-		t.Errorf("feedback should mention success: %q", m2.monFeedback)
-	}
-	if !strings.Contains(m2.body, "Killed PID 2042") {
-		t.Errorf("body should contain kill feedback: %q", m2.body)
-	}
-}
-
-func TestKillResultErrorShowsFeedback(t *testing.T) {
-	m := New(fakeSource{}, "default")
-	m.tab = TabMonitoring
-	m.body = "some monitoring body"
-
-	nm, _ := m.Update(killResultMsg{pid: 999, err: errors.New("permission denied")})
-	m2 := nm.(Model)
-
-	if !strings.Contains(m2.monFeedback, "failed") {
-		t.Errorf("feedback should mention failure: %q", m2.monFeedback)
-	}
-	if !strings.Contains(m2.monFeedback, "permission denied") {
-		t.Errorf("feedback should contain error message: %q", m2.monFeedback)
-	}
-}
-
-func TestKillResultTriggersRefresh(t *testing.T) {
-	m := New(fakeSource{}, "default")
-	m.tab = TabMonitoring
-	m.body = "body"
-
-	_, cmd := m.Update(killResultMsg{pid: 100, err: nil})
-	if cmd == nil {
-		t.Fatal("killResultMsg should return a refresh command")
-	}
-}
-
 func TestKillKeyWithErrorSource(t *testing.T) {
 	src := &killRecordingSource{killErr: errors.New("no such process")}
 	m := New(src, "default")
@@ -260,14 +227,14 @@ func TestKillKeyWithErrorSource(t *testing.T) {
 	}
 	m.body = renderMonitoringWithSelection(md, m.monProcesses, 0)
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
-	msg := cmd()
-	kr := msg.(killResultMsg)
-	if kr.err == nil {
-		t.Fatal("expected error from kill")
-	}
-	if kr.pid != 9999 {
-		t.Errorf("pid = %d, want 9999", kr.pid)
+	next, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	m = next.(Model)
+	next, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'y'}})
+	m = next.(Model)
+	next, _ = m.Update(cmd())
+	m = next.(Model)
+	if m.action.phase != actionFailure || !strings.Contains(m.action.message, "no such process") {
+		t.Fatalf("expected visible daemon error, got phase=%v message=%q", m.action.phase, m.action.message)
 	}
 }
 
@@ -376,10 +343,14 @@ func TestTeatestMonitoringKillFlow(t *testing.T) {
 
 	// Kill selected process
 	tm.Type("k")
+	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
+		return bytes.Contains(out, []byte("Confirmation required"))
+	}, teatest.WithDuration(5*time.Second))
+	tm.Type("y")
 
 	// Wait for kill feedback
 	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
-		return bytes.Contains(out, []byte("Killed PID 2042"))
+		return bytes.Contains(out, []byte("Success")) || bytes.Contains(out, []byte("process killed"))
 	}, teatest.WithDuration(5*time.Second))
 
 	_ = tm.Quit()
@@ -425,6 +396,10 @@ func TestTeatestMonitoringKillError(t *testing.T) {
 
 	// Kill first process (cursor is at 0, PID 1001)
 	tm.Type("k")
+	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
+		return bytes.Contains(out, []byte("Confirmation required"))
+	}, teatest.WithDuration(5*time.Second))
+	tm.Type("y")
 
 	// Wait for error feedback
 	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
@@ -435,8 +410,8 @@ func TestTeatestMonitoringKillError(t *testing.T) {
 	_ = tm.Quit()
 	fm := tm.FinalModel(t, teatest.WithFinalTimeout(3*time.Second))
 	final := fm.(Model)
-	if !strings.Contains(final.monFeedback, "operation not permitted") {
-		t.Errorf("feedback should contain error: %q", final.monFeedback)
+	if !strings.Contains(final.action.message, "operation not permitted") {
+		t.Errorf("feedback should contain error: %q", final.action.message)
 	}
 }
 

@@ -11,12 +11,14 @@ import (
 )
 
 func main() {
-	socket := flag.String("socket", "/tmp/colima-desktop.sock", "daemon unix socket")
+	endpoint := client.DefaultEndpoint()
+	flag.StringVar(&endpoint, "endpoint", endpoint, "daemon endpoint (unix:/path or tcp:127.0.0.1:port)")
+	flag.StringVar(&endpoint, "socket", endpoint, "legacy alias for -endpoint")
 	profile := flag.String("profile", "default", "colima profile")
 	onboarding := flag.Bool("onboarding", false, "show dependency onboarding screen on startup")
 	flag.Parse()
 
-	cli, err := client.Dial(*socket)
+	cli, err := client.Dial(endpoint)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "connect:", err)
 		os.Exit(1)
