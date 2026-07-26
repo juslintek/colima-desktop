@@ -12,8 +12,8 @@ gRPC (`tonic`). Drives a **local colima** backend (CONTRACT v1 Parts A + B + C).
 
 | Surface | CONTRACT coverage |
 |---------|-------------------|
-| Dashboard | VM Status · Version · Start(stream) · Stop · Restart(stream) · Prune · VMStats |
-| Containers | ListContainers · ContainerAction · CreateContainer · RenameContainer · ContainerLogs · InspectContainer · ContainerTop · ContainerStats · ContainerChanges · PruneContainers |
+| Dashboard | VM Status · Version · Start(stream) · Stop · Restart(stream) · Delete · Update · Prune · VMStats · Docker events(stream) |
+| Containers | ListContainers · ContainerAction · CreateContainer · RenameContainer · ContainerLogs · InspectContainer · ContainerTop · ContainerStats · ContainerChanges · PruneContainers · Logs/Stats(stream) |
 | Images | ListImages · PullImage(stream) · RemoveImage · InspectImage · ImageHistory · TagImage · PushImage(stream) · SearchImages · PruneImages |
 | Volumes | ListVolumes · CreateVolume · RemoveVolume · InspectVolume · PruneVolumes |
 | Networks | ListNetworks · CreateNetwork · RemoveNetwork · InspectNetwork · ConnectNetwork · DisconnectNetwork · PruneNetworks |
@@ -86,6 +86,12 @@ cargo build --release
 # Run (daemon must be running first)
 ./target/release/colima-desktop --socket /tmp/colima-desktop.sock
 
+# Select one profile consistently across every Colima and Docker tab
+./target/release/colima-desktop --socket /tmp/colima-desktop.sock --profile desktop-e2e
+
+# Target a remote Docker provider over SSH
+./target/release/colima-desktop --profile desktop-e2e --docker-host user@example
+
 # Or with TCP endpoint
 ./target/release/colima-desktop --socket http://127.0.0.1:9000
 ```
@@ -133,7 +139,20 @@ the main UI. It:
 3. **Updates** all already-installed deps via the same package manager.
 4. **Re-checks** and reports current versions.
 
+System package managers are elevated through `pkexec` so authentication is handled by the
+desktop's polkit agent. The app never starts terminal-only `sudo`, which could otherwise hang
+indefinitely without a TTY. If `pkexec` is unavailable, the UI reports a terminal install hint.
+
 After installing colima the user re-launches the app to reach the main UI.
+
+## Provider and profile safety
+
+Every Docker request propagates profile, host, and provider selection from one atomic target
+snapshot. VM update/prune requests are also explicitly scoped to the active profile.
+
+Destructive VM/profile, container, image, volume, network, prune, and process-signal actions
+require an explicit GTK confirmation. Long-running Docker event/log/stat and image-push streams
+have user-visible cancellation controls and bounded output buffers.
 
 ---
 

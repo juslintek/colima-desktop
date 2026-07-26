@@ -47,7 +47,14 @@ pub fn build() -> GtkBox {
             name_lbl.set_hexpand(true);
 
             let status_text = if s.installed {
-                format!("✓  {}", s.version.as_deref().unwrap_or("installed"))
+                format!(
+                    "✓  {}{}",
+                    s.version.as_deref().unwrap_or("installed"),
+                    s.path
+                        .as_ref()
+                        .map(|path| format!("  ({})", path.display()))
+                        .unwrap_or_default()
+                )
             } else {
                 "✗  not found".to_owned()
             };

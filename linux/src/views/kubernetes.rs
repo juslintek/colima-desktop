@@ -6,7 +6,10 @@ use gtk::{Box as GtkBox, Entry, Orientation, Separator};
 
 use crate::app_state::AppHandle;
 use crate::client::proto::{KubeExecRequest, ProfileRequest};
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
+use crate::ui_helpers::{
+    confirm_destructive, make_action_button, make_output_view, make_surface_header, set_text,
+    status_message,
+};
 
 pub fn build(handle: AppHandle) -> GtkBox {
     let root = GtkBox::new(Orientation::Vertical, 0);
@@ -72,11 +75,15 @@ pub fn build(handle: AppHandle) -> GtkBox {
                     let sp2 = sp.clone();
                     let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                     h.rt.spawn(async move {
+                        // KubernetesStart/Stop/Reset return StatusResponse; the daemon
+                        // reports a failure as {success:false, error:<text>, message:""}.
+                        // Route through status_message so the backend error is surfaced
+                        // instead of rendering an empty, success-looking message.
                         let result = c
                             .$rpc(ProfileRequest { profile })
                             .await
-                            .map(|r| r.into_inner().message)
-                            .map_err(|e| format!("Error: {e}"));
+                            .map_err(|e| format!("Error: {e}"))
+                            .and_then(|r| status_message(r.into_inner()));
                         let _ = tx.send(result).await;
                     });
                     glib::spawn_future_local(async move {
@@ -98,7 +105,30 @@ pub fn build(handle: AppHandle) -> GtkBox {
 
     wire_k8s!(btn_start, kubernetes_start);
     wire_k8s!(btn_stop, kubernetes_stop);
-    wire_k8s!(btn_reset, kubernetes_reset);
+
+    // Reset is destructive (tears down the whole cluster + workloads), so unlike
+    // Start/Stop it must pass through an explicit confirmation before the RPC fires
+    // (Requirement 6.6, Property 13).
+    {
+        let h = handle.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
+        btn_reset.connect_clicked(move |source| {
+            let profile = h.profile();
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Reset Kubernetes?",
+                &format!(
+                    "Reset the Kubernetes cluster for profile '{profile}'? \
+                     All workloads and cluster state are destroyed."
+                ),
+                move || run_kubernetes_reset(h2, sp2, lb2, profile),
+            );
+        });
+    }
 
     // Exec
     {
@@ -152,4 +182,36 @@ pub fn build(handle: AppHandle) -> GtkBox {
     }
 
     root
+}
+
+fn run_kubernetes_reset(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    profile: String,
+) {
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut client = client.colima;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        // KubernetesReset returns StatusResponse; route through status_message so a
+        // failed reset surfaces the daemon error instead of an empty success string.
+        let result = client
+            .kubernetes_reset(ProfileRequest { profile })
+            .await
+            .map_err(|error| format!("Error: {error}"))
+            .and_then(|response| status_message(response.into_inner()));
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
 }

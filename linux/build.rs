@@ -3,6 +3,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // build_server(false) — we are a client only.
     tonic_build::configure()
         .build_server(false)
-        .compile(&["proto/colima_ui.proto"], &["proto"])?;
+        .compile_protos(&["proto/colima_ui.proto"], &["proto"])?;
     Ok(())
 }

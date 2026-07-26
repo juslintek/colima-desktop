@@ -6,7 +6,10 @@ use gtk::{Adjustment, Box as GtkBox, Entry, Label, Orientation, Separator, SpinB
 
 use crate::app_state::AppHandle;
 use crate::client::proto::{ModelRequest, ModelRunRequest, ModelServeRequest, ProfileRequest};
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
+use crate::ui_helpers::{
+    append_bounded, make_action_button, make_output_view, make_surface_header, set_text,
+    status_message,
+};
 
 pub fn build(handle: AppHandle) -> GtkBox {
     let root = GtkBox::new(Orientation::Vertical, 0);
@@ -105,28 +108,54 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let mut c = client.colima.clone();
                 let lb2 = lb.clone();
                 let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(64);
                 h.rt.spawn(async move {
-                    let result = match c.model_setup(model_req).await {
-                        Ok(mut stream) => {
-                            let mut log = String::new();
-                            while let Ok(Some(evt)) = stream.get_mut().message().await {
-                                log.push_str(&format!("[{}] {}\n", evt.stage, evt.message));
+                    // ModelSetup is server-streaming ProgressEvents. Forward each event
+                    // as it arrives, surfacing the per-event `error` field and any
+                    // mid-stream transport error — a bare `while let Ok(Some(_))` would
+                    // silently end the stream on Err and drop the backend error.
+                    match c.model_setup(model_req).await {
+                        Ok(mut stream) => loop {
+                            match stream.get_mut().message().await {
+                                Ok(Some(evt)) => {
+                                    let line = if evt.error.is_empty() {
+                                        format!("[{}] {}\n", evt.stage, evt.message)
+                                    } else {
+                                        format!("[{}] error: {}\n", evt.stage, evt.error)
+                                    };
+                                    if tx.send(Ok(line)).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Ok(None) => break,
+                                Err(e) => {
+                                    let _ = tx.send(Err(format!("Stream error: {e}"))).await;
+                                    break;
+                                }
                             }
-                            Ok(log)
-                        }
-                        Err(e) => Err(format!("Error: {e}")),
-                    };
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(log) => set_text(&lb2, &log),
-                            Err(e) => set_text(&lb2, &e),
+                        },
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Error: {e}"))).await;
                         }
                     }
+                });
+                glib::spawn_future_local(async move {
+                    // Each update is applied on the GLib main context; the buffer is
+                    // bounded so a long-running model stream cannot grow it without limit.
+                    let mut log = String::new();
+                    while let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(line) => append_bounded(&mut log, &line),
+                            Err(e) => {
+                                append_bounded(&mut log, &e);
+                                if !log.ends_with('\n') {
+                                    log.push('\n');
+                                }
+                            }
+                        }
+                        set_text(&lb2, &log);
+                    }
+                    sp2.set_spinning(false);
                 });
             } else {
                 sp.set_spinning(false);
@@ -161,28 +190,53 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let mut c = client.colima.clone();
                 let lb2 = lb.clone();
                 let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
+                let (tx, rx) = async_channel::bounded::<Result<String, String>>(64);
                 h.rt.spawn(async move {
-                    let result = match c.model_run(req).await {
-                        Ok(mut stream) => {
-                            let mut log = String::new();
-                            while let Ok(Some(evt)) = stream.get_mut().message().await {
-                                log.push_str(&format!("[{}] {}\n", evt.stage, evt.message));
+                    // ModelRun is server-streaming ProgressEvents. Forward each event as
+                    // it arrives, surfacing the per-event `error` field and any mid-stream
+                    // transport error rather than silently ending the stream on Err.
+                    match c.model_run(req).await {
+                        Ok(mut stream) => loop {
+                            match stream.get_mut().message().await {
+                                Ok(Some(evt)) => {
+                                    let line = if evt.error.is_empty() {
+                                        format!("[{}] {}\n", evt.stage, evt.message)
+                                    } else {
+                                        format!("[{}] error: {}\n", evt.stage, evt.error)
+                                    };
+                                    if tx.send(Ok(line)).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                Ok(None) => break,
+                                Err(e) => {
+                                    let _ = tx.send(Err(format!("Stream error: {e}"))).await;
+                                    break;
+                                }
                             }
-                            Ok(log)
-                        }
-                        Err(e) => Err(format!("Error: {e}")),
-                    };
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(log) => set_text(&lb2, &log),
-                            Err(e) => set_text(&lb2, &e),
+                        },
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Error: {e}"))).await;
                         }
                     }
+                });
+                glib::spawn_future_local(async move {
+                    // Each update is applied on the GLib main context; the buffer is
+                    // bounded so a long-running model stream cannot grow it without limit.
+                    let mut log = String::new();
+                    while let Ok(result) = rx.recv().await {
+                        match result {
+                            Ok(line) => append_bounded(&mut log, &line),
+                            Err(e) => {
+                                append_bounded(&mut log, &e);
+                                if !log.ends_with('\n') {
+                                    log.push('\n');
+                                }
+                            }
+                        }
+                        set_text(&lb2, &log);
+                    }
+                    sp2.set_spinning(false);
                 });
             } else {
                 sp.set_spinning(false);
@@ -218,8 +272,8 @@ pub fn build(handle: AppHandle) -> GtkBox {
                     let result = c
                         .model_serve(req)
                         .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
+                        .map_err(|e| format!("Error: {e}"))
+                        .and_then(|r| status_message(r.into_inner()));
                     let _ = tx.send(result).await;
                 });
                 glib::spawn_future_local(async move {
@@ -256,8 +310,8 @@ pub fn build(handle: AppHandle) -> GtkBox {
                     let result = c
                         .model_stop(ProfileRequest { profile })
                         .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
+                        .map_err(|e| format!("Error: {e}"))
+                        .and_then(|r| status_message(r.into_inner()));
                     let _ = tx.send(result).await;
                 });
                 glib::spawn_future_local(async move {

@@ -6,8 +6,10 @@ use gtk::prelude::*;
 use gtk::{Box as GtkBox, Entry, Label, ListBox, ListBoxRow, Orientation, Separator};
 
 use crate::app_state::AppHandle;
-use crate::client::proto::{DockerScope, IdRequest, NameRequest, NetworkContainerRequest};
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
+use crate::ui_helpers::{
+    confirm_destructive, make_action_button, make_output_view, make_surface_header, set_text,
+    status_message,
+};
 
 struct NetworkInfo {
     id: String,
@@ -111,7 +113,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let list = list_box.clone();
         refresh_btn.connect_clicked(move |_| {
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -121,12 +123,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<Vec<NetworkInfo>, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .list_networks(DockerScope {
-                            profile,
-                            all: false,
-                            host: String::new(),
-                            wsl2: false,
-                        })
+                        .list_networks(target.scope(false))
                         .await
                         .map_err(|e| format!("Error: {e}"))
                         .and_then(|r| {
@@ -195,46 +192,21 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let lb = log_buf.clone();
         let sp = spinner.clone();
         let sel = selected_id.clone();
-        btn_remove.connect_clicked(move |_| {
+        btn_remove.connect_clicked(move |source| {
             let id = sel.borrow().clone();
             if id.is_empty() {
                 set_text(&lb, "Select a network first");
                 return;
             }
-            sp.set_spinning(true);
-            let profile = h.profile();
-            let mut state = h.state.lock().unwrap();
-            if let Some(ref mut client) = state.daemon {
-                let mut c = client.docker.clone();
-                let lb2 = lb.clone();
-                let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                h.rt.spawn(async move {
-                    let result = c
-                        .remove_network(IdRequest {
-                            id,
-                            profile,
-                            host: String::new(),
-                            wsl2: false,
-                        })
-                        .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(msg) => set_text(&lb2, &msg),
-                            Err(e) => set_text(&lb2, &e),
-                        }
-                    }
-                });
-            } else {
-                sp.set_spinning(false);
-                set_text(&lb, "Not connected");
-            }
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Remove network?",
+                &format!("Remove network '{id}'?"),
+                move || run_remove_network(h2, sp2, lb2, id),
+            );
         });
     }
 
@@ -251,7 +223,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 return;
             }
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -260,12 +232,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .inspect_network(IdRequest {
-                            id,
-                            profile,
-                            host: String::new(),
-                            wsl2: false,
-                        })
+                        .inspect_network(target.id_request(id))
                         .await
                         .map(|r| {
                             let j = r.into_inner();
@@ -297,48 +264,16 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let h = handle.clone();
         let lb = log_buf.clone();
         let sp = spinner.clone();
-        btn_prune.connect_clicked(move |_| {
-            sp.set_spinning(true);
-            let profile = h.profile();
-            let mut state = h.state.lock().unwrap();
-            if let Some(ref mut client) = state.daemon {
-                let mut c = client.docker.clone();
-                let lb2 = lb.clone();
-                let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                h.rt.spawn(async move {
-                    let result = c
-                        .prune_networks(DockerScope {
-                            profile,
-                            all: false,
-                            host: String::new(),
-                            wsl2: false,
-                        })
-                        .await
-                        .map(|r| {
-                            let j = r.into_inner();
-                            if j.error.is_empty() {
-                                j.json
-                            } else {
-                                j.error
-                            }
-                        })
-                        .map_err(|e| format!("Error: {e}"));
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(msg) => set_text(&lb2, &msg),
-                            Err(e) => set_text(&lb2, &e),
-                        }
-                    }
-                });
-            } else {
-                sp.set_spinning(false);
-                set_text(&lb, "Not connected");
-            }
+        btn_prune.connect_clicked(move |source| {
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Prune unused networks?",
+                "Remove every unused custom network in the selected provider/profile?",
+                move || run_prune_networks(h2, sp2, lb2),
+            );
         });
     }
 
@@ -357,7 +292,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 return;
             }
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -366,14 +301,10 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .connect_network(NetworkContainerRequest {
-                            network_id: nid,
-                            container_id: cid,
-                            profile,
-                        })
+                        .connect_network(target.network_request(nid, cid))
                         .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
+                        .map_err(|e| format!("Error: {e}"))
+                        .and_then(|r| status_message(r.into_inner()));
                     let _ = tx.send(result).await;
                 });
                 glib::spawn_future_local(async move {
@@ -392,53 +323,30 @@ pub fn build(handle: AppHandle) -> GtkBox {
         });
     }
 
-    // Disconnect
+    // Disconnect — destructive (drops a container off the network, disrupting its
+    // connectivity), so it must be confirmed before the RPC fires (Property 13).
     {
         let h = handle.clone();
         let lb = log_buf.clone();
         let sp = spinner.clone();
         let sel = selected_id.clone();
         let ecid = entry_cid.clone();
-        btn_disconnect.connect_clicked(move |_| {
+        btn_disconnect.connect_clicked(move |source| {
             let nid = sel.borrow().clone();
             let cid = ecid.text().to_string();
             if nid.is_empty() || cid.is_empty() {
                 set_text(&lb, "Select a network and enter a container ID");
                 return;
             }
-            sp.set_spinning(true);
-            let profile = h.profile();
-            let mut state = h.state.lock().unwrap();
-            if let Some(ref mut client) = state.daemon {
-                let mut c = client.docker.clone();
-                let lb2 = lb.clone();
-                let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                h.rt.spawn(async move {
-                    let result = c
-                        .disconnect_network(NetworkContainerRequest {
-                            network_id: nid,
-                            container_id: cid,
-                            profile,
-                        })
-                        .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(msg) => set_text(&lb2, &msg),
-                            Err(e) => set_text(&lb2, &e),
-                        }
-                    }
-                });
-            } else {
-                sp.set_spinning(false);
-                set_text(&lb, "Not connected");
-            }
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Disconnect container from network?",
+                &format!("Disconnect container '{cid}' from network '{nid}'?"),
+                move || run_disconnect_network(h2, sp2, lb2, nid, cid),
+            );
         });
     }
 
@@ -455,7 +363,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 return;
             }
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -464,12 +372,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .create_network(NameRequest {
-                            name,
-                            profile,
-                            host: String::new(),
-                            wsl2: false,
-                        })
+                        .create_network(target.name_request(name))
                         .await
                         .map(|r| {
                             let j = r.into_inner();
@@ -499,4 +402,100 @@ pub fn build(handle: AppHandle) -> GtkBox {
     }
 
     root
+}
+
+fn run_remove_network(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    id: String,
+) {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut client = client.docker;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let result = client
+            .remove_network(target.id_request(id))
+            .await
+            .map_err(|error| format!("Remove network error: {error}"))
+            .and_then(|response| status_message(response.into_inner()));
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
+}
+
+fn run_disconnect_network(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    network_id: String,
+    container_id: String,
+) {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut client = client.docker;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let result = client
+            .disconnect_network(target.network_request(network_id, container_id))
+            .await
+            .map_err(|error| format!("Disconnect error: {error}"))
+            .and_then(|response| status_message(response.into_inner()));
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
+}
+
+fn run_prune_networks(handle: AppHandle, spinner: gtk::Spinner, output: gtk::TextBuffer) {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut client = client.docker;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let result = client
+            .prune_networks(target.scope(false))
+            .await
+            .map_err(|error| format!("Prune network error: {error}"))
+            .and_then(|response| {
+                let response = response.into_inner();
+                if response.error.is_empty() {
+                    Ok(response.json)
+                } else {
+                    Err(response.error)
+                }
+            });
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
 }

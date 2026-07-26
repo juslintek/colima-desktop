@@ -3,13 +3,15 @@
 /// Surfaces: Status · Version · Start/Stop/Restart · VMStats (streaming) · Prune.
 /// All interactive widgets carry AT-SPI accessible names.
 use gtk::prelude::*;
-use gtk::{Box as GtkBox, Button, Grid, Label, Orientation, ProgressBar, Separator};
+use gtk::{Box as GtkBox, Grid, Label, Orientation, ProgressBar, Separator};
 
 use crate::app_state::AppHandle;
 use crate::client::proto::{
-    Empty, ProfileRequest, PruneRequest, RestartRequest, StartRequest, StopRequest,
+    DeleteRequest, Empty, ProfileRequest, PruneRequest, RestartRequest, StartRequest, StopRequest,
 };
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
+use crate::ui_helpers::{
+    confirm_destructive, make_action_button, make_output_view, make_surface_header, set_text,
+};
 
 pub fn build(handle: AppHandle) -> GtkBox {
     let root = GtkBox::new(Orientation::Vertical, 0);
@@ -97,16 +99,25 @@ pub fn build(handle: AppHandle) -> GtkBox {
     let btn_start = make_action_button("▶ Start", "dashboard_btn_start");
     let btn_stop = make_action_button("■ Stop", "dashboard_btn_stop");
     let btn_restart = make_action_button("↺ Restart", "dashboard_btn_restart");
+    let btn_delete = make_action_button("🗑 Delete VM", "dashboard_btn_delete");
+    let btn_update = make_action_button("⬆ Update CLI", "dashboard_btn_update");
     let btn_prune = make_action_button("🗑 Prune", "dashboard_btn_prune");
+    let btn_events = make_action_button("Events", "dashboard_btn_events");
+    let btn_cancel_events = make_action_button("Cancel Events", "dashboard_btn_cancel_events");
     actions.append(&btn_start);
     actions.append(&btn_stop);
     actions.append(&btn_restart);
+    actions.append(&btn_delete);
+    actions.append(&btn_update);
     actions.append(&btn_prune);
+    actions.append(&btn_events);
+    actions.append(&btn_cancel_events);
     root.append(&actions);
 
     // Output log area
     let (sw, log_buf) = make_output_view("dashboard_output");
     root.append(&sw);
+    let event_abort = std::rc::Rc::new(std::cell::RefCell::new(None::<tokio::task::AbortHandle>));
 
     // ── Wire up buttons ──────────────────────────────────────────────────────
 
@@ -371,37 +382,222 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let h = handle.clone();
         let lb = log_buf.clone();
         let sp = spinner.clone();
-        btn_prune.connect_clicked(move |_| {
-            sp.set_spinning(true);
-            let mut state = h.state.lock().unwrap();
-            if let Some(ref mut client) = state.daemon {
-                let mut c = client.colima.clone();
-                let lb2 = lb.clone();
-                let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                h.rt.spawn(async move {
-                    let result = c
-                        .prune(PruneRequest { all: false })
-                        .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Prune error: {e}"));
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(msg) => set_text(&lb2, &msg),
-                            Err(e) => set_text(&lb2, &e),
-                        }
-                    }
-                });
+        btn_prune.connect_clicked(move |source| {
+            let profile = h.profile();
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Prune unused virtual machines?",
+                &format!("Remove unused Colima resources for profile '{profile}'?"),
+                move || {
+                    run_colima_status_call(h2, sp2, lb2, move |mut client| async move {
+                        client
+                            .prune(PruneRequest {
+                                all: false,
+                                profile,
+                            })
+                            .await
+                            .map(|response| response.into_inner().message)
+                            .map_err(|error| format!("Prune error: {error}"))
+                    })
+                },
+            );
+        });
+    }
+
+    // Delete the selected VM, preserving profile data by default.
+    {
+        let h = handle.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
+        btn_delete.connect_clicked(move |source| {
+            let profile = h.profile();
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Delete virtual machine?",
+                &format!("Delete the VM for profile '{profile}'? Profile data is retained."),
+                move || run_vm_delete(h2, sp2, lb2, profile),
+            );
+        });
+    }
+
+    // Update is explicitly profile-scoped by the canonical contract.
+    {
+        let h = handle.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
+        btn_update.connect_clicked(move |source| {
+            let profile = h.profile();
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Update Colima CLI?",
+                &format!("Update the runtime for profile '{profile}'?"),
+                move || run_profile_update(h2, sp2, lb2, profile),
+            );
+        });
+    }
+
+    // Docker event stream, bounded in the UI and explicitly cancellable.
+    {
+        let h = handle.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
+        let running = event_abort.clone();
+        btn_events.connect_clicked(move |_| {
+            if let Some(abort) = running.borrow_mut().take() {
+                abort.abort();
+            }
+            if let Some(abort) = start_event_stream(h.clone(), sp.clone(), lb.clone()) {
+                *running.borrow_mut() = Some(abort);
             } else {
-                sp.set_spinning(false);
                 set_text(&lb, "Not connected");
             }
         });
     }
+    {
+        let running = event_abort.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
+        btn_cancel_events.connect_clicked(move |_| {
+            if let Some(abort) = running.borrow_mut().take() {
+                abort.abort();
+                set_text(&lb, "Event stream cancelled");
+            }
+            sp.set_spinning(false);
+        });
+    }
 
     root
+}
+
+fn run_vm_delete(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    profile: String,
+) {
+    run_colima_status_call(handle, spinner, output, move |mut client| async move {
+        client
+            .delete(DeleteRequest {
+                profile,
+                force: false,
+                data: false,
+            })
+            .await
+            .map(|response| response.into_inner().message)
+            .map_err(|error| format!("Delete error: {error}"))
+    });
+}
+
+fn run_profile_update(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    profile: String,
+) {
+    run_colima_status_call(handle, spinner, output, move |mut client| async move {
+        client
+            .update(ProfileRequest { profile })
+            .await
+            .map(|response| response.into_inner().message)
+            .map_err(|error| format!("Update error: {error}"))
+    });
+}
+
+fn run_colima_status_call<F, Fut>(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    call: F,
+) where
+    F: FnOnce(
+            crate::client::proto::colima_service_client::ColimaServiceClient<
+                tonic::transport::Channel,
+            >,
+        ) -> Fut
+        + Send
+        + 'static,
+    Fut: std::future::Future<Output = Result<String, String>> + Send + 'static,
+{
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let _ = tx.send(call(client.colima).await).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
+}
+
+fn start_event_stream(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+) -> Option<tokio::task::AbortHandle> {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone()?;
+    spinner.set_spinning(true);
+    let mut client = client.docker;
+    let (tx, rx) = async_channel::unbounded::<Result<String, String>>();
+    let task = handle.rt.spawn(async move {
+        match client.stream_events(target.scope(false)).await {
+            Ok(mut stream) => loop {
+                match stream.get_mut().message().await {
+                    Ok(Some(event)) if event.error.is_empty() => {
+                        if tx.send(Ok(event.json)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Ok(Some(event)) => {
+                        let _ = tx.send(Err(event.error)).await;
+                        break;
+                    }
+                    Ok(None) => break,
+                    Err(error) => {
+                        let _ = tx.send(Err(format!("Event stream error: {error}"))).await;
+                        break;
+                    }
+                }
+            },
+            Err(error) => {
+                let _ = tx
+                    .send(Err(format!("Event stream start error: {error}")))
+                    .await;
+            }
+        }
+    });
+    let abort = task.abort_handle();
+    glib::spawn_future_local(async move {
+        let mut log = String::new();
+        while let Ok(item) = rx.recv().await {
+            let stop = item.is_err();
+            log.push_str(&item.unwrap_or_else(|error| error));
+            log.push('\n');
+            if log.len() > 100_000 {
+                log.drain(..50_000);
+            }
+            set_text(&output, &log);
+            if stop {
+                break;
+            }
+        }
+        spinner.set_spinning(false);
+    });
+    Some(abort)
 }

@@ -21,7 +21,7 @@ use gtk::{
     Stack, StackTransitionType,
 };
 
-use app_state::AppHandle;
+use app_state::{AppHandle, DockerTarget};
 use dependency_manager::DependencyManager;
 
 const APP_ID: &str = "dev.colima.desktop";
@@ -33,14 +33,22 @@ fn main() {
 
     let app = Application::builder().application_id(APP_ID).build();
     app.connect_activate(build_ui);
-    app.run();
+    // GTK treats unregistered CLI flags as fatal. We parse our flags in
+    // `build_ui`, then pass only argv[0] to GApplication.
+    let application_args: Vec<String> = std::env::args().take(1).collect();
+    app.run_with_args(&application_args);
 }
 
 fn build_ui(app: &Application) {
-    // Parse socket path from CLI args (--socket /path/to/sock)
-    let socket = parse_socket_arg().unwrap_or_else(|| "/tmp/colima-desktop.sock".to_owned());
-
-    let handle = AppHandle::new(socket);
+    let launch = match LaunchOptions::parse(std::env::args().skip(1)) {
+        Ok(launch) => launch,
+        Err(error) => {
+            eprintln!("Colima Desktop: invalid command line: {error}");
+            app.quit();
+            return;
+        }
+    };
+    let handle = AppHandle::new_with_target(launch.socket, launch.target);
 
     // Show onboarding if colima is missing; otherwise show main UI.
     if !DependencyManager::is_colima_installed() {
@@ -50,7 +58,7 @@ fn build_ui(app: &Application) {
     }
 }
 
-fn build_onboarding_window(app: &Application, handle: AppHandle) {
+fn build_onboarding_window(app: &Application, _handle: AppHandle) {
     let content = views::onboarding::build();
 
     let window = ApplicationWindow::builder()
@@ -89,7 +97,7 @@ fn build_main_window(app: &Application, handle: AppHandle) {
     stack.set_transition_type(StackTransitionType::None);
 
     // Build each surface view
-    for (id, name) in SURFACES {
+    for (id, _name) in SURFACES {
         let view: GtkBox = match *id {
             "dashboard" => views::dashboard::build(handle.clone()),
             "containers" => views::containers::build(handle.clone()),
@@ -222,8 +230,89 @@ fn build_status_bar(handle: &AppHandle) -> GtkBox {
     bar
 }
 
-fn parse_socket_arg() -> Option<String> {
-    let args: Vec<String> = std::env::args().collect();
-    let idx = args.iter().position(|a| a == "--socket")?;
-    args.get(idx + 1).cloned()
+#[derive(Debug, PartialEq, Eq)]
+struct LaunchOptions {
+    socket: String,
+    target: DockerTarget,
+}
+
+impl LaunchOptions {
+    fn parse(args: impl IntoIterator<Item = String>) -> Result<Self, String> {
+        let mut socket = "/tmp/colima-desktop.sock".to_owned();
+        let mut profile = "default".to_owned();
+        let mut host = String::new();
+        let mut wsl2 = false;
+        let mut args = args.into_iter();
+        while let Some(arg) = args.next() {
+            match arg.as_str() {
+                "--socket" => socket = args.next().ok_or("--socket requires a path")?,
+                "--profile" => profile = args.next().ok_or("--profile requires a name")?,
+                "--docker-host" => host = args.next().ok_or("--docker-host requires user@host")?,
+                "--wsl2" => wsl2 = true,
+                other => return Err(format!("unknown option: {other}")),
+            }
+        }
+        let mut target = DockerTarget::local(profile);
+        target.host = host;
+        target.wsl2 = wsl2;
+        target.validate()?;
+        Ok(Self { socket, target })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn launch_options_propagate_profile_and_remote_provider() {
+        let options = LaunchOptions::parse([
+            "--socket".into(),
+            "/run/user/1000/colima.sock".into(),
+            "--profile".into(),
+            "desktop-e2e".into(),
+            "--docker-host".into(),
+            "dev@example".into(),
+        ])
+        .unwrap();
+        assert_eq!(options.socket, "/run/user/1000/colima.sock");
+        assert_eq!(options.target.profile, "desktop-e2e");
+        assert_eq!(options.target.host, "dev@example");
+    }
+
+    #[test]
+    fn launch_options_reject_missing_values_and_unknown_flags() {
+        assert!(LaunchOptions::parse(["--profile".into()]).is_err());
+        assert!(LaunchOptions::parse(["--wat".into()]).is_err());
+    }
+
+    #[test]
+    fn launch_options_default_to_the_local_default_profile() {
+        // With no flags the app targets the `default` profile over the default
+        // socket, with no remote provider selected.
+        let options = LaunchOptions::parse(Vec::<String>::new()).unwrap();
+        assert_eq!(options.socket, "/tmp/colima-desktop.sock");
+        assert_eq!(options.target.profile, "default");
+        assert!(options.target.host.is_empty());
+        assert!(!options.target.wsl2);
+    }
+
+    #[test]
+    fn launch_options_reject_a_remote_host_combined_with_wsl2() {
+        // A remote SSH host and WSL2 are mutually exclusive providers; requesting
+        // both must fail fast rather than launch against an ambiguous target.
+        assert!(LaunchOptions::parse([
+            "--docker-host".into(),
+            "dev@example".into(),
+            "--wsl2".into(),
+        ])
+        .is_err());
+    }
+
+    #[test]
+    fn launch_options_require_a_value_for_socket() {
+        // A `--socket` flag with no following value must be a hard parse error,
+        // never a silent fallback to the default socket.
+        assert!(LaunchOptions::parse(["--socket".into()]).is_err());
+    }
 }

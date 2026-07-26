@@ -7,7 +7,9 @@ use gtk::{Adjustment, Box as GtkBox, Entry, Label, Orientation, Separator, SpinB
 
 use crate::app_state::AppHandle;
 use crate::client::proto::{ColimaConfig, ProfileRequest, SetConfigRequest};
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
+use crate::ui_helpers::{
+    make_action_button, make_output_view, make_surface_header, set_text, status_message,
+};
 
 /// Plain-data config snapshot used to ferry values from Tokio threads to the GTK main thread.
 struct ConfigSnapshot {
@@ -209,8 +211,8 @@ pub fn build(handle: AppHandle) -> GtkBox {
                             config: Some(cfg),
                         })
                         .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
+                        .map_err(|e| format!("Error: {e}"))
+                        .and_then(|r| status_message(r.into_inner()));
                     let _ = tx.send(result).await;
                 });
                 glib::spawn_future_local(async move {
@@ -328,8 +330,8 @@ pub fn build(handle: AppHandle) -> GtkBox {
                     let result = c
                         .set_template(cfg)
                         .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
+                        .map_err(|e| format!("Error: {e}"))
+                        .and_then(|r| status_message(r.into_inner()));
                     let _ = tx.send(result).await;
                 });
                 glib::spawn_future_local(async move {

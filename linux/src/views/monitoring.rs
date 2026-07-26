@@ -28,7 +28,9 @@ use gtk::{
 
 use crate::app_state::AppHandle;
 use crate::client::proto::{KillProcessRequest, ProfileRequest};
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
+use crate::ui_helpers::{
+    confirm_destructive, make_action_button, make_output_view, make_surface_header, set_text,
+};
 
 /// Plain-data snapshot of a single VMStats sample (all Send).
 struct StatsSample {
@@ -248,7 +250,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let pspin = pid_spin.clone();
         let sige = sig_entry.clone();
 
-        btn_kill.connect_clicked(move |_| {
+        btn_kill.connect_clicked(move |source| {
             let pid = pspin.value() as i32;
             if pid <= 0 {
                 set_text(&lb, "Enter a valid PID (> 0) before killing");
@@ -257,50 +259,67 @@ pub fn build(handle: AppHandle) -> GtkBox {
             let sig_text = sige.text().to_string();
             let signal: i32 = sig_text.trim().parse().unwrap_or(9);
 
-            sp.set_spinning(true);
             let profile = h.profile();
-            let mut state = h.state.lock().unwrap();
-            if let Some(ref mut client) = state.daemon {
-                let mut c = client.colima.clone();
-                let lb2 = lb.clone();
-                let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                h.rt.spawn(async move {
-                    let result = c
-                        .kill_process(KillProcessRequest {
-                            profile,
-                            pid,
-                            signal,
-                        })
-                        .await
-                        .map(|r| {
-                            let r = r.into_inner();
-                            if r.success {
-                                format!("Killed PID {pid} (signal {signal})")
-                            } else {
-                                format!("Kill failed: {}", r.message)
-                            }
-                        })
-                        .map_err(|e| format!("Kill error: {e}"));
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(msg) => set_text(&lb2, &msg),
-                            Err(e) => set_text(&lb2, &e),
-                        }
-                    }
-                });
-            } else {
-                sp.set_spinning(false);
-                set_text(&lb, "Not connected to daemon");
-            }
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Send process signal?",
+                &format!("Send signal {signal} to PID {pid} in profile '{profile}'?"),
+                move || run_kill_process(h2, sp2, lb2, profile, pid, signal),
+            );
         });
     }
 
     root
+}
+
+fn run_kill_process(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    profile: String,
+    pid: i32,
+    signal: i32,
+) {
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected to daemon");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut client = client.colima;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let result = client
+            .kill_process(KillProcessRequest {
+                profile,
+                pid,
+                signal,
+            })
+            .await
+            .map_err(|error| format!("Kill error: {error}"))
+            .and_then(|response| {
+                let response = response.into_inner();
+                if response.success {
+                    Ok(format!("Killed PID {pid} (signal {signal})"))
+                } else if response.error.is_empty() {
+                    Err(format!("Kill failed: {}", response.message))
+                } else {
+                    // The daemon reports a failed kill as {success:false, error:<text>};
+                    // surface that error rather than the empty `message`.
+                    Err(format!("Kill failed: {}", response.error))
+                }
+            });
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
 }
 
 /// Fire a single VMStats sample + ProcessList refresh.
@@ -320,14 +339,19 @@ fn do_refresh(
     if let Some(ref client) = state.daemon {
         let mut c = client.colima.clone();
 
-        // Channel carrying (Option<StatsSample>, Vec<ProcessRow>, Option<String-error>)
-        type Payload = (Option<StatsSample>, Vec<ProcessRow>, Option<String>);
+        // Channel carrying (stats sample, stats error, processes, process-list error).
+        type Payload = (
+            Option<StatsSample>,
+            Option<String>,
+            Vec<ProcessRow>,
+            Option<String>,
+        );
         let (tx, rx) = async_channel::bounded::<Payload>(1);
 
         let profile2 = profile.clone();
         handle.rt.spawn(async move {
             // — One-shot VMStats sample —
-            let stats_opt = match c
+            let (stats_opt, stats_err) = match c
                 .vm_stats(ProfileRequest {
                     profile: profile2.clone(),
                 })
@@ -336,18 +360,24 @@ fn do_refresh(
                 Ok(mut stream) => {
                     // Read exactly one event; drop the stream immediately.
                     match stream.get_mut().message().await {
-                        Ok(Some(evt)) => Some(StatsSample {
-                            cpu_percent: evt.cpu_percent,
-                            memory_used: evt.memory_used,
-                            memory_total: evt.memory_total,
-                            disk_used: evt.disk_used,
-                            disk_total: evt.disk_total,
-                        }),
-                        _ => None,
+                        Ok(Some(evt)) => (
+                            Some(StatsSample {
+                                cpu_percent: evt.cpu_percent,
+                                memory_used: evt.memory_used,
+                                memory_total: evt.memory_total,
+                                disk_used: evt.disk_used,
+                                disk_total: evt.disk_total,
+                            }),
+                            None,
+                        ),
+                        // Clean EOF with no sample this tick is not an error.
+                        Ok(None) => (None, None),
+                        // Surface a mid-stream backend error instead of swallowing it.
+                        Err(e) => (None, Some(format!("VMStats error: {e}"))),
                     }
                     // stream dropped here — gRPC call is effectively cancelled
                 }
-                Err(_) => None,
+                Err(e) => (None, Some(format!("VMStats error: {e}"))),
             };
 
             // — ProcessList —
@@ -372,7 +402,7 @@ fn do_refresh(
                 Err(e) => (Vec::new(), Some(format!("ProcessList error: {e}"))),
             };
 
-            let _ = tx.send((stats_opt, procs, err_msg)).await;
+            let _ = tx.send((stats_opt, stats_err, procs, err_msg)).await;
         });
 
         let cpu_b = cpu_bar.clone();
@@ -384,7 +414,7 @@ fn do_refresh(
 
         glib::spawn_future_local(async move {
             sp2.set_spinning(false);
-            if let Ok((stats_opt, procs, err_msg)) = rx.recv().await {
+            if let Ok((stats_opt, stats_err, procs, err_msg)) = rx.recv().await {
                 // Update stat bars
                 if let Some(s) = stats_opt {
                     cpu_b.set_fraction(s.cpu_percent / 100.0);
@@ -419,12 +449,15 @@ fn do_refresh(
                 while let Some(child) = plist.first_child() {
                     plist.remove(&child);
                 }
+                // Surface any VMStats error alongside the process outcome.
+                let mut status_lines: Vec<String> = Vec::new();
+                if let Some(e) = stats_err {
+                    status_lines.push(e);
+                }
                 if procs.is_empty() {
-                    if let Some(e) = err_msg {
-                        set_text(&lb2, &e);
-                    } else {
-                        set_text(&lb2, "(no processes returned)");
-                    }
+                    let note = err_msg.unwrap_or_else(|| "(no processes returned)".to_owned());
+                    status_lines.push(note);
+                    set_text(&lb2, &status_lines.join("\n"));
                 } else {
                     for p in &procs {
                         let line = if p.container.is_empty() {
@@ -459,7 +492,8 @@ fn do_refresh(
                         row.set_child(Some(&lbl));
                         plist.append(&row);
                     }
-                    set_text(&lb2, &format!("{} processes", procs.len()));
+                    status_lines.push(format!("{} processes", procs.len()));
+                    set_text(&lb2, &status_lines.join("\n"));
                 }
             }
         });
@@ -483,21 +517,23 @@ fn poll_vm_stats(
     if let Some(ref client) = state.daemon {
         let mut c = client.colima.clone();
         let profile = handle.profile();
-        let (tx, rx) = async_channel::bounded::<Option<StatsSample>>(1);
+        let (tx, rx) = async_channel::bounded::<Result<Option<StatsSample>, String>>(1);
 
         handle.rt.spawn(async move {
             let sample = match c.vm_stats(ProfileRequest { profile }).await {
                 Ok(mut stream) => match stream.get_mut().message().await {
-                    Ok(Some(evt)) => Some(StatsSample {
+                    Ok(Some(evt)) => Ok(Some(StatsSample {
                         cpu_percent: evt.cpu_percent,
                         memory_used: evt.memory_used,
                         memory_total: evt.memory_total,
                         disk_used: evt.disk_used,
                         disk_total: evt.disk_total,
-                    }),
-                    _ => None,
+                    })),
+                    Ok(None) => Ok(None),
+                    // Surface a mid-stream backend error instead of swallowing it.
+                    Err(e) => Err(format!("VMStats error: {e}")),
                 },
-                Err(_) => None,
+                Err(e) => Err(format!("VMStats error: {e}")),
             };
             let _ = tx.send(sample).await;
         });
@@ -510,35 +546,43 @@ fn poll_vm_stats(
 
         glib::spawn_future_local(async move {
             sp2.set_spinning(false);
-            if let Ok(Some(s)) = rx.recv().await {
-                cpu_b.set_fraction(s.cpu_percent / 100.0);
-                cpu_b.set_text(Some(&format!("{:.1}%", s.cpu_percent)));
+            let s = match rx.recv().await {
+                Ok(Ok(Some(sample))) => sample,
+                // Surface a backend error instead of swallowing it.
+                Ok(Err(error)) => {
+                    set_text(&lb2, &error);
+                    return;
+                }
+                // No sample this tick, or the channel closed — leave prior values.
+                _ => return,
+            };
+            cpu_b.set_fraction(s.cpu_percent / 100.0);
+            cpu_b.set_text(Some(&format!("{:.1}%", s.cpu_percent)));
 
-                let mem_frac = if s.memory_total > 0 {
-                    s.memory_used as f64 / s.memory_total as f64
-                } else {
-                    0.0
-                };
-                mem_b.set_fraction(mem_frac.clamp(0.0, 1.0));
-                mem_b.set_text(Some(&format!(
-                    "{:.1}/{:.1} GiB",
-                    s.memory_used as f64 / 1_073_741_824.0,
-                    s.memory_total as f64 / 1_073_741_824.0
-                )));
+            let mem_frac = if s.memory_total > 0 {
+                s.memory_used as f64 / s.memory_total as f64
+            } else {
+                0.0
+            };
+            mem_b.set_fraction(mem_frac.clamp(0.0, 1.0));
+            mem_b.set_text(Some(&format!(
+                "{:.1}/{:.1} GiB",
+                s.memory_used as f64 / 1_073_741_824.0,
+                s.memory_total as f64 / 1_073_741_824.0
+            )));
 
-                let disk_frac = if s.disk_total > 0 {
-                    s.disk_used as f64 / s.disk_total as f64
-                } else {
-                    0.0
-                };
-                disk_b.set_fraction(disk_frac.clamp(0.0, 1.0));
-                disk_b.set_text(Some(&format!(
-                    "{:.1}/{:.1} GiB",
-                    s.disk_used as f64 / 1_073_741_824.0,
-                    s.disk_total as f64 / 1_073_741_824.0
-                )));
-                set_text(&lb2, "Stats updated");
-            }
+            let disk_frac = if s.disk_total > 0 {
+                s.disk_used as f64 / s.disk_total as f64
+            } else {
+                0.0
+            };
+            disk_b.set_fraction(disk_frac.clamp(0.0, 1.0));
+            disk_b.set_text(Some(&format!(
+                "{:.1}/{:.1} GiB",
+                s.disk_used as f64 / 1_073_741_824.0,
+                s.disk_total as f64 / 1_073_741_824.0
+            )));
+            set_text(&lb2, "Stats updated");
         });
     }
 }

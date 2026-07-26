@@ -6,16 +6,9 @@ pub mod proto {
     tonic::include_proto!("colimaui");
 }
 
-pub use proto::{
+use proto::{
     colima_service_client::ColimaServiceClient, docker_service_client::DockerServiceClient,
-    CloneProfileRequest, ContainerActionRequest, CreateContainerRequest, CreateProfileRequest,
-    DeleteProfileRequest, DeleteRequest, DockerScope, Empty, IdRequest, KillProcessRequest,
-    KubeExecRequest, ModelRequest, ModelRunRequest, ModelServeRequest, NameRequest,
-    NetworkContainerRequest, ProfileRequest, PruneRequest, RenameRequest, RestartRequest,
-    SearchRequest, SetConfigRequest, StartRequest, StatusRequest, StopRequest,
-    SwitchRuntimeRequest, TagRequest,
 };
-
 use tonic::transport::Channel;
 
 /// Shared connection to the colima-desktop daemon over a Unix socket or TCP.

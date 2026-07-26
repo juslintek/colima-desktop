@@ -57,6 +57,21 @@ pub struct DepStatus {
 
 pub struct DependencyManager;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PackageManager {
+    Brew,
+    Apt,
+    Dnf,
+    Pacman,
+    Snap,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PackageAction {
+    Install,
+    Update,
+}
+
 impl DependencyManager {
     /// Check whether colima binary is on PATH.
     pub fn is_colima_installed() -> bool {
@@ -89,40 +104,9 @@ impl DependencyManager {
     /// Precedence: brew → apt-get → dnf → pacman → snap → direct download hint.
     /// Returns (success, log_output).
     pub fn install_colima() -> (bool, String) {
-        // 1. Homebrew — most reliable, version-tracked
-        if which::which("brew").is_ok() {
-            return run_install("brew", &["install", "colima"]);
+        if let Some(manager) = detect_package_manager() {
+            return run_package_action(manager, PackageAction::Install, "colima");
         }
-        // 2. apt-get — Debian/Ubuntu (colima is in official repos ≥ Ubuntu 23.04)
-        if which::which("apt-get").is_ok() {
-            let (ok, log) = run_install("sudo", &["apt-get", "install", "-y", "colima"]);
-            if ok {
-                return (true, log);
-            }
-            // Fall through to direct download hint
-        }
-        // 3. dnf — Fedora/RHEL
-        if which::which("dnf").is_ok() {
-            let (ok, log) = run_install("sudo", &["dnf", "install", "-y", "colima"]);
-            if ok {
-                return (true, log);
-            }
-        }
-        // 4. pacman — Arch
-        if which::which("pacman").is_ok() {
-            let (ok, log) = run_install("sudo", &["pacman", "-S", "--noconfirm", "colima"]);
-            if ok {
-                return (true, log);
-            }
-        }
-        // 5. snap
-        if which::which("snap").is_ok() {
-            let (ok, log) = run_install("sudo", &["snap", "install", "colima"]);
-            if ok {
-                return (true, log);
-            }
-        }
-        // 6. Provide download hint
         (
             false,
             "No supported package manager found.\n\
@@ -136,11 +120,13 @@ impl DependencyManager {
     /// Install a specific dependency by name (from DEPS).
     pub fn install_dep(name: &str) -> (bool, String) {
         if let Some(dep) = DEPS.iter().find(|d| d.name == name) {
-            // Use brew if available — works on all Linux distros with Linuxbrew
-            if which::which("brew").is_ok() {
-                return run_install("brew", &["install", dep.binary]);
+            if let Some(manager) = detect_package_manager() {
+                return run_package_action(
+                    manager,
+                    PackageAction::Install,
+                    package_name(dep.name, manager),
+                );
             }
-            // Fall back: show the install hint as log output
             return (false, dep.install_hint.to_owned());
         }
         (false, format!("Unknown dependency: {name}"))
@@ -161,14 +147,8 @@ impl DependencyManager {
     }
 
     fn update_one(name: &str) -> (bool, String) {
-        if which::which("brew").is_ok() {
-            return run_install("brew", &["upgrade", name]);
-        }
-        if which::which("apt-get").is_ok() {
-            return run_install(
-                "sudo",
-                &["apt-get", "install", "--only-upgrade", "-y", name],
-            );
+        if let Some(manager) = detect_package_manager() {
+            return run_package_action(manager, PackageAction::Update, package_name(name, manager));
         }
         (false, format!("No supported updater for {name}"))
     }
@@ -177,6 +157,108 @@ impl DependencyManager {
         let out = Command::new(binary).arg("--version").output().ok()?;
         let raw = String::from_utf8_lossy(&out.stdout);
         Some(raw.lines().next().unwrap_or("").trim().to_owned())
+    }
+}
+
+fn detect_package_manager() -> Option<PackageManager> {
+    [
+        ("brew", PackageManager::Brew),
+        ("apt-get", PackageManager::Apt),
+        ("dnf", PackageManager::Dnf),
+        ("pacman", PackageManager::Pacman),
+        ("snap", PackageManager::Snap),
+    ]
+    .into_iter()
+    .find_map(|(binary, manager)| which::which(binary).ok().map(|_| manager))
+}
+
+fn package_name(name: &str, manager: PackageManager) -> &str {
+    match (name, manager) {
+        ("lima", PackageManager::Brew) => "lima",
+        ("lima", _) => "lima",
+        ("qemu", PackageManager::Brew) => "qemu",
+        ("qemu", _) => "qemu-system",
+        ("docker-cli", PackageManager::Brew) => "docker",
+        ("docker-cli", PackageManager::Apt) => "docker.io",
+        ("docker-cli", _) => "docker-cli",
+        ("kubectl", _) => "kubectl",
+        (other, _) => other,
+    }
+}
+
+fn is_root() -> bool {
+    std::fs::read_to_string("/proc/self/status")
+        .ok()
+        .and_then(|status| {
+            status
+                .lines()
+                .find(|line| line.starts_with("Uid:"))
+                .and_then(|line| line.split_whitespace().nth(1))
+                .and_then(|uid| uid.parse::<u32>().ok())
+        })
+        == Some(0)
+}
+
+fn package_command(
+    manager: PackageManager,
+    action: PackageAction,
+    package: &str,
+    root: bool,
+    pkexec_available: bool,
+) -> Result<(String, Vec<String>), String> {
+    let (program, args): (&str, Vec<&str>) = match (manager, action) {
+        (PackageManager::Brew, PackageAction::Install) => ("brew", vec!["install", package]),
+        (PackageManager::Brew, PackageAction::Update) => ("brew", vec!["upgrade", package]),
+        (PackageManager::Apt, PackageAction::Install) => {
+            ("apt-get", vec!["install", "-y", package])
+        }
+        (PackageManager::Apt, PackageAction::Update) => {
+            ("apt-get", vec!["install", "--only-upgrade", "-y", package])
+        }
+        (PackageManager::Dnf, PackageAction::Install) => ("dnf", vec!["install", "-y", package]),
+        (PackageManager::Dnf, PackageAction::Update) => ("dnf", vec!["upgrade", "-y", package]),
+        (PackageManager::Pacman, PackageAction::Install) => {
+            ("pacman", vec!["-S", "--noconfirm", package])
+        }
+        (PackageManager::Pacman, PackageAction::Update) => {
+            ("pacman", vec!["-S", "--noconfirm", package])
+        }
+        (PackageManager::Snap, PackageAction::Install) => ("snap", vec!["install", package]),
+        (PackageManager::Snap, PackageAction::Update) => ("snap", vec!["refresh", package]),
+    };
+    if manager == PackageManager::Brew || root {
+        return Ok((
+            program.to_owned(),
+            args.into_iter().map(str::to_owned).collect(),
+        ));
+    }
+    if !pkexec_available {
+        return Err(format!(
+            "Installing {package} needs administrator access. Install polkit/pkexec or run the package command from a terminal."
+        ));
+    }
+    let mut elevated = vec![program.to_owned()];
+    elevated.extend(args.into_iter().map(str::to_owned));
+    Ok(("pkexec".to_owned(), elevated))
+}
+
+fn run_package_action(
+    manager: PackageManager,
+    action: PackageAction,
+    package: &str,
+) -> (bool, String) {
+    match package_command(
+        manager,
+        action,
+        package,
+        is_root(),
+        which::which("pkexec").is_ok(),
+    ) {
+        Ok((program, args)) => {
+            let args: Vec<&str> = args.iter().map(String::as_str).collect();
+            run_install(&program, &args)
+        }
+        Err(error) => (false, error),
     }
 }
 
@@ -191,5 +273,52 @@ fn run_install(cmd: &str, args: &[&str]) -> (bool, String) {
             (out.status.success(), log)
         }
         Err(e) => (false, format!("Failed to spawn {cmd}: {e}")),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn system_packages_use_pkexec_without_a_terminal_sudo_prompt() {
+        let (program, args) = package_command(
+            PackageManager::Apt,
+            PackageAction::Install,
+            "docker.io",
+            false,
+            true,
+        )
+        .unwrap();
+        assert_eq!(program, "pkexec");
+        assert_eq!(args, ["apt-get", "install", "-y", "docker.io"]);
+        assert!(!args.iter().any(|arg| arg == "sudo"));
+    }
+
+    #[test]
+    fn missing_privilege_broker_returns_instructions_instead_of_hanging() {
+        let error = package_command(
+            PackageManager::Dnf,
+            PackageAction::Update,
+            "kubectl",
+            false,
+            false,
+        )
+        .unwrap_err();
+        assert!(error.contains("administrator access"));
+    }
+
+    #[test]
+    fn brew_never_requests_elevation() {
+        let (program, args) = package_command(
+            PackageManager::Brew,
+            PackageAction::Update,
+            "colima",
+            false,
+            false,
+        )
+        .unwrap();
+        assert_eq!(program, "brew");
+        assert_eq!(args, ["upgrade", "colima"]);
     }
 }

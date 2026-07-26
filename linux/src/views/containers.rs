@@ -7,10 +7,10 @@ use gtk::prelude::*;
 use gtk::{Box as GtkBox, Entry, Label, ListBox, ListBoxRow, Orientation, Separator};
 
 use crate::app_state::AppHandle;
-use crate::client::proto::{
-    ContainerActionRequest, CreateContainerRequest, DockerScope, IdRequest,
+use crate::ui_helpers::{
+    confirm_destructive, container_action_is_destructive, make_action_button, make_output_view,
+    make_surface_header, set_text, status_message,
 };
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
 
 struct ContainerInfo {
     id: String,
@@ -69,6 +69,28 @@ pub fn build(handle: AppHandle) -> GtkBox {
     let btn_prune = action_btn!("🧹 Prune", "containers_btn_prune");
     root.append(&actions);
 
+    let details = GtkBox::new(Orientation::Horizontal, 4);
+    details.set_margin_start(12);
+    details.set_margin_end(12);
+    details.set_margin_bottom(6);
+    let btn_top = make_action_button("Top", "containers_btn_top");
+    let btn_stats = make_action_button("Stats", "containers_btn_stats");
+    let btn_changes = make_action_button("Changes", "containers_btn_changes");
+    let btn_stream_logs = make_action_button("Live Logs", "containers_btn_stream_logs");
+    let btn_stream_stats = make_action_button("Live Stats", "containers_btn_stream_stats");
+    let btn_cancel_stream = make_action_button("Cancel Stream", "containers_btn_cancel_stream");
+    for button in [
+        &btn_top,
+        &btn_stats,
+        &btn_changes,
+        &btn_stream_logs,
+        &btn_stream_stats,
+        &btn_cancel_stream,
+    ] {
+        details.append(button);
+    }
+    root.append(&details);
+
     // Create row
     let create_row = GtkBox::new(Orientation::Horizontal, 4);
     create_row.set_margin_start(12);
@@ -82,10 +104,16 @@ pub fn build(handle: AppHandle) -> GtkBox {
     entry_image.set_widget_name("containers_entry_image");
     entry_image.update_property(&[gtk::accessible::Property::Label("Image name")]);
     let btn_create = make_action_button("+ Create", "containers_btn_create");
+    let entry_rename = Entry::builder().placeholder_text("New name").build();
+    entry_rename.set_widget_name("containers_entry_rename");
+    entry_rename.update_property(&[gtk::accessible::Property::Label("New container name")]);
+    let btn_rename = make_action_button("Rename", "containers_btn_rename");
 
     create_row.append(&entry_name);
     create_row.append(&entry_image);
     create_row.append(&btn_create);
+    create_row.append(&entry_rename);
+    create_row.append(&btn_rename);
     root.append(&create_row);
 
     // Output log
@@ -93,6 +121,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
     root.append(&sw_out);
 
     let selected_id = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
+    let stream_abort = std::rc::Rc::new(std::cell::RefCell::new(None::<tokio::task::AbortHandle>));
 
     // Track selection
     {
@@ -112,7 +141,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let list = list_box.clone();
         refresh_btn.connect_clicked(move |_| {
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -122,12 +151,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<Vec<ContainerInfo>, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .list_containers(DockerScope {
-                            profile,
-                            all: true,
-                            host: String::new(),
-                            wsl2: false,
-                        })
+                        .list_containers(target.scope(true))
                         .await
                         .map_err(|e| format!("Error: {e}"))
                         .and_then(|r| {
@@ -207,54 +231,34 @@ pub fn build(handle: AppHandle) -> GtkBox {
         });
     }
 
-    // Generic container action helper macro — only sends a plain String result via channel
+    // Generic container action helper macro — only sends a plain String result via channel.
+    // Whether an action is destructive (and therefore gated behind confirm_destructive) is
+    // decided by the single tested `container_action_is_destructive` classifier, so no action
+    // can silently bypass the confirmation gate (Requirement 6.6, Property 13).
     macro_rules! wire_action {
         ($btn:expr, $action:expr) => {{
             let h = handle.clone();
             let lb = log_buf.clone();
             let sp = spinner.clone();
             let sel = selected_id.clone();
-            $btn.connect_clicked(move |_| {
+            $btn.connect_clicked(move |source| {
                 let id = sel.borrow().clone();
                 if id.is_empty() {
                     set_text(&lb, "Select a container first");
                     return;
                 }
-                sp.set_spinning(true);
-                let profile = h.profile();
-                let mut state = h.state.lock().unwrap();
-                if let Some(ref mut client) = state.daemon {
-                    let mut c = client.docker.clone();
+                if container_action_is_destructive($action) {
+                    let h2 = h.clone();
                     let lb2 = lb.clone();
                     let sp2 = sp.clone();
-                    let action = $action.to_string();
-                    let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                    h.rt.spawn(async move {
-                        let result = c
-                            .container_action(ContainerActionRequest {
-                                id,
-                                action,
-                                profile,
-                                host: String::new(),
-                                wsl2: false,
-                            })
-                            .await
-                            .map(|r| r.into_inner().message)
-                            .map_err(|e| format!("Error: {e}"));
-                        let _ = tx.send(result).await;
-                    });
-                    glib::spawn_future_local(async move {
-                        sp2.set_spinning(false);
-                        if let Ok(result) = rx.recv().await {
-                            match result {
-                                Ok(msg) => set_text(&lb2, &msg),
-                                Err(e) => set_text(&lb2, &e),
-                            }
-                        }
-                    });
+                    confirm_destructive(
+                        source,
+                        concat!("Confirm container ", $action),
+                        &format!("Apply '{}' to container {}?", $action, id),
+                        move || run_container_action(h2, sp2, lb2, id, $action),
+                    );
                 } else {
-                    sp.set_spinning(false);
-                    set_text(&lb, "Not connected");
+                    run_container_action(h.clone(), sp.clone(), lb.clone(), id, $action);
                 }
             });
         }};
@@ -281,7 +285,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 return;
             }
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -290,12 +294,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .container_logs(IdRequest {
-                            id,
-                            profile,
-                            host: String::new(),
-                            wsl2: false,
-                        })
+                        .container_logs(target.id_request(id))
                         .await
                         .map(|r| {
                             let j = r.into_inner();
@@ -337,7 +336,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 return;
             }
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -346,12 +345,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .inspect_container(IdRequest {
-                            id,
-                            profile,
-                            host: String::new(),
-                            wsl2: false,
-                        })
+                        .inspect_container(target.id_request(id))
                         .await
                         .map(|r| {
                             let j = r.into_inner();
@@ -383,48 +377,16 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let h = handle.clone();
         let lb = log_buf.clone();
         let sp = spinner.clone();
-        btn_prune.connect_clicked(move |_| {
-            sp.set_spinning(true);
-            let profile = h.profile();
-            let mut state = h.state.lock().unwrap();
-            if let Some(ref mut client) = state.daemon {
-                let mut c = client.docker.clone();
-                let lb2 = lb.clone();
-                let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                h.rt.spawn(async move {
-                    let result = c
-                        .prune_containers(DockerScope {
-                            profile,
-                            all: false,
-                            host: String::new(),
-                            wsl2: false,
-                        })
-                        .await
-                        .map(|r| {
-                            let j = r.into_inner();
-                            if j.error.is_empty() {
-                                j.json
-                            } else {
-                                j.error
-                            }
-                        })
-                        .map_err(|e| format!("Prune error: {e}"));
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(msg) => set_text(&lb2, &msg),
-                            Err(e) => set_text(&lb2, &e),
-                        }
-                    }
-                });
-            } else {
-                sp.set_spinning(false);
-                set_text(&lb, "Not connected");
-            }
+        btn_prune.connect_clicked(move |source| {
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Prune stopped containers?",
+                "Remove all stopped containers in the selected provider/profile?",
+                move || run_prune_containers(h2, sp2, lb2),
+            );
         });
     }
 
@@ -443,7 +405,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 return;
             }
             sp.set_spinning(true);
-            let profile = h.profile();
+            let target = h.docker_target();
             let mut state = h.state.lock().unwrap();
             if let Some(ref mut client) = state.daemon {
                 let mut c = client.docker.clone();
@@ -452,13 +414,7 @@ pub fn build(handle: AppHandle) -> GtkBox {
                 let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
                 h.rt.spawn(async move {
                     let result = c
-                        .create_container(CreateContainerRequest {
-                            name,
-                            image,
-                            profile,
-                            host: String::new(),
-                            wsl2: false,
-                        })
+                        .create_container(target.create_container(name, image))
                         .await
                         .map(|r| {
                             let j = r.into_inner();
@@ -487,5 +443,297 @@ pub fn build(handle: AppHandle) -> GtkBox {
         });
     }
 
+    // Rename propagates the same provider snapshot as every other Docker action.
+    {
+        let h = handle.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
+        let sel = selected_id.clone();
+        let entry = entry_rename.clone();
+        btn_rename.connect_clicked(move |_| {
+            let id = sel.borrow().clone();
+            let new_name = entry.text().to_string();
+            if id.is_empty() || new_name.trim().is_empty() {
+                set_text(&lb, "Select a container and enter a new name");
+                return;
+            }
+            let target = h.docker_target();
+            let client = h.state.lock().unwrap().daemon.clone();
+            let Some(client) = client else {
+                set_text(&lb, "Not connected");
+                return;
+            };
+            sp.set_spinning(true);
+            let mut c = client.docker;
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            let (tx, rx) = async_channel::bounded(1);
+            h.rt.spawn(async move {
+                let result = c
+                    .rename_container(target.rename_request(id, new_name))
+                    .await
+                    .map_err(|error| format!("Rename error: {error}"))
+                    .and_then(|response| status_message(response.into_inner()));
+                let _ = tx.send(result).await;
+            });
+            glib::spawn_future_local(async move {
+                if let Ok(result) = rx.recv().await {
+                    set_text(&lb2, &result.unwrap_or_else(|error| error));
+                }
+                sp2.set_spinning(false);
+            });
+        });
+    }
+
+    macro_rules! wire_query {
+        ($button:expr, $kind:expr) => {{
+            let h = handle.clone();
+            let lb = log_buf.clone();
+            let sp = spinner.clone();
+            let sel = selected_id.clone();
+            $button.connect_clicked(move |_| {
+                let id = sel.borrow().clone();
+                if id.is_empty() {
+                    set_text(&lb, "Select a container first");
+                } else {
+                    run_container_query(h.clone(), sp.clone(), lb.clone(), id, $kind);
+                }
+            });
+        }};
+    }
+    wire_query!(btn_top, ContainerQuery::Top);
+    wire_query!(btn_stats, ContainerQuery::Stats);
+    wire_query!(btn_changes, ContainerQuery::Changes);
+
+    macro_rules! wire_stream {
+        ($button:expr, $kind:expr) => {{
+            let h = handle.clone();
+            let lb = log_buf.clone();
+            let sp = spinner.clone();
+            let sel = selected_id.clone();
+            let running = stream_abort.clone();
+            $button.connect_clicked(move |_| {
+                let id = sel.borrow().clone();
+                if id.is_empty() {
+                    set_text(&lb, "Select a container first");
+                    return;
+                }
+                if let Some(abort) = running.borrow_mut().take() {
+                    abort.abort();
+                }
+                if let Some(abort) =
+                    start_container_stream(h.clone(), sp.clone(), lb.clone(), id, $kind)
+                {
+                    *running.borrow_mut() = Some(abort);
+                }
+            });
+        }};
+    }
+    wire_stream!(btn_stream_logs, ContainerStream::Logs);
+    wire_stream!(btn_stream_stats, ContainerStream::Stats);
+    {
+        let running = stream_abort.clone();
+        let lb = log_buf.clone();
+        let sp = spinner.clone();
+        btn_cancel_stream.connect_clicked(move |_| {
+            if let Some(abort) = running.borrow_mut().take() {
+                abort.abort();
+                set_text(&lb, "Stream cancelled");
+            }
+            sp.set_spinning(false);
+        });
+    }
+
     root
+}
+
+fn run_container_action(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    id: String,
+    action: &'static str,
+) {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        spinner.set_spinning(false);
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut c = client.docker;
+    let output2 = output.clone();
+    let spinner2 = spinner.clone();
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let result = c
+            .container_action(target.container_action(id, action))
+            .await
+            .map_err(|error| format!("Container {action} error: {error}"))
+            .and_then(|response| status_message(response.into_inner()));
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output2, &result.unwrap_or_else(|error| error));
+        }
+        spinner2.set_spinning(false);
+    });
+}
+
+fn run_prune_containers(handle: AppHandle, spinner: gtk::Spinner, output: gtk::TextBuffer) {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut client = client.docker;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let result = client
+            .prune_containers(target.scope(false))
+            .await
+            .map_err(|error| format!("Prune error: {error}"))
+            .and_then(|response| {
+                let response = response.into_inner();
+                if response.error.is_empty() {
+                    Ok(response.json)
+                } else {
+                    Err(response.error)
+                }
+            });
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
+}
+
+#[derive(Clone, Copy)]
+enum ContainerQuery {
+    Top,
+    Stats,
+    Changes,
+}
+
+fn run_container_query(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    id: String,
+    query: ContainerQuery,
+) {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut c = client.docker;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let request = target.id_request(id);
+        let response = match query {
+            ContainerQuery::Top => c.container_top(request).await,
+            ContainerQuery::Stats => c.container_stats(request).await,
+            ContainerQuery::Changes => c.container_changes(request).await,
+        };
+        let result = response
+            .map_err(|error| format!("Container query error: {error}"))
+            .and_then(|response| {
+                let response = response.into_inner();
+                if response.error.is_empty() {
+                    Ok(response.json)
+                } else {
+                    Err(response.error)
+                }
+            });
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
+}
+
+#[derive(Clone, Copy)]
+enum ContainerStream {
+    Logs,
+    Stats,
+}
+
+fn start_container_stream(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    id: String,
+    kind: ContainerStream,
+) -> Option<tokio::task::AbortHandle> {
+    let target = handle.docker_target();
+    let client = handle.state.lock().unwrap().daemon.clone()?;
+    spinner.set_spinning(true);
+    let mut c = client.docker;
+    let (tx, rx) = async_channel::unbounded::<Result<String, String>>();
+    let task = handle.rt.spawn(async move {
+        let request = target.id_request(id);
+        let response = match kind {
+            ContainerStream::Logs => c.stream_logs(request).await,
+            ContainerStream::Stats => c.stream_stats(request).await,
+        };
+        match response {
+            Ok(mut stream) => loop {
+                match stream.get_mut().message().await {
+                    Ok(Some(event)) if event.error.is_empty() => {
+                        if tx.send(Ok(event.json)).await.is_err() {
+                            break;
+                        }
+                    }
+                    Ok(Some(event)) => {
+                        let _ = tx.send(Err(event.error)).await;
+                        break;
+                    }
+                    Ok(None) => break,
+                    Err(error) => {
+                        let _ = tx.send(Err(format!("Stream error: {error}"))).await;
+                        break;
+                    }
+                }
+            },
+            Err(error) => {
+                let _ = tx.send(Err(format!("Stream start error: {error}"))).await;
+            }
+        }
+    });
+    let abort = task.abort_handle();
+    glib::spawn_future_local(async move {
+        let mut accumulated = String::new();
+        while let Ok(item) = rx.recv().await {
+            match item {
+                Ok(line) => {
+                    accumulated.push_str(&line);
+                    accumulated.push('\n');
+                    if accumulated.len() > 100_000 {
+                        accumulated.drain(..50_000);
+                    }
+                    set_text(&output, &accumulated);
+                }
+                Err(error) => {
+                    accumulated.push_str(&error);
+                    set_text(&output, &accumulated);
+                    break;
+                }
+            }
+        }
+        spinner.set_spinning(false);
+    });
+    Some(abort)
 }

@@ -8,7 +8,9 @@ use crate::app_state::AppHandle;
 use crate::client::proto::{
     CloneProfileRequest, CreateProfileRequest, DeleteProfileRequest, Empty, ProfileRequest,
 };
-use crate::ui_helpers::{make_action_button, make_output_view, make_surface_header, set_text};
+use crate::ui_helpers::{
+    confirm_destructive, make_action_button, make_output_view, make_surface_header, set_text,
+};
 
 struct ProfileInfo {
     name: String,
@@ -98,9 +100,16 @@ pub fn build(handle: AppHandle) -> GtkBox {
     let selected = std::rc::Rc::new(std::cell::RefCell::new(String::new()));
     {
         let sel = selected.clone();
+        let h = handle.clone();
+        let lb = log_buf.clone();
         list_box.connect_row_selected(move |_, row| {
             if let Some(r) = row {
-                *sel.borrow_mut() = r.widget_name().to_string();
+                let profile = r.widget_name().to_string();
+                *sel.borrow_mut() = profile.clone();
+                match h.select_profile(profile.clone()) {
+                    Ok(()) => set_text(&lb, &format!("Active profile: {profile}")),
+                    Err(error) => set_text(&lb, &format!("Profile selection error: {error}")),
+                }
             }
         });
     }
@@ -183,44 +192,21 @@ pub fn build(handle: AppHandle) -> GtkBox {
         let lb = log_buf.clone();
         let sp = spinner.clone();
         let sel = selected.clone();
-        btn_delete.connect_clicked(move |_| {
+        btn_delete.connect_clicked(move |source| {
             let name = sel.borrow().clone();
             if name.is_empty() {
                 set_text(&lb, "Select a profile first");
                 return;
             }
-            sp.set_spinning(true);
-            let mut state = h.state.lock().unwrap();
-            if let Some(ref mut client) = state.daemon {
-                let mut c = client.colima.clone();
-                let lb2 = lb.clone();
-                let sp2 = sp.clone();
-                let (tx, rx) = async_channel::bounded::<Result<String, String>>(1);
-                h.rt.spawn(async move {
-                    let result = c
-                        .delete_profile(DeleteProfileRequest {
-                            name,
-                            data: false,
-                            force: false,
-                        })
-                        .await
-                        .map(|r| r.into_inner().message)
-                        .map_err(|e| format!("Error: {e}"));
-                    let _ = tx.send(result).await;
-                });
-                glib::spawn_future_local(async move {
-                    sp2.set_spinning(false);
-                    if let Ok(result) = rx.recv().await {
-                        match result {
-                            Ok(msg) => set_text(&lb2, &msg),
-                            Err(e) => set_text(&lb2, &e),
-                        }
-                    }
-                });
-            } else {
-                sp.set_spinning(false);
-                set_text(&lb, "Not connected");
-            }
+            let h2 = h.clone();
+            let lb2 = lb.clone();
+            let sp2 = sp.clone();
+            confirm_destructive(
+                source,
+                "Delete profile?",
+                &format!("Delete profile '{name}'? VM data is retained."),
+                move || run_delete_profile(h2, sp2, lb2, name),
+            );
         });
     }
 
@@ -374,4 +360,38 @@ pub fn build(handle: AppHandle) -> GtkBox {
     }
 
     root
+}
+
+fn run_delete_profile(
+    handle: AppHandle,
+    spinner: gtk::Spinner,
+    output: gtk::TextBuffer,
+    name: String,
+) {
+    let client = handle.state.lock().unwrap().daemon.clone();
+    let Some(client) = client else {
+        set_text(&output, "Not connected");
+        return;
+    };
+    spinner.set_spinning(true);
+    let mut client = client.colima;
+    let (tx, rx) = async_channel::bounded(1);
+    handle.rt.spawn(async move {
+        let result = client
+            .delete_profile(DeleteProfileRequest {
+                name,
+                data: false,
+                force: false,
+            })
+            .await
+            .map(|response| response.into_inner().message)
+            .map_err(|error| format!("Delete profile error: {error}"));
+        let _ = tx.send(result).await;
+    });
+    glib::spawn_future_local(async move {
+        if let Ok(result) = rx.recv().await {
+            set_text(&output, &result.unwrap_or_else(|error| error));
+        }
+        spinner.set_spinning(false);
+    });
 }
