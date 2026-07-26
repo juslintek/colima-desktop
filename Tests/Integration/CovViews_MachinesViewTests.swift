@@ -191,22 +191,28 @@ struct CovViews_MachineDetailViewTests {
 
     // MARK: - Running VM controls
 
-    @Test("running VM shows Stop button")
+    // MachineDetailView is intentionally INVENTORY-ONLY (Requirement 7: no fake-success
+    // flows): the ListMachines response carries no lifecycle capability, so the detail view
+    // exposes no Start/Stop/Restart controls and shows an "Inventory only" marker instead.
+    @Test("running VM detail is inventory-only (no fake Stop control)")
     func runningVMStopButton() throws {
         let v = MachineDetailView(vm: runningVM)
-        #expect((try? v.inspect().find(button: "Stop")) != nil)
+        #expect((try? v.inspect().find(button: "Stop")) == nil)
+        #expect((try? v.inspect().find(text: "Inventory only")) != nil)
     }
 
-    @Test("running VM shows Restart button")
+    @Test("running VM detail is inventory-only (no fake Restart control)")
     func runningVMRestartButton() throws {
         let v = MachineDetailView(vm: runningVM)
-        #expect((try? v.inspect().find(button: "Restart")) != nil)
+        #expect((try? v.inspect().find(button: "Restart")) == nil)
+        #expect((try? v.inspect().find(text: "Inventory only")) != nil)
     }
 
-    @Test("stopped VM shows Start button")
+    @Test("stopped VM detail is inventory-only (no fake Start control)")
     func stoppedVMStartButton() throws {
         let v = MachineDetailView(vm: stoppedVM)
-        #expect((try? v.inspect().find(button: "Start")) != nil)
+        #expect((try? v.inspect().find(button: "Start")) == nil)
+        #expect((try? v.inspect().find(text: "Inventory only")) != nil)
     }
 
     // MARK: - Info tab (default)
@@ -247,22 +253,27 @@ struct CovViews_MachineDetailViewTests {
         #expect((try? v.inspect().find(text: "Disk")) != nil)
     }
 
-    @Test("info tab shows Network section")
+    // Honest info tab (Requirement 7): network address + SSH endpoint are NOT in the
+    // ListMachines inventory response, so the tab shows an explanatory note instead of
+    // fabricating Network/IP/SSH rows.
+    @Test("info tab honestly notes network/SSH are not in the machine inventory")
     func infoTabNetworkSection() throws {
         let v = MachineDetailView(vm: runningVM)
-        #expect((try? v.inspect().find(text: "Network")) != nil)
+        #expect((try? v.inspect().find(
+            text: "Network address and SSH endpoint are not included in the machine inventory response."
+        )) != nil)
     }
 
-    @Test("info tab shows IP label")
+    @Test("info tab does not fabricate an IP row (inventory-only)")
     func infoTabIPLabel() throws {
         let v = MachineDetailView(vm: runningVM)
-        #expect((try? v.inspect().find(text: "IP")) != nil)
+        #expect((try? v.inspect().find(text: "IP")) == nil)
     }
 
-    @Test("info tab shows SSH label")
+    @Test("info tab does not fabricate an SSH row (inventory-only)")
     func infoTabSSHLabel() throws {
         let v = MachineDetailView(vm: runningVM)
-        #expect((try? v.inspect().find(text: "SSH")) != nil)
+        #expect((try? v.inspect().find(text: "SSH")) == nil)
     }
 
     @Test("info tab shows correct arch value")

@@ -285,12 +285,15 @@ struct CovConfig_ContainerRow_States {
     }
 
 
-    @Test("context menu has Wait item (AppState.waitContainer dispatches without error)")
+    @Test("context menu Wait honestly reports it is not exposed by the service contract")
     func contextMenuHasWait() throws {
         let s = AppState(services: MockServiceProvider())
         s.vmRunning = true
         s.waitContainer(name: "web")
-        #expect(s.errorMessage == nil)
+        // Honest, no-fake-success behavior (Requirement 7): container wait is not part of
+        // the ServiceProvider contract, so the action surfaces a contextual message rather
+        // than silently faking success.
+        #expect(s.errorMessage != nil)
     }
 
     @Test("context menu has Attach item (AppState.attachContainer dispatches without error)")
@@ -301,12 +304,14 @@ struct CovConfig_ContainerRow_States {
         #expect(s.errorMessage == nil)
     }
 
-    @Test("context menu has Update item (AppState.updateContainerResources dispatches without error)")
+    @Test("context menu Update honestly reports resource updates are not wired")
     func contextMenuHasUpdate() throws {
         let s = AppState(services: MockServiceProvider())
         s.vmRunning = true
         s.updateContainerResources(name: "web")
-        #expect(s.errorMessage == nil)
+        // Honest, no-fake-success behavior (Requirement 7): the UI does not yet collect
+        // explicit resource limits, so it makes no change and surfaces a contextual message.
+        #expect(s.errorMessage != nil)
     }
 
     @Test("context menu has Copy item (AppState.copyContainer dispatches without error)")
