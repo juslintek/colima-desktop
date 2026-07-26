@@ -87,6 +87,9 @@ func (s *ColimaServer) GetConfig(_ context.Context, req *pb.ProfileRequest) (*pb
 // SetConfig writes a proto ColimaConfig to the profile's colima.yaml file.
 // The directory is created if it does not exist.
 func (s *ColimaServer) SetConfig(_ context.Context, req *pb.SetConfigRequest) (*pb.StatusResponse, error) {
+	if err := requireProfile(req.GetProfile()); err != nil {
+		return nil, err
+	}
 	if req.GetConfig() == nil {
 		return &pb.StatusResponse{Success: false, Error: "config is required"}, nil
 	}

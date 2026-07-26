@@ -6,7 +6,6 @@ import (
 	"context"
 	"net"
 	"net/http"
-	"time"
 
 	winio "github.com/Microsoft/go-winio"
 )
@@ -16,8 +15,7 @@ func wsl2Transport(_ Target) (http.RoundTripper, string, error) {
 	pipe := `\\.\pipe\docker_engine`
 	return &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			d := 10 * time.Second
-			return winio.DialPipe(pipe, &d)
+			return winio.DialPipeContext(ctx, pipe)
 		},
 	}, "http://docker", nil
 }

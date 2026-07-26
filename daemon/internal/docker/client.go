@@ -10,10 +10,14 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
+
+const requestTimeout = 30 * time.Second
 
 // Target selects which backend to reach.
 type Target struct {
@@ -47,7 +51,17 @@ func New(t Target) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{hc: &http.Client{Transport: tr, Timeout: 30 * time.Second}, apiBase: base}, nil
+	// Streaming image operations can legitimately take longer than a fixed HTTP
+	// client timeout. Unary calls apply requestTimeout in do instead, while
+	// streams are bounded by their caller's context.
+	return &Client{hc: &http.Client{Transport: tr}, apiBase: base}, nil
+}
+
+// CloseIdleConnections releases provider connections retained by the HTTP
+// transport after a request completes. Streaming RPC handlers call this when
+// their per-request client is no longer needed.
+func (c *Client) CloseIdleConnections() {
+	c.hc.CloseIdleConnections()
 }
 
 // localTransport dials the local unix socket.
@@ -61,33 +75,60 @@ func localTransport(sock string) *http.Transport {
 
 // --- HTTP helpers ---
 
-func (c *Client) do(method, path string, body []byte) (string, error) {
+func (c *Client) request(ctx context.Context, method, path string, body []byte, headers http.Header) (*http.Response, error) {
 	var r io.Reader
 	if body != nil {
 		r = bytes.NewReader(body)
 	}
-	req, err := http.NewRequest(method, c.apiBase+path, r)
+	req, err := http.NewRequestWithContext(ctx, method, c.apiBase+path, r)
 	if err != nil {
-		return "", err
+		return nil, fmt.Errorf("create docker api request: %w", err)
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
+	for key, values := range headers {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
 	resp, err := c.hc.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("docker api %s %s: %w", method, path, err)
+	}
+	if resp.StatusCode >= 400 {
+		defer resp.Body.Close()
+		out, readErr := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+		if readErr != nil {
+			return nil, fmt.Errorf("docker api %s %s returned %s (read error: %v)", method, path, resp.Status, readErr)
+		}
+		detail := strings.TrimSpace(string(out))
+		if detail == "" {
+			return nil, fmt.Errorf("docker api %s %s returned %s", method, path, resp.Status)
+		}
+		return nil, fmt.Errorf("docker api %s %s returned %s: %s", method, path, resp.Status, detail)
+	}
+	return resp, nil
+}
+
+func (c *Client) do(method, path string, body []byte) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+	resp, err := c.request(ctx, method, path, body, nil)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
-	out, _ := io.ReadAll(resp.Body)
-	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("docker api %d: %s", resp.StatusCode, string(out))
+	out, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("read docker api %s %s response: %w", method, path, err)
 	}
 	return string(out), nil
 }
 
-func (c *Client) get(path string) (string, error)          { return c.do(http.MethodGet, path, nil) }
+func (c *Client) get(path string) (string, error)            { return c.do(http.MethodGet, path, nil) }
 func (c *Client) post(path string, b []byte) (string, error) { return c.do(http.MethodPost, path, b) }
-func (c *Client) del(path string) (string, error)          { return c.do(http.MethodDelete, path, nil) }
+func (c *Client) del(path string) (string, error)            { return c.do(http.MethodDelete, path, nil) }
 
 // --- Containers ---
 
@@ -125,28 +166,67 @@ func (c *Client) RenameContainer(id, newName string) error {
 func (c *Client) ContainerLogs(id string) (string, error) {
 	return c.get("/containers/" + id + "/logs?stdout=1&stderr=1&tail=1000")
 }
-func (c *Client) InspectContainer(id string) (string, error) { return c.get("/containers/" + id + "/json") }
-func (c *Client) ContainerTop(id string) (string, error)     { return c.get("/containers/" + id + "/top") }
+func (c *Client) InspectContainer(id string) (string, error) {
+	return c.get("/containers/" + id + "/json")
+}
+func (c *Client) ContainerTop(id string) (string, error) { return c.get("/containers/" + id + "/top") }
 func (c *Client) ContainerStats(id string) (string, error) {
 	return c.get("/containers/" + id + "/stats?stream=0")
 }
-func (c *Client) ContainerChanges(id string) (string, error) { return c.get("/containers/" + id + "/changes") }
-func (c *Client) PruneContainers() (string, error)           { return c.post("/containers/prune", nil) }
+func (c *Client) ContainerChanges(id string) (string, error) {
+	return c.get("/containers/" + id + "/changes")
+}
+func (c *Client) PruneContainers() (string, error) { return c.post("/containers/prune", nil) }
 
 // --- Images ---
 
-func (c *Client) ListImages() (string, error)          { return c.get("/images/json") }
-func (c *Client) RemoveImage(id string) error          { _, err := c.del("/images/" + id + "?force=1"); return err }
+func (c *Client) ListImages() (string, error) { return c.get("/images/json") }
+func (c *Client) RemoveImage(id string) error {
+	_, err := c.del("/images/" + id + "?force=1")
+	return err
+}
 func (c *Client) InspectImage(name string) (string, error) { return c.get("/images/" + name + "/json") }
-func (c *Client) ImageHistory(name string) (string, error) { return c.get("/images/" + name + "/history") }
+func (c *Client) ImageHistory(name string) (string, error) {
+	return c.get("/images/" + name + "/history")
+}
 func (c *Client) TagImage(name, repo, tag string) error {
 	_, err := c.post("/images/"+name+"/tag?repo="+repo+"&tag="+tag, nil)
 	return err
 }
-func (c *Client) SearchImages(term string) (string, error) { return c.get("/images/search?term=" + term) }
-func (c *Client) PruneImages() (string, error)             { return c.post("/images/prune", nil) }
-func (c *Client) PullImage(name string) (string, error)    { return c.post("/images/create?fromImage="+name, nil) }
-func (c *Client) PushImage(name string) (string, error)    { return c.post("/images/"+name+"/push", nil) }
+func (c *Client) SearchImages(term string) (string, error) {
+	return c.get("/images/search?term=" + term)
+}
+func (c *Client) PruneImages() (string, error) { return c.post("/images/prune", nil) }
+
+// PullImage starts a Docker Engine image-pull request and returns its JSON
+// progress stream. The caller owns the response body and must close it.
+func (c *Client) PullImage(ctx context.Context, name string) (io.ReadCloser, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, fmt.Errorf("image name is required")
+	}
+	query := url.Values{"fromImage": []string{name}}
+	resp, err := c.request(ctx, http.MethodPost, "/images/create?"+query.Encode(), nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
+}
+
+// PushImage starts a Docker Engine image-push request and returns its JSON
+// progress stream. The frozen NameRequest contract does not carry registry
+// credentials, so an empty auth object requests the daemon's configured or
+// anonymous registry credentials.
+func (c *Client) PushImage(ctx context.Context, name string) (io.ReadCloser, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, fmt.Errorf("image name is required")
+	}
+	headers := http.Header{"X-Registry-Auth": []string{"e30="}} // base64("{}")
+	resp, err := c.request(ctx, http.MethodPost, "/images/"+url.PathEscape(name)+"/push", nil, headers)
+	if err != nil {
+		return nil, err
+	}
+	return resp.Body, nil
+}
 
 // --- Volumes ---
 
@@ -154,9 +234,9 @@ func (c *Client) ListVolumes() (string, error) { return c.get("/volumes") }
 func (c *Client) CreateVolume(name string) (string, error) {
 	return c.post("/volumes/create", []byte(fmt.Sprintf(`{"Name":%q}`, name)))
 }
-func (c *Client) RemoveVolume(name string) error       { _, err := c.del("/volumes/" + name); return err }
+func (c *Client) RemoveVolume(name string) error            { _, err := c.del("/volumes/" + name); return err }
 func (c *Client) InspectVolume(name string) (string, error) { return c.get("/volumes/" + name) }
-func (c *Client) PruneVolumes() (string, error)        { return c.post("/volumes/prune", nil) }
+func (c *Client) PruneVolumes() (string, error)             { return c.post("/volumes/prune", nil) }
 
 // --- Networks ---
 
@@ -164,7 +244,7 @@ func (c *Client) ListNetworks() (string, error) { return c.get("/networks") }
 func (c *Client) CreateNetwork(name string) (string, error) {
 	return c.post("/networks/create", []byte(fmt.Sprintf(`{"Name":%q}`, name)))
 }
-func (c *Client) RemoveNetwork(id string) error        { _, err := c.del("/networks/" + id); return err }
+func (c *Client) RemoveNetwork(id string) error            { _, err := c.del("/networks/" + id); return err }
 func (c *Client) InspectNetwork(id string) (string, error) { return c.get("/networks/" + id) }
 func (c *Client) ConnectNetwork(netID, containerID string) error {
 	_, err := c.post("/networks/"+netID+"/connect", []byte(fmt.Sprintf(`{"Container":%q}`, containerID)))
@@ -178,17 +258,9 @@ func (c *Client) PruneNetworks() (string, error) { return c.post("/networks/prun
 
 // StreamPath returns a streaming response body reader for events/logs/stats.
 func (c *Client) StreamPath(path string) (io.ReadCloser, error) {
-	req, err := http.NewRequest(http.MethodGet, c.apiBase+path, nil)
+	resp, err := c.request(context.Background(), http.MethodGet, path, nil, nil)
 	if err != nil {
 		return nil, err
-	}
-	resp, err := c.hc.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode >= 400 {
-		resp.Body.Close()
-		return nil, fmt.Errorf("docker api %d", resp.StatusCode)
 	}
 	return resp.Body, nil
 }

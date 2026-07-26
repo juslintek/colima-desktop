@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
@@ -47,22 +48,85 @@ func sshTransport(t Target) (*http.Transport, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ssh-agent: %w", err)
 	}
-	signers := agent.NewClient(agentConn).Signers
+	signers, err := agent.NewClient(agentConn).Signers()
+	_ = agentConn.Close()
+	if err != nil {
+		return nil, fmt.Errorf("ssh-agent signers: %w", err)
+	}
+	if len(signers) == 0 {
+		return nil, fmt.Errorf("remote-ssh requires at least one key in ssh-agent")
+	}
 	cfg := &ssh.ClientConfig{
 		User:            user,
-		Auth:            []ssh.AuthMethod{ssh.PublicKeysCallback(signers)},
+		Auth:            []ssh.AuthMethod{ssh.PublicKeys(signers...)},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // remote hosts are user-configured
 	}
 	remoteSock := "/home/" + user + "/.colima/" + t.profile() + "/docker.sock"
 	return &http.Transport{
 		DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-			client, err := ssh.Dial("tcp", host, cfg)
+			rawConn, err := (&net.Dialer{}).DialContext(ctx, "tcp", host)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("ssh connect %s: %w", host, err)
 			}
-			return client.Dial("unix", remoteSock)
+
+			// ssh.NewClientConn has no context parameter. Closing the TCP
+			// connection on cancellation makes its handshake cancellation-safe.
+			stopHandshakeWatch := make(chan struct{})
+			go func() {
+				select {
+				case <-ctx.Done():
+					_ = rawConn.Close()
+				case <-stopHandshakeWatch:
+				}
+			}()
+			sshConn, chans, reqs, err := ssh.NewClientConn(rawConn, host, cfg)
+			close(stopHandshakeWatch)
+			if err != nil {
+				_ = rawConn.Close()
+				return nil, fmt.Errorf("ssh handshake %s: %w", host, err)
+			}
+			client := ssh.NewClient(sshConn, chans, reqs)
+
+			stopSocketWatch := make(chan struct{})
+			go func() {
+				select {
+				case <-ctx.Done():
+					_ = client.Close()
+				case <-stopSocketWatch:
+				}
+			}()
+			conn, err := client.Dial("unix", remoteSock)
+			close(stopSocketWatch)
+			if err != nil {
+				_ = client.Close()
+				return nil, fmt.Errorf("ssh docker socket %s: %w", remoteSock, err)
+			}
+			return &sshTunnelConn{Conn: conn, client: client}, nil
 		},
 	}, nil
+}
+
+// sshTunnelConn closes both the forwarded socket channel and the owning SSH
+// client. Without the second close, every streamed HTTP response would leave
+// its SSH TCP connection and goroutines behind.
+type sshTunnelConn struct {
+	net.Conn
+	client *ssh.Client
+	once   sync.Once
+	err    error
+}
+
+func (c *sshTunnelConn) Close() error {
+	c.once.Do(func() {
+		channelErr := c.Conn.Close()
+		clientErr := c.client.Close()
+		if channelErr != nil {
+			c.err = channelErr
+		} else {
+			c.err = clientErr
+		}
+	})
+	return c.err
 }
 
 var _ = filepath.Join // keep import stable across build tags
