@@ -2,6 +2,8 @@ name: frontends
 on:
   push: { branches: [main] }
   pull_request:
+  # Invocable as a reusable workflow by the release-candidate gate (task 12.5).
+  workflow_call:
 jobs:
   daemon:
     runs-on: ${{ matrix.os }}
@@ -27,14 +29,32 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with: { dotnet-version: '8.0.x' }
-      - run: cd windows && dotnet restore && dotnet build -c Release
+      # Native WinUI 3 XAML compile on a real Windows runner.
+      # (This compile is environment-blocked on the macOS-only verification host.)
+      - name: Build WinUI 3 app (native compile)
+        run: cd windows && dotnet restore && dotnet build -c Release
+      # Headless view-model / service tests (net8.0, no live daemon).
+      # Parity evidence level: CI-without-daemon (dispatch, scope, confirmation, a11y, streams).
+      - name: Headless view-model/service tests
+        run: cd windows && dotnet test Tests/ColimaDesktop.Windows.Tests.csproj -c Release
   linux-gtk4:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev protobuf-compiler
       - uses: dtolnay/rust-toolchain@stable
-      - run: cd linux && cargo build --release
+        with: { components: clippy, rustfmt }
+      - name: Format check
+        run: cd linux && cargo fmt --check
+      - name: Clippy (warnings denied)
+        run: cd linux && cargo clippy --all-targets -- -D warnings
+      # Native GTK4 compile on a real Linux runner.
+      # (This compile is environment-blocked on the macOS-only verification host.)
+      - name: Build GTK4 app (native compile)
+        run: cd linux && cargo build --release
+      # Rust unit tests (no live daemon). Parity evidence level: CI-without-daemon.
+      - name: Unit tests
+        run: cd linux && cargo test
   macos-kit:
     runs-on: macos-latest
     steps:

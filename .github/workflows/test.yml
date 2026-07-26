@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+  # Invocable as a reusable workflow by the release-candidate gate (task 12.5).
+  workflow_call:
 
 jobs:
   test:

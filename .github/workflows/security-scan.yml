@@ -1,0 +1,76 @@
+name: security-scan
+
+# SBOM + dependency vulnerability audit (R7 / Requirement 11.3).
+# Generates CycloneDX SBOMs for every component and runs the ecosystem
+# vulnerability scanners (govulncheck / cargo audit / dotnet list --vulnerable),
+# then blocks the build on any CRITICAL finding. This is the supply-chain gate
+# the release-candidate flow (task 12.5) and release pipeline (task 13.1) consume.
+
+on:
+  push: { branches: [main] }
+  pull_request:
+  workflow_dispatch:
+  # Invocable as a reusable workflow by the release-candidate gate (task 12.5).
+  workflow_call:
+  schedule:
+    # Re-scan weekly so advisory-database changes are caught even without a push.
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  sbom-and-vuln-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with: { go-version: '1.25' }
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit (prebuilt)
+        uses: taiki-e/install-action@v2
+        with: { tool: cargo-audit }
+
+      # Generates SBOMs + runs govulncheck/cargo-audit/dotnet scanners and writes
+      # docs/sbom/ (SBOMs + VULNERABILITY-REPORT.md + raw scans/). govulncheck is
+      # auto-installed by the script via `go install`.
+      - name: Generate SBOMs + vulnerability report
+        run: bash scripts/security-scan.sh
+
+      - name: Upload SBOM + vulnerability report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-and-vulnerability-report
+          path: docs/sbom/
+          if-no-files-found: error
+
+      # Release-candidate gate: fail on any CRITICAL finding (Requirement 11.3).
+      # Re-uses the scan output already written above (no re-scan).
+      - name: Enforce zero critical vulnerabilities (RC gate)
+        run: |
+          python3 scripts/vuln_report.py \
+            --scans-dir docs/sbom/scans --out-dir docs/sbom \
+            --scan-date "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --fail-on-critical
+
+      - name: Job summary
+        if: always()
+        run: |
+          echo "## Supply-chain scan" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f docs/sbom/vuln-summary.json ]; then
+            jq -r '"- Verdict: **\(.verdict)**",
+                   "- Findings: \(.total_findings) (critical \(.severity_totals.critical), high \(.severity_totals.high), unspecified \(.severity_totals.unspecified))",
+                   "- Ecosystems: scanned \(.ecosystems_scanned), clean \(.ecosystems_clean), findings \(.ecosystems_with_findings), not-run \(.ecosystems_not_run)"' \
+              docs/sbom/vuln-summary.json >> "$GITHUB_STEP_SUMMARY"
+          fi

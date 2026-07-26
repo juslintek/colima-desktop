@@ -1,0 +1,135 @@
+name: release-candidate
+
+# Single RELEASE-CANDIDATE gate (R7 / task 12.5, Requirement 11.6).
+#
+# "WHEN a release candidate is prepared, THE Verification_Program SHALL require the Verify_Script,
+#  all 9 frontends.yml jobs, and test.yml to pass." This workflow makes that concrete AND adds the
+# rest of the R7 hardening gates, so a v1 release (task 13 / R8) is gated on ALL of them being GREEN:
+#
+#   * frontends.yml  — 9 jobs: daemon x3, tui x3, windows-winui, linux-gtk4, macos-kit
+#                       (native WinUI 3 / GTK 4 compiles run on their real runners here)
+#   * test.yml       — macOS build + unit + integration
+#   * security-scan  — SBOMs + zero known CRITICAL vulnerabilities (task 12.2)
+#   * verify.sh      — every runnable layer GREEN + coverage >= COV_MIN + Go stream-safety (task 12.1)
+#   * perf-budgets   — startup / idle-resource / large-list budgets within budget (task 12.3)
+#   * check-a11y     — cross-frontend accessibility-identifier totality + uniqueness (task 12.4)
+#
+# frontends.yml / test.yml / security-scan.yml are invoked as REUSABLE workflows (they each expose a
+# `workflow_call` trigger), so their jobs run as part of this gate and their result flows into the
+# final `rc-gate` job. The same aggregation runs locally via `make rc-gate` (scripts/rc-gate.sh).
+# See docs/release-candidate-gate.md.
+
+on:
+  # A release candidate is "prepared" when a version tag is pushed, or on demand.
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+  # Allow the release pipeline (task 13) to require this gate as a reusable workflow.
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ── The 9 frontends.yml jobs (daemon x3, tui x3, windows-winui, linux-gtk4, macos-kit) ──
+  frontends:
+    uses: ./.github/workflows/frontends.yml
+
+  # ── macOS build + unit + integration ──
+  tests:
+    uses: ./.github/workflows/test.yml
+
+  # ── SBOMs + zero-critical vulnerability gate (task 12.2) ──
+  security:
+    uses: ./.github/workflows/security-scan.yml
+
+  # ── Verify_Script: GREEN + coverage + Go stream-safety (task 12.1) ──
+  verify-script:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      # verify.sh is honest about env-blocked layers (marks absent toolchains "n/a — CI
+      # authoritative") and HARD-fails on any real local failure, coverage < COV_MIN, or a Go
+      # race/leak/cancellation regression. On this runner it gates macOS build+tests+coverage
+      # and the Go daemon/tui layers.
+      - name: Run verify.sh (scoreboard + hard gates)
+        run: bash scripts/verify.sh
+
+  # ── Perf budgets + cross-frontend a11y identifiers (tasks 12.3 / 12.4) ──
+  hardening-gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      # Cross-frontend accessibility-identifier totality + within-surface uniqueness +
+      # canonical-surface consistency + shared-id non-collision across macOS/Windows/Linux/TUI.
+      - name: Accessibility-identifier gate (Property 17)
+        run: python3 scripts/check-a11y-ids.py --report
+      # Performance budgets: consume the committed docs/performance-budgets.json; a non-load
+      # over-budget fails, an under-load over-budget is a warning (Requirement 11.5 intent).
+      - name: Performance-budget gate
+        run: bash scripts/perf-budgets.sh --check
+
+  # ── P0/P1 release-blocking defect gate (task 13.4 / Requirement 12.5, design Property 22) ──
+  # Blocks the release IFF any OPEN defect in docs/release-defects.json is priority P0/P1 (also
+  # auto-ingests docs/sbom/vuln-summary.json: critical->P0, high->P1). Complementary to the gates
+  # above; feeds the aggregated rc-gate verdict so a release candidate cannot be GREEN with an open
+  # P0/P1. The publish pipeline (release.yml, task 13.6) runs the same gate directly.
+  defect-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Release-blocking P0/P1 defect gate
+        run: bash scripts/release-blocking-gate.sh
+
+  # ── Aggregated verdict: RC is GREEN only when every gate above succeeded ──
+  rc-gate:
+    needs: [frontends, tests, security, verify-script, hardening-gates, defect-gate]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Aggregate release-candidate verdict
+        env:
+          R_FRONTENDS: ${{ needs.frontends.result }}
+          R_TESTS: ${{ needs.tests.result }}
+          R_SECURITY: ${{ needs.security.result }}
+          R_VERIFY: ${{ needs.verify-script.result }}
+          R_HARDENING: ${{ needs.hardening-gates.result }}
+          R_DEFECTS: ${{ needs.defect-gate.result }}
+        run: |
+          echo "## Release-candidate gate" >> "$GITHUB_STEP_SUMMARY"
+          printf '| gate | result |\n|------|--------|\n' >> "$GITHUB_STEP_SUMMARY"
+          fail=0
+          for pair in \
+            "frontends.yml (9 jobs):$R_FRONTENDS" \
+            "test.yml:$R_TESTS" \
+            "security-scan (zero critical):$R_SECURITY" \
+            "verify.sh (GREEN+coverage+stream-safety):$R_VERIFY" \
+            "perf+a11y hardening:$R_HARDENING" \
+            "P0/P1 defect gate:$R_DEFECTS"; do
+            name="${pair%%:*}"; res="${pair##*:}"
+            printf '| %s | %s |\n' "$name" "$res" >> "$GITHUB_STEP_SUMMARY"
+            echo "$name -> $res"
+            if [ "$res" != "success" ]; then fail=1; fi
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo "RESULT: RC-GATE NOT GREEN — task 13 (release) is BLOCKED"
+            echo "**RESULT: RC-GATE NOT GREEN — release blocked**" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "RESULT: RC-GATE GREEN — task 13 (release) may proceed"
+          echo "**RESULT: RC-GATE GREEN — release may proceed**" >> "$GITHUB_STEP_SUMMARY"
