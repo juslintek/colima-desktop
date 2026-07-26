@@ -65,7 +65,7 @@ type ColimaServiceClient interface {
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Status(ctx context.Context, in *StatusRequest, opts ...grpc.CallOption) (*VMStatus, error)
 	Version(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*VersionResponse, error)
-	Update(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*StatusResponse, error)
+	Update(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	Prune(ctx context.Context, in *PruneRequest, opts ...grpc.CallOption) (*StatusResponse, error)
 	// SSH
 	SSHConfig(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*SSHConfigResponse, error)
@@ -213,7 +213,7 @@ func (c *colimaServiceClient) Version(ctx context.Context, in *Empty, opts ...gr
 	return out, nil
 }
 
-func (c *colimaServiceClient) Update(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*StatusResponse, error) {
+func (c *colimaServiceClient) Update(ctx context.Context, in *ProfileRequest, opts ...grpc.CallOption) (*StatusResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(StatusResponse)
 	err := c.cc.Invoke(ctx, ColimaService_Update_FullMethodName, in, out, cOpts...)
@@ -545,7 +545,7 @@ type ColimaServiceServer interface {
 	Delete(context.Context, *DeleteRequest) (*StatusResponse, error)
 	Status(context.Context, *StatusRequest) (*VMStatus, error)
 	Version(context.Context, *Empty) (*VersionResponse, error)
-	Update(context.Context, *Empty) (*StatusResponse, error)
+	Update(context.Context, *ProfileRequest) (*StatusResponse, error)
 	Prune(context.Context, *PruneRequest) (*StatusResponse, error)
 	// SSH
 	SSHConfig(context.Context, *ProfileRequest) (*SSHConfigResponse, error)
@@ -602,7 +602,7 @@ func (UnimplementedColimaServiceServer) Status(context.Context, *StatusRequest) 
 func (UnimplementedColimaServiceServer) Version(context.Context, *Empty) (*VersionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Version not implemented")
 }
-func (UnimplementedColimaServiceServer) Update(context.Context, *Empty) (*StatusResponse, error) {
+func (UnimplementedColimaServiceServer) Update(context.Context, *ProfileRequest) (*StatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedColimaServiceServer) Prune(context.Context, *PruneRequest) (*StatusResponse, error) {
@@ -805,7 +805,7 @@ func _ColimaService_Version_Handler(srv interface{}, ctx context.Context, dec fu
 }
 
 func _ColimaService_Update_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Empty)
+	in := new(ProfileRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -817,7 +817,7 @@ func _ColimaService_Update_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: ColimaService_Update_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ColimaServiceServer).Update(ctx, req.(*Empty))
+		return srv.(ColimaServiceServer).Update(ctx, req.(*ProfileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

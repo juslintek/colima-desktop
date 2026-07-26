@@ -13,7 +13,7 @@ service ColimaService {
   rpc Delete(DeleteRequest) returns (StatusResponse);
   rpc Status(StatusRequest) returns (VMStatus);
   rpc Version(Empty) returns (VersionResponse);
-  rpc Update(Empty) returns (StatusResponse);
+  rpc Update(ProfileRequest) returns (StatusResponse);
   rpc Prune(PruneRequest) returns (StatusResponse);
 
   // SSH
@@ -126,6 +126,7 @@ message VersionResponse {
 
 message PruneRequest {
   bool all = 1;
+  string profile = 2;
 }
 
 // SSH
@@ -410,19 +411,27 @@ message RenameRequest {
   string id = 1;
   string new_name = 2;
   string profile = 3;
+  string host = 4;
+  bool wsl2 = 5;
 }
 message TagRequest {
   string name = 1;
   string repo = 2;
   string tag = 3;
   string profile = 4;
+  string host = 5;
+  bool wsl2 = 6;
 }
 message SearchRequest {
   string term = 1;
   string profile = 2;
+  string host = 3;
+  bool wsl2 = 4;
 }
 message NetworkContainerRequest {
   string network_id = 1;
   string container_id = 2;
   string profile = 3;
+  string host = 4;
+  bool wsl2 = 5;
 }
