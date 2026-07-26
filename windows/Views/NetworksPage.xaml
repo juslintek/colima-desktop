@@ -7,25 +7,25 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
         <TextBlock Grid.Row="0" Text="Networks" Style="{ThemeResource TitleTextBlockStyle}"
-                   AutomationProperties.Name="NetworksTitle" />
+                   AutomationProperties.AutomationId="NetworksTitle" AutomationProperties.Name="NetworksTitle" />
 
         <InfoBar Grid.Row="0" Margin="0,40,0,0"
-                 AutomationProperties.Name="NetworksErrorBanner"
+                 AutomationProperties.AutomationId="NetworksErrorBanner" AutomationProperties.Name="NetworksErrorBanner"
                  IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
-                 Severity="Error"
+                 AutomationProperties.LiveSetting="Assertive" Severity="Error"
                  Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                  Title="Error" />
 
         <!-- Toolbar -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
             <Button Content="Refresh"
-                    AutomationProperties.Name="BtnRefreshNetworks"
+                    AutomationProperties.AutomationId="BtnRefreshNetworks" AutomationProperties.Name="BtnRefreshNetworks"
                     Command="{x:Bind ViewModel.LoadCommand}" />
             <Button Content="Prune"
-                    AutomationProperties.Name="BtnPruneNetworks"
-                    Command="{x:Bind ViewModel.PruneNetworksCommand}" />
+                    AutomationProperties.AutomationId="BtnPruneNetworks" AutomationProperties.Name="BtnPruneNetworks"
+                    Click="PruneNetworks_Click" />
             <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                          AutomationProperties.Name="NetworksLoading"
+                          AutomationProperties.AutomationId="NetworksLoading" AutomationProperties.Name="NetworksLoading"
                           Width="24" Height="24" />
         </StackPanel>
 
@@ -37,9 +37,9 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Network List (JSON)" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="NetworkListHeader" />
+                               AutomationProperties.AutomationId="NetworkListHeader" AutomationProperties.Name="NetworkListHeader" />
                     <ScrollViewer Height="350">
-                        <TextBlock AutomationProperties.Name="NetworkListJson"
+                        <TextBlock AutomationProperties.AutomationId="NetworkListJson" AutomationProperties.Name="NetworkListJson"
                                    Text="{x:Bind ViewModel.RawJson, Mode=OneWay}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
                                    TextWrapping="Wrap" FontSize="11" />
@@ -53,9 +53,9 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Detail" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="NetworkDetailHeader" />
+                               AutomationProperties.AutomationId="NetworkDetailHeader" AutomationProperties.Name="NetworkDetailHeader" />
                     <ScrollViewer Height="350">
-                        <TextBlock AutomationProperties.Name="NetworkDetailJson"
+                        <TextBlock AutomationProperties.AutomationId="NetworkDetailJson" AutomationProperties.Name="NetworkDetailJson"
                                    Text="{x:Bind ViewModel.DetailJson, Mode=OneWay}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
                                    TextWrapping="Wrap" FontSize="11" />
@@ -72,37 +72,37 @@
             <StackPanel Spacing="12">
                 <!-- Create -->
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBox AutomationProperties.Name="FieldNewNetworkName"
+                    <TextBox AutomationProperties.AutomationId="FieldNewNetworkName" AutomationProperties.Name="FieldNewNetworkName"
                              PlaceholderText="New network name"
                              Width="240"
                              Text="{x:Bind ViewModel.NewNetworkName, Mode=TwoWay}" />
                     <Button Content="Create"
-                            AutomationProperties.Name="BtnCreateNetwork"
+                            AutomationProperties.AutomationId="BtnCreateNetwork" AutomationProperties.Name="BtnCreateNetwork"
                             Command="{x:Bind ViewModel.CreateNetworkCommand}"
                             Style="{ThemeResource AccentButtonStyle}" />
                 </StackPanel>
                 <!-- Remove / Inspect -->
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBox x:Name="NetworkIdBox"
-                             AutomationProperties.Name="FieldNetworkId"
+                             AutomationProperties.AutomationId="FieldNetworkId" AutomationProperties.Name="FieldNetworkId"
                              PlaceholderText="Network ID"
                              Width="240" />
-                    <Button Content="Remove"  AutomationProperties.Name="BtnRemoveNetwork"  Click="RemoveNetwork_Click" />
-                    <Button Content="Inspect" AutomationProperties.Name="BtnInspectNetwork" Click="InspectNetwork_Click" />
+                    <Button Content="Remove"  AutomationProperties.AutomationId="BtnRemoveNetwork" AutomationProperties.Name="BtnRemoveNetwork"  Click="RemoveNetwork_Click" />
+                    <Button Content="Inspect" AutomationProperties.AutomationId="BtnInspectNetwork" AutomationProperties.Name="BtnInspectNetwork" Click="InspectNetwork_Click" />
                 </StackPanel>
                 <!-- Connect / Disconnect -->
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBox AutomationProperties.Name="FieldConnectNetworkId"
+                    <TextBox AutomationProperties.AutomationId="FieldConnectNetworkId" AutomationProperties.Name="FieldConnectNetworkId"
                              PlaceholderText="Network ID"
                              Width="200"
                              Text="{x:Bind ViewModel.ConnectNetworkId, Mode=TwoWay}" />
-                    <TextBox AutomationProperties.Name="FieldConnectContainerId"
+                    <TextBox AutomationProperties.AutomationId="FieldConnectContainerId" AutomationProperties.Name="FieldConnectContainerId"
                              PlaceholderText="Container ID"
                              Width="200"
                              Text="{x:Bind ViewModel.ConnectContainerId, Mode=TwoWay}" />
-                    <Button Content="Connect"    AutomationProperties.Name="BtnConnectNetwork"
+                    <Button Content="Connect"    AutomationProperties.AutomationId="BtnConnectNetwork" AutomationProperties.Name="BtnConnectNetwork"
                             Command="{x:Bind ViewModel.ConnectNetworkCommand}" />
-                    <Button Content="Disconnect" AutomationProperties.Name="BtnDisconnectNetwork"
+                    <Button Content="Disconnect" AutomationProperties.AutomationId="BtnDisconnectNetwork" AutomationProperties.Name="BtnDisconnectNetwork"
                             Command="{x:Bind ViewModel.DisconnectNetworkCommand}" />
                 </StackPanel>
             </StackPanel>

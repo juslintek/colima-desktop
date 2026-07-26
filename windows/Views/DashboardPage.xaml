@@ -9,13 +9,13 @@
     <ScrollViewer Padding="24">
         <StackPanel Spacing="16">
             <TextBlock Text="Dashboard" Style="{ThemeResource TitleTextBlockStyle}"
-                       AutomationProperties.Name="DashboardTitle" />
+                       AutomationProperties.AutomationId="DashboardTitle" AutomationProperties.Name="DashboardTitle" />
 
             <!-- Status Banner -->
             <InfoBar x:Name="ErrorBar"
-                     AutomationProperties.Name="ErrorBanner"
+                     AutomationProperties.AutomationId="ErrorBanner" AutomationProperties.Name="ErrorBanner"
                      IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
-                     Severity="Error"
+                     AutomationProperties.LiveSetting="Assertive" Severity="Error"
                      Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                      Title="Error" />
 
@@ -24,19 +24,19 @@
                     CornerRadius="8" Padding="20" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
                     <TextBlock Text="VM Status" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="VMStatusHeader" />
+                               AutomationProperties.AutomationId="VMStatusHeader" AutomationProperties.Name="VMStatusHeader" />
                     <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                                  AutomationProperties.Name="LoadingIndicator" />
+                                  AutomationProperties.AutomationId="LoadingIndicator" AutomationProperties.Name="LoadingIndicator" />
                     <StackPanel Spacing="6" Visibility="{x:Bind ViewModel.VmStatus, Mode=OneWay, Converter={StaticResource NullToVisibilityConverter}}">
-                        <TextBlock AutomationProperties.Name="VMStatusRunning"
+                        <TextBlock AutomationProperties.AutomationId="VMStatusRunning" AutomationProperties.Name="VMStatusRunning"
                                    Text="{x:Bind ViewModel.VmStatus.Running, Mode=OneWay, Converter={StaticResource BoolToStatusConverter}, FallbackValue=''}" />
-                        <TextBlock AutomationProperties.Name="VMStatusName"
+                        <TextBlock AutomationProperties.AutomationId="VMStatusName" AutomationProperties.Name="VMStatusName"
                                    Text="{x:Bind ViewModel.VmStatus.DisplayName, Mode=OneWay, FallbackValue=''}" />
-                        <TextBlock AutomationProperties.Name="VMStatusRuntime"
+                        <TextBlock AutomationProperties.AutomationId="VMStatusRuntime" AutomationProperties.Name="VMStatusRuntime"
                                    Text="{x:Bind ViewModel.VmStatus.Runtime, Mode=OneWay, FallbackValue=''}" />
-                        <TextBlock AutomationProperties.Name="VMStatusArch"
+                        <TextBlock AutomationProperties.AutomationId="VMStatusArch" AutomationProperties.Name="VMStatusArch"
                                    Text="{x:Bind ViewModel.VmStatus.Arch, Mode=OneWay, FallbackValue=''}" />
-                        <TextBlock AutomationProperties.Name="VMStatusIP"
+                        <TextBlock AutomationProperties.AutomationId="VMStatusIP" AutomationProperties.Name="VMStatusIP"
                                    Text="{x:Bind ViewModel.VmStatus.IpAddress, Mode=OneWay, FallbackValue=''}" />
                     </StackPanel>
                 </StackPanel>
@@ -47,17 +47,23 @@
                     CornerRadius="8" Padding="20" BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Orientation="Horizontal" Spacing="12">
                     <Button Content="Start"
-                            AutomationProperties.Name="BtnStartVM"
+                            AutomationProperties.AutomationId="BtnStartVM" AutomationProperties.Name="BtnStartVM"
                             Command="{x:Bind ViewModel.StartCommand}"
                             Style="{ThemeResource AccentButtonStyle}" />
                     <Button Content="Stop"
-                            AutomationProperties.Name="BtnStopVM"
+                            AutomationProperties.AutomationId="BtnStopVM" AutomationProperties.Name="BtnStopVM"
                             Command="{x:Bind ViewModel.StopCommand}" />
                     <Button Content="Restart"
-                            AutomationProperties.Name="BtnRestartVM"
+                            AutomationProperties.AutomationId="BtnRestartVM" AutomationProperties.Name="BtnRestartVM"
                             Command="{x:Bind ViewModel.RestartCommand}" />
+                    <Button Content="Cancel operation"
+                            AutomationProperties.AutomationId="BtnCancelVMLifecycle" AutomationProperties.Name="BtnCancelVMLifecycle"
+                            Command="{x:Bind ViewModel.CancelLifecycleCommand}" />
+                    <Button Content="Delete VM"
+                            AutomationProperties.AutomationId="BtnDeleteVM" AutomationProperties.Name="BtnDeleteVM"
+                            Click="DeleteVm_Click" />
                     <Button Content="SSH Config"
-                            AutomationProperties.Name="BtnSSHConfig"
+                            AutomationProperties.AutomationId="BtnSSHConfig" AutomationProperties.Name="BtnSSHConfig"
                             Command="{x:Bind ViewModel.ShowSshConfigCommand}" />
                 </StackPanel>
             </Border>
@@ -65,11 +71,11 @@
             <!-- Progress -->
             <StackPanel Spacing="8"
                         Visibility="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                <TextBlock AutomationProperties.Name="ProgressMessage"
+                <TextBlock AutomationProperties.AutomationId="ProgressMessage" AutomationProperties.Name="ProgressMessage"
                            Text="{x:Bind ViewModel.ProgressMessage, Mode=OneWay}" />
                 <ProgressBar Value="{x:Bind ViewModel.ProgressValue, Mode=OneWay}"
                              Maximum="1"
-                             AutomationProperties.Name="ProgressBar" />
+                             AutomationProperties.AutomationId="ProgressBar" AutomationProperties.Name="ProgressBar" />
             </StackPanel>
 
             <!-- SSH Config Panel -->
@@ -78,18 +84,18 @@
                     Visibility="{x:Bind ViewModel.SshConfig, Mode=OneWay, Converter={StaticResource EmptyStringToVisibilityConverter}}">
                 <StackPanel Spacing="8">
                     <TextBlock Text="SSH Config" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="SSHConfigHeader" />
+                               AutomationProperties.AutomationId="SSHConfigHeader" AutomationProperties.Name="SSHConfigHeader" />
                     <ScrollViewer Height="120">
                         <TextBlock Text="{x:Bind ViewModel.SshConfig, Mode=OneWay}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
-                                   AutomationProperties.Name="SSHConfigText"
+                                   AutomationProperties.AutomationId="SSHConfigText" AutomationProperties.Name="SSHConfigText"
                                    TextWrapping="Wrap" />
                     </ScrollViewer>
                 </StackPanel>
             </Border>
 
             <!-- Version Info -->
-            <TextBlock AutomationProperties.Name="VersionInfo"
+            <TextBlock AutomationProperties.AutomationId="VersionInfo" AutomationProperties.Name="VersionInfo"
                        Text="{x:Bind ViewModel.Version.Version, Mode=OneWay, FallbackValue=''}"
                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
         </StackPanel>

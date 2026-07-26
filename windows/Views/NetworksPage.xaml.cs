@@ -11,6 +11,8 @@ public sealed partial class NetworksPage : Page
     public NetworksPage()
     {
         InitializeComponent();
+        ViewModel.DestructiveConfirmationHandler = action =>
+            DestructiveConfirmationDialog.ShowAsync(XamlRoot, action);
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -19,12 +21,16 @@ public sealed partial class NetworksPage : Page
         await ViewModel.LoadAsync();
     }
 
-    private async void RemoveNetwork_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    // RemoveNetwork/PruneNetworks commands present the accessible confirmation themselves.
+    private void RemoveNetwork_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         var id = NetworkIdBox.Text.Trim();
         if (!string.IsNullOrEmpty(id))
-            await ViewModel.RemoveNetworkCommand.ExecuteAsync(id);
+            ViewModel.RemoveNetworkCommand.Execute(id);
     }
+
+    private void PruneNetworks_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) =>
+        ViewModel.PruneNetworksCommand.Execute(null);
 
     private async void InspectNetwork_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {

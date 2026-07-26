@@ -11,19 +11,31 @@ public partial class App : Application
     public static DaemonClient DaemonClient { get; private set; } = null!;
     public static ConnectionSettings ConnectionSettings { get; private set; } = null!;
     public static DependencyManager DependencyManager { get; private set; } = null!;
+    public static DaemonConnectionManager DaemonConnectionManager { get; private set; } = null!;
 
     public App()
     {
         InitializeComponent();
     }
 
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override async void OnLaunched(LaunchActivatedEventArgs args)
     {
         ConnectionSettings = new ConnectionSettings();
         DaemonClient = new DaemonClient(ConnectionSettings.DaemonAddress);
         DependencyManager = new DependencyManager();
+        DaemonConnectionManager = new DaemonConnectionManager();
 
         _window = new MainWindow();
+        _window.Closed += (_, _) =>
+        {
+            DaemonConnectionManager.Dispose();
+            DaemonClient.Dispose();
+        };
         _window.Activate();
+
+        // A failed health check leaves a clear disconnected state; launch remains usable so the
+        // user can repair settings/dependencies.
+        await DaemonConnectionManager.ConnectAsync(
+            DaemonClient, ConnectionSettings, DependencyManager, allowTrustedLocalStart: true);
     }
 }

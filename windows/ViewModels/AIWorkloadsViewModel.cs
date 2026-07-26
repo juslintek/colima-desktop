@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ColimaDesktop.Windows.Services;
 
 namespace ColimaDesktop.Windows.ViewModels;
 
@@ -22,47 +23,62 @@ public sealed partial class AIWorkloadsViewModel : ViewModelBase
     [ObservableProperty] private string _runOutput = string.Empty;
     [ObservableProperty] private string _statusMessage = string.Empty;
 
-    [RelayCommand]
+    [RelayCommand(IncludeCancelCommand = true)]
     private async Task SetupModelAsync(CancellationToken ct = default)
     {
-        IsProgressVisible = true;
-        ProgressMessage = $"Setting up {ModelName}…";
-        ProgressValue = 0;
-        RunOutput = string.Empty;
-        try
+        await RunAsync(async token =>
         {
-            using var call = Client.ModelSetupStream(Settings.ActiveProfile, Runner);
-            await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
+            IsProgressVisible = true;
+            ProgressMessage = $"Setting up {Runner}…";
+            ProgressValue = 0;
+            RunOutput = string.Empty;
+            var completed = false;
+            try
             {
-                ProgressMessage = evt.Message;
-                ProgressValue = evt.Progress;
-                if (evt.Done) break;
+                using var call = Client.ModelSetupStream(Settings.ActiveProfile, Runner, token);
+                await foreach (var rawEvent in call.ResponseStream.ReadAllAsync(token))
+                {
+                    var evt = DaemonResponse.EnsureProgress(rawEvent, "Set up model runner");
+                    ProgressMessage = evt.Message;
+                    ProgressValue = evt.Progress;
+                    if (evt.Done) { completed = true; break; }
+                }
+                if (!completed)
+                    throw new DaemonOperationException("Set up model runner", "the progress stream ended before completion");
+                StatusMessage = "Model runner setup complete.";
             }
-            StatusMessage = "Model setup complete.";
-        }
-        catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
-        finally { IsProgressVisible = false; }
+            finally { IsProgressVisible = false; }
+        }, ct);
     }
 
-    [RelayCommand]
+    [RelayCommand(IncludeCancelCommand = true)]
     private async Task RunModelAsync(CancellationToken ct = default)
     {
-        IsProgressVisible = true;
-        ProgressMessage = $"Running {ModelName}…";
-        ProgressValue = 0;
-        RunOutput = string.Empty;
-        try
+        await RunAsync(async token =>
         {
-            using var call = Client.ModelRunStream(Settings.ActiveProfile, ModelName, Runner, Prompt);
-            await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
+            IsProgressVisible = true;
+            ProgressMessage = $"Running {ModelName}…";
+            ProgressValue = 0;
+            RunOutput = string.Empty;
+            var completed = false;
+            try
             {
-                RunOutput += evt.Message;
-                ProgressValue = evt.Progress;
-                if (evt.Done) break;
+                using var call = Client.ModelRunStream(Settings.ActiveProfile, ModelName, Runner, Prompt, token);
+                await foreach (var rawEvent in call.ResponseStream.ReadAllAsync(token))
+                {
+                    var evt = DaemonResponse.EnsureProgress(rawEvent, "Run model");
+                    // Bound the accumulated model output so a long run cannot grow the retained UI
+                    // text without limit. Empty separator: model-token fragments concatenate directly
+                    // (identical rendering to `+=` for any run under the bound).
+                    RunOutput = StreamOutput.AppendBounded(RunOutput, evt.Message, separator: string.Empty);
+                    ProgressValue = evt.Progress;
+                    if (evt.Done) { completed = true; break; }
+                }
+                if (!completed)
+                    throw new DaemonOperationException("Run model", "the progress stream ended before completion");
             }
-        }
-        catch (Exception ex) { StatusMessage = $"Error: {ex.Message}"; }
-        finally { IsProgressVisible = false; }
+            finally { IsProgressVisible = false; }
+        }, ct);
     }
 
     [RelayCommand]
@@ -80,4 +96,11 @@ public sealed partial class AIWorkloadsViewModel : ViewModelBase
             var resp = await Client.ModelStopAsync(Settings.ActiveProfile, t);
             StatusMessage = resp.Success ? "Model stopped." : $"Error: {resp.Error}";
         });
+
+    [RelayCommand]
+    private void CancelModelOperation()
+    {
+        SetupModelCommand.Cancel();
+        RunModelCommand.Cancel();
+    }
 }

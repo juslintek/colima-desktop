@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Colimaui;
+using Grpc.Core;
+using ColimaDesktop.Windows.Services;
 
 namespace ColimaDesktop.Windows.ViewModels;
 
@@ -18,39 +20,51 @@ public sealed partial class MonitoringViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private bool _isStreaming;
 
-    private CancellationTokenSource? _streamCts;
+    private StreamLifetime? _streamLifetime;
 
     public override Task LoadAsync(CancellationToken ct = default) =>
-        RunAsync(async t =>
-        {
-            Processes = await Client.ProcessListAsync(Settings.ActiveProfile, t);
-        }, ct);
+        RunAsync(t => LoadProcessesCoreAsync(ConnectionSettings.NormalizeProfile(Settings.ActiveProfile), t), ct);
+
+    private async Task LoadProcessesCoreAsync(string profile, CancellationToken t)
+    {
+        Processes = await Client.ProcessListAsync(profile, t);
+    }
 
     [RelayCommand]
     private async Task StartStatsStreamAsync()
     {
         if (IsStreaming) return;
         IsStreaming = true;
-        _streamCts = new CancellationTokenSource();
-        var ct = _streamCts.Token;
+        _streamLifetime = new StreamLifetime();
+        var ct = _streamLifetime.Token;
         try
         {
-            using var call = Client.VMStatsStream(Settings.ActiveProfile);
+            var profile = ConnectionSettings.NormalizeProfile(Settings.ActiveProfile);
+            using var call = Client.VMStatsStream(profile, ct);
             await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
             {
                 LatestStats = evt;
             }
         }
-        catch (OperationCanceledException) { }
+        catch (OperationCanceledException) { StatusMessage = "Stats stream stopped."; }
+        catch (RpcException ex) when (ct.IsCancellationRequested && ex.StatusCode == StatusCode.Cancelled)
+        {
+            StatusMessage = "Stats stream stopped.";
+        }
         catch (Exception ex) { StatusMessage = $"Stream error: {ex.Message}"; }
-        finally { IsStreaming = false; }
+        finally
+        {
+            var streamLifetime = _streamLifetime;
+            _streamLifetime = null;
+            streamLifetime?.Dispose();
+            IsStreaming = false;
+        }
     }
 
     [RelayCommand]
     private void StopStatsStream()
     {
-        _streamCts?.Cancel();
-        _streamCts = null;
+        _streamLifetime?.Cancel();
     }
 
     [RelayCommand]
@@ -58,10 +72,14 @@ public sealed partial class MonitoringViewModel : ViewModelBase
 
     [RelayCommand]
     private Task KillProcessAsync(int pid) =>
-        RunAsync(async t =>
-        {
-            var resp = await Client.KillProcessAsync(Settings.ActiveProfile, pid, ct: t);
-            StatusMessage = resp.Success ? $"Process {pid} killed." : $"Error: {resp.Error}";
-            await LoadAsync(t);
-        });
+        RunDestructiveAsync(
+            new DestructiveAction("KillProcess", $"kill process {pid}",
+                $"Process {pid} in the selected profile will receive SIGKILL.", "Kill"),
+            async t =>
+            {
+                var profile = ConnectionSettings.NormalizeProfile(Settings.ActiveProfile);
+                var resp = await Client.KillProcessAsync(profile, pid, ct: t);
+                StatusMessage = resp.Success ? $"Process {pid} killed." : $"Error: {resp.Error}";
+                await LoadProcessesCoreAsync(profile, t);
+            });
 }

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Google.Protobuf" Version="3.27.1" />
+    <PackageReference Include="Grpc.Core.Api" Version="2.63.0" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.63.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.64.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.10.0" />
+    <PackageReference Include="xunit" Version="2.9.0" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Grpc.Core" />
+  </ItemGroup>
+  <ItemGroup>
+    <Protobuf Include="../Proto/colima_ui.proto" GrpcServices="Client" Link="Proto/colima_ui.proto" />
+    <Compile Include="../Services/ConnectionSettings.cs" Link="Production/ConnectionSettings.cs" />
+    <Compile Include="../Services/DaemonEndpoint.cs" Link="Production/DaemonEndpoint.cs" />
+    <Compile Include="../Services/IDaemonClient.cs" Link="Production/IDaemonClient.cs" />
+    <Compile Include="../Services/DaemonClient.cs" Link="Production/DaemonClient.cs" />
+    <Compile Include="../Services/DaemonConnectionManager.cs" Link="Production/DaemonConnectionManager.cs" />
+    <Compile Include="../Services/DaemonOperation.cs" Link="Production/DaemonOperation.cs" />
+    <Compile Include="../Services/DaemonRequestFactory.cs" Link="Production/DaemonRequestFactory.cs" />
+    <Compile Include="../Services/DependencyManager.cs" Link="Production/DependencyManager.cs" />
+    <Compile Include="../ViewModels/*.cs" Link="Production/ViewModels/%(Filename)%(Extension)" />
+  </ItemGroup>
+</Project>

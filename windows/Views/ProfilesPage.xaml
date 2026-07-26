@@ -7,17 +7,17 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
         <TextBlock Grid.Row="0" Text="Profiles" Style="{ThemeResource TitleTextBlockStyle}"
-                   AutomationProperties.Name="ProfilesTitle" />
+                   AutomationProperties.AutomationId="ProfilesTitle" AutomationProperties.Name="ProfilesTitle" />
 
         <InfoBar Grid.Row="0" Margin="0,40,0,0"
-                 AutomationProperties.Name="ProfilesErrorBanner"
+                 AutomationProperties.AutomationId="ProfilesErrorBanner" AutomationProperties.Name="ProfilesErrorBanner"
                  IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
-                 Severity="Error"
+                 AutomationProperties.LiveSetting="Assertive" Severity="Error"
                  Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                  Title="Error" />
 
         <InfoBar Grid.Row="0" Margin="0,80,0,0"
-                 AutomationProperties.Name="ProfilesStatusBanner"
+                 AutomationProperties.AutomationId="ProfilesStatusBanner" AutomationProperties.Name="ProfilesStatusBanner"
                  IsOpen="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource NonEmptyToBoolConverter}}"
                  Severity="Informational"
                  Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
@@ -25,10 +25,10 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
             <Button Content="Refresh"
-                    AutomationProperties.Name="BtnRefreshProfiles"
+                    AutomationProperties.AutomationId="BtnRefreshProfiles" AutomationProperties.Name="BtnRefreshProfiles"
                     Command="{x:Bind ViewModel.LoadCommand}" />
             <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                          AutomationProperties.Name="ProfilesLoading"
+                          AutomationProperties.AutomationId="ProfilesLoading" AutomationProperties.Name="ProfilesLoading"
                           Width="24" Height="24" />
         </StackPanel>
 
@@ -39,8 +39,8 @@
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
             <StackPanel Spacing="8">
                 <TextBlock Text="Profiles" Style="{ThemeResource SubtitleTextBlockStyle}"
-                           AutomationProperties.Name="ProfileListHeader" />
-                <ItemsRepeater AutomationProperties.Name="ProfileList"
+                           AutomationProperties.AutomationId="ProfileListHeader" AutomationProperties.Name="ProfileListHeader" />
+                <ItemsRepeater AutomationProperties.AutomationId="ProfileList" AutomationProperties.Name="ProfileList"
                                ItemsSource="{x:Bind ViewModel.Profiles.Profiles, Mode=OneWay}">
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate>
@@ -49,16 +49,16 @@
                                   BorderThickness="0,0,0,1">
                                 <TextBlock Grid.Column="0" Text="{Binding Name}"
                                            VerticalAlignment="Center"
-                                           AutomationProperties.Name="ProfileName" />
+                                           AutomationProperties.AutomationId="ProfileName" AutomationProperties.Name="ProfileName" />
                                 <TextBlock Grid.Column="1" Text="{Binding Status}"
                                            Width="80" VerticalAlignment="Center"
-                                           AutomationProperties.Name="ProfileStatus" />
+                                           AutomationProperties.AutomationId="ProfileStatus" AutomationProperties.Name="ProfileStatus" />
                                 <Button Grid.Column="2" Content="Select"
-                                        AutomationProperties.Name="BtnSelectProfile"
+                                        AutomationProperties.AutomationId="BtnSelectProfile" AutomationProperties.Name="BtnSelectProfile"
                                         Click="SelectProfile_Click" Tag="{Binding Name}"
                                         Margin="4,0" />
                                 <Button Grid.Column="3" Content="Delete"
-                                        AutomationProperties.Name="BtnDeleteProfile"
+                                        AutomationProperties.AutomationId="BtnDeleteProfile" AutomationProperties.Name="BtnDeleteProfile"
                                         Click="DeleteProfile_Click" Tag="{Binding Name}"
                                         Margin="4,0" />
                             </Grid>
@@ -76,28 +76,28 @@
             <StackPanel Spacing="12">
                 <!-- Create -->
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBox AutomationProperties.Name="FieldNewProfileName"
+                    <TextBox AutomationProperties.AutomationId="FieldNewProfileName" AutomationProperties.Name="FieldNewProfileName"
                              PlaceholderText="New profile name"
                              Width="240"
                              Text="{x:Bind ViewModel.NewProfileName, Mode=TwoWay}" />
                     <Button Content="Create"
-                            AutomationProperties.Name="BtnCreateProfile"
+                            AutomationProperties.AutomationId="BtnCreateProfile" AutomationProperties.Name="BtnCreateProfile"
                             Command="{x:Bind ViewModel.CreateProfileCommand}"
                             Style="{ThemeResource AccentButtonStyle}" />
                 </StackPanel>
                 <!-- Clone -->
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBox AutomationProperties.Name="FieldCloneSource"
+                    <TextBox AutomationProperties.AutomationId="FieldCloneSource" AutomationProperties.Name="FieldCloneSource"
                              PlaceholderText="Source profile"
                              Width="200"
                              Text="{x:Bind ViewModel.CloneSource, Mode=TwoWay}" />
                     <TextBlock Text="→" VerticalAlignment="Center" />
-                    <TextBox AutomationProperties.Name="FieldCloneDestination"
+                    <TextBox AutomationProperties.AutomationId="FieldCloneDestination" AutomationProperties.Name="FieldCloneDestination"
                              PlaceholderText="Destination name"
                              Width="200"
                              Text="{x:Bind ViewModel.CloneDestination, Mode=TwoWay}" />
                     <Button Content="Clone"
-                            AutomationProperties.Name="BtnCloneProfile"
+                            AutomationProperties.AutomationId="BtnCloneProfile" AutomationProperties.Name="BtnCloneProfile"
                             Command="{x:Bind ViewModel.CloneProfileCommand}" />
                 </StackPanel>
             </StackPanel>

@@ -8,15 +8,15 @@
     <ScrollViewer Padding="24">
         <StackPanel Spacing="16" MaxWidth="700">
             <TextBlock Text="AI Workloads" Style="{ThemeResource TitleTextBlockStyle}"
-                       AutomationProperties.Name="AIWorkloadsTitle" />
+                       AutomationProperties.AutomationId="AIWorkloadsTitle" AutomationProperties.Name="AIWorkloadsTitle" />
 
-            <InfoBar AutomationProperties.Name="AIErrorBanner"
+            <InfoBar AutomationProperties.AutomationId="AIErrorBanner" AutomationProperties.Name="AIErrorBanner"
                      IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
-                     Severity="Error"
+                     AutomationProperties.LiveSetting="Assertive" Severity="Error"
                      Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                      Title="Error" />
 
-            <InfoBar AutomationProperties.Name="AIStatusBanner"
+            <InfoBar AutomationProperties.AutomationId="AIStatusBanner" AutomationProperties.Name="AIStatusBanner"
                      IsOpen="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource NonEmptyToBoolConverter}}"
                      Severity="Informational"
                      Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
@@ -28,20 +28,20 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Model" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="AIModelHeader" />
+                               AutomationProperties.AutomationId="AIModelHeader" AutomationProperties.Name="AIModelHeader" />
                     <Grid ColumnDefinitions="100,*" RowDefinitions="Auto,Auto" RowSpacing="8">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Model name" VerticalAlignment="Center"
-                                   AutomationProperties.Name="LabelModelName" />
+                                   AutomationProperties.AutomationId="LabelModelName" AutomationProperties.Name="LabelModelName" />
                         <TextBox Grid.Row="0" Grid.Column="1"
-                                 AutomationProperties.Name="FieldModelName"
+                                 AutomationProperties.AutomationId="FieldModelName" AutomationProperties.Name="FieldModelName"
                                  PlaceholderText="e.g. llama3.2"
                                  Text="{x:Bind ViewModel.ModelName, Mode=TwoWay}" />
 
                         <TextBlock Grid.Row="1" Grid.Column="0" Text="Runner" VerticalAlignment="Center"
-                                   AutomationProperties.Name="LabelRunner" />
+                                   AutomationProperties.AutomationId="LabelRunner" AutomationProperties.Name="LabelRunner" />
                         <ComboBox Grid.Row="1" Grid.Column="1"
                                   x:Name="RunnerCombo"
-                                  AutomationProperties.Name="FieldRunner"
+                                  AutomationProperties.AutomationId="FieldRunner" AutomationProperties.Name="FieldRunner"
                                   SelectionChanged="RunnerCombo_SelectionChanged"
                                   HorizontalAlignment="Stretch">
                             <ComboBoxItem Content="docker" Tag="docker" />
@@ -57,37 +57,40 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Actions" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="AIActionsHeader" />
+                               AutomationProperties.AutomationId="AIActionsHeader" AutomationProperties.Name="AIActionsHeader" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Setup / Pull"
-                                AutomationProperties.Name="BtnModelSetup"
+                        <Button Content="Setup runner"
+                                AutomationProperties.AutomationId="BtnModelSetup" AutomationProperties.Name="BtnModelSetup"
                                 Command="{x:Bind ViewModel.SetupModelCommand}"
                                 Style="{ThemeResource AccentButtonStyle}" />
                         <Button Content="Run"
-                                AutomationProperties.Name="BtnModelRun"
+                                AutomationProperties.AutomationId="BtnModelRun" AutomationProperties.Name="BtnModelRun"
                                 Command="{x:Bind ViewModel.RunModelCommand}" />
                         <Button Content="Stop"
-                                AutomationProperties.Name="BtnModelStop"
+                                AutomationProperties.AutomationId="BtnModelStop" AutomationProperties.Name="BtnModelStop"
                                 Command="{x:Bind ViewModel.StopModelCommand}" />
+                        <Button Content="Cancel operation"
+                                AutomationProperties.AutomationId="BtnCancelModelOperation" AutomationProperties.Name="BtnCancelModelOperation"
+                                Command="{x:Bind ViewModel.CancelModelOperationCommand}" />
                     </StackPanel>
 
                     <!-- Serve -->
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <NumberBox AutomationProperties.Name="FieldServePort"
+                        <NumberBox AutomationProperties.AutomationId="FieldServePort" AutomationProperties.Name="FieldServePort"
                                    Value="{x:Bind ViewModel.ServePort, Mode=TwoWay}"
                                    Minimum="1024" Maximum="65535"
                                    Header="Port" Width="160" />
                         <Button Content="Serve"
-                                AutomationProperties.Name="BtnModelServe"
+                                AutomationProperties.AutomationId="BtnModelServe" AutomationProperties.Name="BtnModelServe"
                                 Command="{x:Bind ViewModel.ServeModelCommand}" />
                     </StackPanel>
 
                     <!-- Progress -->
                     <StackPanel Spacing="4"
                                 Visibility="{x:Bind ViewModel.IsProgressVisible, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}">
-                        <TextBlock AutomationProperties.Name="AIProgressMessage"
+                        <TextBlock AutomationProperties.AutomationId="AIProgressMessage" AutomationProperties.Name="AIProgressMessage"
                                    Text="{x:Bind ViewModel.ProgressMessage, Mode=OneWay}" />
-                        <ProgressBar AutomationProperties.Name="AIProgressBar"
+                        <ProgressBar AutomationProperties.AutomationId="AIProgressBar" AutomationProperties.Name="AIProgressBar"
                                      Value="{x:Bind ViewModel.ProgressValue, Mode=OneWay}" Maximum="1" />
                     </StackPanel>
                 </StackPanel>
@@ -99,8 +102,8 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Prompt" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="AIPromptHeader" />
-                    <TextBox AutomationProperties.Name="FieldPrompt"
+                               AutomationProperties.AutomationId="AIPromptHeader" AutomationProperties.Name="AIPromptHeader" />
+                    <TextBox AutomationProperties.AutomationId="FieldPrompt" AutomationProperties.Name="FieldPrompt"
                              PlaceholderText="Enter prompt (leave empty for interactive)"
                              AcceptsReturn="True"
                              Height="80"
@@ -114,9 +117,9 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Output" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="AIOutputHeader" />
+                               AutomationProperties.AutomationId="AIOutputHeader" AutomationProperties.Name="AIOutputHeader" />
                     <ScrollViewer Height="200">
-                        <TextBlock AutomationProperties.Name="AIOutputText"
+                        <TextBlock AutomationProperties.AutomationId="AIOutputText" AutomationProperties.Name="AIOutputText"
                                    Text="{x:Bind ViewModel.RunOutput, Mode=OneWay}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
                                    TextWrapping="Wrap" FontSize="11" />

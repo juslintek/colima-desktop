@@ -21,37 +21,43 @@ public sealed partial class DashboardViewModel : ViewModelBase
     [ObservableProperty] private float _progressValue;
     [ObservableProperty] private bool _isProgressVisible;
 
-    public override async Task LoadAsync(CancellationToken ct = default)
+    public override Task LoadAsync(CancellationToken ct = default) => RunAsync(LoadCoreAsync, ct);
+
+    private Task LoadCoreAsync(CancellationToken token) =>
+        LoadCoreAsync(ConnectionSettings.NormalizeProfile(Settings.ActiveProfile), token);
+
+    private async Task LoadCoreAsync(string profile, CancellationToken token)
+    {
+        VmStatus = await Client.StatusAsync(profile, token);
+        Version = await Client.VersionAsync(token);
+    }
+
+    [RelayCommand(IncludeCancelCommand = true)]
+    private async Task StartAsync(CancellationToken ct = default)
     {
         await RunAsync(async token =>
         {
-            VmStatus = await Client.StatusAsync(Settings.ActiveProfile, token);
-            Version = await Client.VersionAsync(token);
-        }, ct);
-    }
-
-    [RelayCommand]
-    private async Task StartAsync(CancellationToken ct = default)
-    {
-        IsProgressVisible = true;
-        ProgressMessage = "Starting…";
-        ProgressValue = 0;
-        try
-        {
-            using var call = Client.StartStream(Settings.ActiveProfile);
-            await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
+            IsProgressVisible = true;
+            var profile = ConnectionSettings.NormalizeProfile(Settings.ActiveProfile);
+            ProgressMessage = "Starting…";
+            ProgressValue = 0;
+            var completed = false;
+            try
             {
-                ProgressMessage = evt.Message;
-                ProgressValue = evt.Progress;
-                if (evt.Done) break;
+                using var call = Client.StartStream(profile, ct: token);
+                await foreach (var rawEvent in call.ResponseStream.ReadAllAsync(token))
+                {
+                    var evt = DaemonResponse.EnsureProgress(rawEvent, "Start VM");
+                    ProgressMessage = evt.Message;
+                    ProgressValue = evt.Progress;
+                    if (evt.Done) { completed = true; break; }
+                }
+                if (!completed)
+                    throw new DaemonOperationException("Start VM", "the progress stream ended before completion");
+                await LoadCoreAsync(profile, token);
             }
-        }
-        catch { /* errors handled by gRPC status */ }
-        finally
-        {
-            IsProgressVisible = false;
-            await LoadAsync(ct);
-        }
+            finally { IsProgressVisible = false; }
+        }, ct);
     }
 
     [RelayCommand]
@@ -59,34 +65,51 @@ public sealed partial class DashboardViewModel : ViewModelBase
     {
         await RunAsync(async token =>
         {
-            await Client.StopAsync(Settings.ActiveProfile, ct: token);
-            await LoadAsync(token);
+            var profile = ConnectionSettings.NormalizeProfile(Settings.ActiveProfile);
+            await Client.StopAsync(profile, ct: token);
+            await LoadCoreAsync(profile, token);
+        }, ct);
+    }
+
+    [RelayCommand(IncludeCancelCommand = true)]
+    private async Task RestartAsync(CancellationToken ct = default)
+    {
+        await RunAsync(async token =>
+        {
+            IsProgressVisible = true;
+            var profile = ConnectionSettings.NormalizeProfile(Settings.ActiveProfile);
+            ProgressMessage = "Restarting…";
+            ProgressValue = 0;
+            var completed = false;
+            try
+            {
+                using var call = Client.RestartStream(profile, token);
+                await foreach (var rawEvent in call.ResponseStream.ReadAllAsync(token))
+                {
+                    var evt = DaemonResponse.EnsureProgress(rawEvent, "Restart VM");
+                    ProgressMessage = evt.Message;
+                    ProgressValue = evt.Progress;
+                    if (evt.Done) { completed = true; break; }
+                }
+                if (!completed)
+                    throw new DaemonOperationException("Restart VM", "the progress stream ended before completion");
+                await LoadCoreAsync(profile, token);
+            }
+            finally { IsProgressVisible = false; }
         }, ct);
     }
 
     [RelayCommand]
-    private async Task RestartAsync(CancellationToken ct = default)
-    {
-        IsProgressVisible = true;
-        ProgressMessage = "Restarting…";
-        ProgressValue = 0;
-        try
-        {
-            using var call = Client.RestartStream(Settings.ActiveProfile);
-            await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
+    private Task DeleteAsync(bool includeData = false, CancellationToken ct = default) =>
+        RunDestructiveAsync(
+            new DestructiveAction("DeleteVm", "delete the selected VM",
+                "This removes the selected Colima VM. This action cannot be undone.", "Delete VM"),
+            async token =>
             {
-                ProgressMessage = evt.Message;
-                ProgressValue = evt.Progress;
-                if (evt.Done) break;
-            }
-        }
-        catch { }
-        finally
-        {
-            IsProgressVisible = false;
-            await LoadAsync(ct);
-        }
-    }
+                var profile = ConnectionSettings.NormalizeProfile(Settings.ActiveProfile);
+                await Client.DeleteAsync(profile, data: includeData, force: false, ct: token);
+                await LoadCoreAsync(profile, token);
+            }, ct);
 
     [RelayCommand]
     private async Task ShowSshConfigAsync(CancellationToken ct = default)
@@ -96,5 +119,12 @@ public sealed partial class DashboardViewModel : ViewModelBase
             var resp = await Client.SSHConfigAsync(Settings.ActiveProfile, token);
             SshConfig = resp.Config;
         }, ct);
+    }
+
+    [RelayCommand]
+    private void CancelLifecycle()
+    {
+        StartCommand.Cancel();
+        RestartCommand.Cancel();
     }
 }

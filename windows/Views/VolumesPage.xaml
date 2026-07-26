@@ -7,25 +7,25 @@
 
     <Grid RowDefinitions="Auto,Auto,*,Auto" Padding="24" RowSpacing="12">
         <TextBlock Grid.Row="0" Text="Volumes" Style="{ThemeResource TitleTextBlockStyle}"
-                   AutomationProperties.Name="VolumesTitle" />
+                   AutomationProperties.AutomationId="VolumesTitle" AutomationProperties.Name="VolumesTitle" />
 
         <InfoBar Grid.Row="0" Margin="0,40,0,0"
-                 AutomationProperties.Name="VolumesErrorBanner"
+                 AutomationProperties.AutomationId="VolumesErrorBanner" AutomationProperties.Name="VolumesErrorBanner"
                  IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
-                 Severity="Error"
+                 AutomationProperties.LiveSetting="Assertive" Severity="Error"
                  Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                  Title="Error" />
 
         <!-- Toolbar -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
             <Button Content="Refresh"
-                    AutomationProperties.Name="BtnRefreshVolumes"
+                    AutomationProperties.AutomationId="BtnRefreshVolumes" AutomationProperties.Name="BtnRefreshVolumes"
                     Command="{x:Bind ViewModel.LoadCommand}" />
             <Button Content="Prune"
-                    AutomationProperties.Name="BtnPruneVolumes"
-                    Command="{x:Bind ViewModel.PruneVolumesCommand}" />
+                    AutomationProperties.AutomationId="BtnPruneVolumes" AutomationProperties.Name="BtnPruneVolumes"
+                    Click="PruneVolumes_Click" />
             <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                          AutomationProperties.Name="VolumesLoading"
+                          AutomationProperties.AutomationId="VolumesLoading" AutomationProperties.Name="VolumesLoading"
                           Width="24" Height="24" />
         </StackPanel>
 
@@ -37,9 +37,9 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Volume List (JSON)" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="VolumeListHeader" />
+                               AutomationProperties.AutomationId="VolumeListHeader" AutomationProperties.Name="VolumeListHeader" />
                     <ScrollViewer Height="350">
-                        <TextBlock AutomationProperties.Name="VolumeListJson"
+                        <TextBlock AutomationProperties.AutomationId="VolumeListJson" AutomationProperties.Name="VolumeListJson"
                                    Text="{x:Bind ViewModel.RawJson, Mode=OneWay}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
                                    TextWrapping="Wrap" FontSize="11" />
@@ -53,9 +53,9 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Detail" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="VolumeDetailHeader" />
+                               AutomationProperties.AutomationId="VolumeDetailHeader" AutomationProperties.Name="VolumeDetailHeader" />
                     <ScrollViewer Height="350">
-                        <TextBlock AutomationProperties.Name="VolumeDetailJson"
+                        <TextBlock AutomationProperties.AutomationId="VolumeDetailJson" AutomationProperties.Name="VolumeDetailJson"
                                    Text="{x:Bind ViewModel.DetailJson, Mode=OneWay}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
                                    TextWrapping="Wrap" FontSize="11" />
@@ -71,22 +71,22 @@
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
             <StackPanel Spacing="12">
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <TextBox AutomationProperties.Name="FieldNewVolumeName"
+                    <TextBox AutomationProperties.AutomationId="FieldNewVolumeName" AutomationProperties.Name="FieldNewVolumeName"
                              PlaceholderText="New volume name"
                              Width="240"
                              Text="{x:Bind ViewModel.NewVolumeName, Mode=TwoWay}" />
                     <Button Content="Create"
-                            AutomationProperties.Name="BtnCreateVolume"
+                            AutomationProperties.AutomationId="BtnCreateVolume" AutomationProperties.Name="BtnCreateVolume"
                             Command="{x:Bind ViewModel.CreateVolumeCommand}"
                             Style="{ThemeResource AccentButtonStyle}" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBox x:Name="VolumeNameBox"
-                             AutomationProperties.Name="FieldVolumeId"
+                             AutomationProperties.AutomationId="FieldVolumeId" AutomationProperties.Name="FieldVolumeId"
                              PlaceholderText="Volume name"
                              Width="240" />
-                    <Button Content="Remove"  AutomationProperties.Name="BtnRemoveVolume"  Click="RemoveVolume_Click" />
-                    <Button Content="Inspect" AutomationProperties.Name="BtnInspectVolume" Click="InspectVolume_Click" />
+                    <Button Content="Remove"  AutomationProperties.AutomationId="BtnRemoveVolume" AutomationProperties.Name="BtnRemoveVolume"  Click="RemoveVolume_Click" />
+                    <Button Content="Inspect" AutomationProperties.AutomationId="BtnInspectVolume" AutomationProperties.Name="BtnInspectVolume" Click="InspectVolume_Click" />
                 </StackPanel>
             </StackPanel>
         </Border>

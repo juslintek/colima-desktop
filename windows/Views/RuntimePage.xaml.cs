@@ -11,6 +11,8 @@ public sealed partial class RuntimePage : Page
     public RuntimePage()
     {
         InitializeComponent();
+        ViewModel.DestructiveConfirmationHandler = action =>
+            DestructiveConfirmationDialog.ShowAsync(XamlRoot, action);
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -39,13 +41,10 @@ public sealed partial class RuntimePage : Page
             ViewModel.TargetRuntime = item.Tag?.ToString() ?? "docker";
     }
 
-    private async void Prune_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-    {
-        await ViewModel.PruneCommand.ExecuteAsync(false);
-    }
+    // PruneCommand presents the accessible confirmation itself (message varies by the `all` flag).
+    private void Prune_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) =>
+        ViewModel.PruneCommand.Execute(false);
 
-    private async void PruneAll_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
-    {
-        await ViewModel.PruneCommand.ExecuteAsync(true);
-    }
+    private void PruneAll_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) =>
+        ViewModel.PruneCommand.Execute(true);
 }

@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Net.Http;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -16,7 +14,7 @@ namespace ColimaDesktop.Windows.Services;
 ///   - WSL2 (Windows feature + kernel update)
 ///   - Docker Desktop for Windows (or a WSL2 Docker distribution)
 ///   - colima-daemon binary (the Go daemon that bridges gRPC ↔ colima)
-/// The manager also checks installed versions against the latest releases on GitHub.
+/// Daemon installation and updates are delegated to the trusted application package source.
 /// </summary>
 public sealed partial class DependencyManager : ObservableObject
 {
@@ -103,6 +101,11 @@ public sealed partial class DependencyManager : ObservableObject
                 Wsl2Dep.StatusMessage = "Not installed";
             }
         }
+        catch (OperationCanceledException)
+        {
+            Wsl2Dep.StatusMessage = "Detection cancelled";
+            throw;
+        }
         catch (Exception ex)
         {
             Wsl2Dep.IsInstalled = false;
@@ -137,6 +140,11 @@ public sealed partial class DependencyManager : ObservableObject
                 DockerDep.StatusMessage = DockerDep.IsInstalled ? "Installed (WSL)" : "Not installed";
             }
         }
+        catch (OperationCanceledException)
+        {
+            DockerDep.StatusMessage = "Detection cancelled";
+            throw;
+        }
         catch (Exception ex)
         {
             DockerDep.IsInstalled = false;
@@ -150,19 +158,21 @@ public sealed partial class DependencyManager : ObservableObject
 
     private async Task CheckDaemonAsync(CancellationToken ct)
     {
+        await Task.Yield();
+        ct.ThrowIfCancellationRequested();
         DaemonDep.IsChecking = true;
         DaemonDep.StatusMessage = "Detecting…";
         try
         {
-            // Check if colima-daemon.exe is on PATH or in the app's local directory
-            var localPath = Path.Combine(AppContext.BaseDirectory, "colima-daemon.exe");
-            bool exists = File.Exists(localPath) || await IsProgramOnPathAsync("colima-daemon", ct);
+            // Only trust the daemon shipped beside the application. PATH lookup can resolve an
+            // unrelated executable and must never be used for automatic startup.
+            bool exists = TryGetValidatedDaemonPath(out var localPath);
             DaemonDep.IsInstalled = exists;
             if (exists)
             {
-                var result = await RunProcessAsync("colima-daemon", "--version", ct);
-                DaemonDep.InstalledVersion = result.ExitCode == 0 ? result.Output.Trim() : "unknown";
-                DaemonDep.StatusMessage = "Installed";
+                var version = FileVersionInfo.GetVersionInfo(localPath).FileVersion;
+                DaemonDep.InstalledVersion = string.IsNullOrWhiteSpace(version) ? "bundled" : version;
+                DaemonDep.StatusMessage = $"Installed at {localPath}";
             }
             else
             {
@@ -248,56 +258,20 @@ public sealed partial class DependencyManager : ObservableObject
     }
 
     /// <summary>
-    /// Downloads the latest colima-daemon release binary from GitHub and places it
-    /// next to the app executable.
+    /// Automatic daemon downloads are intentionally disabled. The application only starts a
+    /// daemon that was installed beside the app by a trusted package/install process.
     /// </summary>
     public async Task InstallDaemonAsync(IProgress<string>? progress = null, CancellationToken ct = default)
     {
         DaemonDep.IsInstalling = true;
-        DaemonDep.StatusMessage = "Downloading colima-daemon…";
-        progress?.Report("Fetching latest colima-daemon release from GitHub…");
+        DaemonDep.StatusMessage = "Automatic download disabled";
+        progress?.Report("Automatic daemon downloads are disabled for safety.");
         try
         {
-            const string releasesApi = "https://api.github.com/repos/juslintek/colima-desktop/releases/latest";
-            using var http = new HttpClient();
-            http.DefaultRequestHeaders.Add("User-Agent", "colima-desktop-windows");
-
-            var json = await http.GetStringAsync(releasesApi, ct);
-            using var doc = JsonDocument.Parse(json);
-
-            string? downloadUrl = null;
-            if (doc.RootElement.TryGetProperty("assets", out var assets))
-            {
-                foreach (var asset in assets.EnumerateArray())
-                {
-                    var name = asset.GetProperty("name").GetString() ?? string.Empty;
-                    if (name.Contains("colima-daemon") && name.Contains("windows") && name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
-                    {
-                        downloadUrl = asset.GetProperty("browser_download_url").GetString();
-                        break;
-                    }
-                }
-            }
-
-            if (downloadUrl is null)
-            {
-                DaemonDep.StatusMessage = "No Windows daemon binary found in latest release. Build from source: cd daemon && GOOS=windows go build ./cmd";
-                progress?.Report(DaemonDep.StatusMessage);
-                return;
-            }
-
-            progress?.Report($"Downloading {downloadUrl}…");
-            var bytes = await http.GetByteArrayAsync(downloadUrl, ct);
-            var destPath = Path.Combine(AppContext.BaseDirectory, "colima-daemon.exe");
-            await File.WriteAllBytesAsync(destPath, bytes, ct);
-
-            DaemonDep.IsInstalled = true;
-            DaemonDep.StatusMessage = "Installed";
-            progress?.Report($"colima-daemon installed to {destPath}");
-        }
-        catch (Exception ex)
-        {
-            DaemonDep.StatusMessage = $"Download failed: {ex.Message}";
+            await Task.Yield();
+            ct.ThrowIfCancellationRequested();
+            DaemonDep.StatusMessage =
+                "Install a trusted colima-desktop package containing colima-daemon.exe beside the app, then check again.";
             progress?.Report(DaemonDep.StatusMessage);
         }
         finally
@@ -306,26 +280,12 @@ public sealed partial class DependencyManager : ObservableObject
         }
     }
 
-    /// <summary>Checks GitHub for newer versions of each dependency.</summary>
+    /// <summary>Explains where trusted package updates are managed.</summary>
     public async Task CheckForUpdatesAsync(CancellationToken ct = default)
     {
-        try
-        {
-            const string api = "https://api.github.com/repos/juslintek/colima-desktop/releases/latest";
-            using var http = new HttpClient();
-            http.DefaultRequestHeaders.Add("User-Agent", "colima-desktop-windows");
-            var json = await http.GetStringAsync(api, ct);
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("tag_name", out var tag))
-            {
-                DaemonDep.LatestVersion = tag.GetString() ?? string.Empty;
-                OnPropertyChanged(nameof(DaemonDep));
-            }
-        }
-        catch
-        {
-            // Version check is best-effort; silently ignore network failures.
-        }
+        await Task.Yield();
+        ct.ThrowIfCancellationRequested();
+        OverallStatus = "Update checks are handled by the trusted application package source.";
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -339,17 +299,22 @@ public sealed partial class DependencyManager : ObservableObject
             : "Some dependencies are missing — use the Onboarding screen to install them";
     }
 
-    private static async Task<bool> IsProgramOnPathAsync(string program, CancellationToken ct)
+    public bool TryGetValidatedDaemonPath(out string path)
     {
-        try
+        var baseDirectory = Path.GetFullPath(AppContext.BaseDirectory)
+            .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+            + Path.DirectorySeparatorChar;
+        var candidate = Path.GetFullPath(Path.Combine(baseDirectory, "colima-daemon.exe"));
+        if (!candidate.StartsWith(baseDirectory, StringComparison.OrdinalIgnoreCase) ||
+            !File.Exists(candidate) ||
+            (File.GetAttributes(candidate) & FileAttributes.ReparsePoint) != 0)
         {
-            var result = await RunProcessAsync("where.exe", program, ct);
-            return result.ExitCode == 0;
-        }
-        catch
-        {
+            path = string.Empty;
             return false;
         }
+
+        path = candidate;
+        return true;
     }
 
     private record ProcessResult(int ExitCode, string Output, string Error);

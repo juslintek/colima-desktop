@@ -19,7 +19,9 @@ public sealed partial class SettingsPage : Page
         base.OnNavigatedTo(e);
         // Subscribe to IsReady changes so we can set Severity (enum x:Bind not supported in WinUI 3)
         ViewModel.DependencyManager.PropertyChanged += DependencyManager_PropertyChanged;
+        ViewModel.ConnectionSettings.PropertyChanged += ConnectionSettings_PropertyChanged;
         UpdateDepsSeverity();
+        UpdateConnectionSeverity();
         await ViewModel.LoadAsync();
     }
 
@@ -27,6 +29,20 @@ public sealed partial class SettingsPage : Page
     {
         base.OnNavigatedFrom(e);
         ViewModel.DependencyManager.PropertyChanged -= DependencyManager_PropertyChanged;
+        ViewModel.ConnectionSettings.PropertyChanged -= ConnectionSettings_PropertyChanged;
+    }
+
+    private void ConnectionSettings_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ConnectionSettings.IsConnected))
+            UpdateConnectionSeverity();
+    }
+
+    private void UpdateConnectionSeverity()
+    {
+        DaemonConnectionInfoBar.Severity = ViewModel.ConnectionSettings.IsConnected
+            ? InfoBarSeverity.Success
+            : InfoBarSeverity.Error;
     }
 
     private void DependencyManager_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)

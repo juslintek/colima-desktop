@@ -7,12 +7,12 @@
 
     <Grid RowDefinitions="Auto,Auto,Auto,*" Padding="24" RowSpacing="12">
         <TextBlock Grid.Row="0" Text="Monitoring" Style="{ThemeResource TitleTextBlockStyle}"
-                   AutomationProperties.Name="MonitoringTitle" />
+                   AutomationProperties.AutomationId="MonitoringTitle" AutomationProperties.Name="MonitoringTitle" />
 
         <InfoBar Grid.Row="0" Margin="0,40,0,0"
-                 AutomationProperties.Name="MonitoringErrorBanner"
+                 AutomationProperties.AutomationId="MonitoringErrorBanner" AutomationProperties.Name="MonitoringErrorBanner"
                  IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
-                 Severity="Error"
+                 AutomationProperties.LiveSetting="Assertive" Severity="Error"
                  Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                  Title="Error" />
 
@@ -23,37 +23,37 @@
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
             <StackPanel Spacing="12">
                 <TextBlock Text="Live VM Stats" Style="{ThemeResource SubtitleTextBlockStyle}"
-                           AutomationProperties.Name="VMStatsHeader" />
+                           AutomationProperties.AutomationId="VMStatsHeader" AutomationProperties.Name="VMStatsHeader" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <Button Content="Start Stream"
-                            AutomationProperties.Name="BtnStartStatsStream"
+                            AutomationProperties.AutomationId="BtnStartStatsStream" AutomationProperties.Name="BtnStartStatsStream"
                             Command="{x:Bind ViewModel.StartStatsStreamCommand}"
                             Style="{ThemeResource AccentButtonStyle}" />
                     <Button Content="Stop Stream"
-                            AutomationProperties.Name="BtnStopStatsStream"
+                            AutomationProperties.AutomationId="BtnStopStatsStream" AutomationProperties.Name="BtnStopStatsStream"
                             Command="{x:Bind ViewModel.StopStatsStreamCommand}" />
                     <ProgressRing IsActive="{x:Bind ViewModel.IsStreaming, Mode=OneWay}"
-                                  AutomationProperties.Name="StatsStreamActive"
+                                  AutomationProperties.AutomationId="StatsStreamActive" AutomationProperties.Name="StatsStreamActive"
                                   Width="24" Height="24" />
                 </StackPanel>
                 <!-- Stats Display -->
                 <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" RowSpacing="4"
                       Visibility="{x:Bind ViewModel.LatestStats, Mode=OneWay, Converter={StaticResource NullToVisibilityConverter}}">
                     <TextBlock Grid.Row="0" Grid.Column="0" Text="CPU" FontWeight="SemiBold"
-                               AutomationProperties.Name="StatsCPULabel" />
+                               AutomationProperties.AutomationId="StatsCPULabel" AutomationProperties.Name="StatsCPULabel" />
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="Memory" FontWeight="SemiBold"
-                               AutomationProperties.Name="StatsMemoryLabel" />
+                               AutomationProperties.AutomationId="StatsMemoryLabel" AutomationProperties.Name="StatsMemoryLabel" />
                     <TextBlock Grid.Row="0" Grid.Column="2" Text="Disk" FontWeight="SemiBold"
-                               AutomationProperties.Name="StatsDiskLabel" />
+                               AutomationProperties.AutomationId="StatsDiskLabel" AutomationProperties.Name="StatsDiskLabel" />
 
                     <TextBlock Grid.Row="1" Grid.Column="0"
-                               AutomationProperties.Name="StatsCPUValue"
+                               AutomationProperties.AutomationId="StatsCPUValue" AutomationProperties.Name="StatsCPUValue"
                                Text="{x:Bind ViewModel.LatestStats.CpuPercent, Mode=OneWay, Converter={StaticResource PercentConverter}, FallbackValue=''}" />
                     <TextBlock Grid.Row="1" Grid.Column="1"
-                               AutomationProperties.Name="StatsMemoryValue"
+                               AutomationProperties.AutomationId="StatsMemoryValue" AutomationProperties.Name="StatsMemoryValue"
                                Text="{x:Bind ViewModel.LatestStats.MemoryUsed, Mode=OneWay, Converter={StaticResource BytesToMBConverter}, FallbackValue=''}" />
                     <TextBlock Grid.Row="1" Grid.Column="2"
-                               AutomationProperties.Name="StatsDiskValue"
+                               AutomationProperties.AutomationId="StatsDiskValue" AutomationProperties.Name="StatsDiskValue"
                                Text="{x:Bind ViewModel.LatestStats.DiskUsed, Mode=OneWay, Converter={StaticResource BytesToMBConverter}, FallbackValue=''}" />
                 </Grid>
             </StackPanel>
@@ -67,24 +67,24 @@
             <StackPanel Spacing="12">
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBlock Text="Processes" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="ProcessListHeader" />
+                               AutomationProperties.AutomationId="ProcessListHeader" AutomationProperties.Name="ProcessListHeader" />
                     <Button Content="Refresh"
-                            AutomationProperties.Name="BtnRefreshProcesses"
+                            AutomationProperties.AutomationId="BtnRefreshProcesses" AutomationProperties.Name="BtnRefreshProcesses"
                             Command="{x:Bind ViewModel.RefreshProcessesCommand}" />
                     <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                                  AutomationProperties.Name="ProcessesLoading"
+                                  AutomationProperties.AutomationId="ProcessesLoading" AutomationProperties.Name="ProcessesLoading"
                                   Width="24" Height="24" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <TextBox x:Name="PidBox"
-                             AutomationProperties.Name="FieldKillPid"
+                             AutomationProperties.AutomationId="FieldKillPid" AutomationProperties.Name="FieldKillPid"
                              PlaceholderText="PID"
                              Width="100" />
                     <Button Content="Kill Process"
-                            AutomationProperties.Name="BtnKillProcess"
+                            AutomationProperties.AutomationId="BtnKillProcess" AutomationProperties.Name="BtnKillProcess"
                             Click="KillProcess_Click" />
                 </StackPanel>
-                <TextBlock AutomationProperties.Name="MonitoringStatusMessage"
+                <TextBlock AutomationProperties.AutomationId="MonitoringStatusMessage" AutomationProperties.Name="MonitoringStatusMessage"
                            Text="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
             </StackPanel>
@@ -96,7 +96,7 @@
                 CornerRadius="8" Padding="12"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
             <ScrollViewer>
-                <ItemsRepeater AutomationProperties.Name="ProcessTable"
+                <ItemsRepeater AutomationProperties.AutomationId="ProcessTable" AutomationProperties.Name="ProcessTable"
                                ItemsSource="{x:Bind ViewModel.Processes.Processes, Mode=OneWay}">
                     <ItemsRepeater.ItemTemplate>
                         <DataTemplate>
@@ -104,15 +104,15 @@
                                   BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}"
                                   BorderThickness="0,0,0,1">
                                 <TextBlock Grid.Column="0" Text="{Binding Pid}"
-                                           AutomationProperties.Name="ProcessPid" FontSize="12" />
+                                           AutomationProperties.AutomationId="ProcessPid" AutomationProperties.Name="ProcessPid" FontSize="12" />
                                 <TextBlock Grid.Column="1" Text="{Binding User}"
-                                           AutomationProperties.Name="ProcessUser" FontSize="12" />
+                                           AutomationProperties.AutomationId="ProcessUser" AutomationProperties.Name="ProcessUser" FontSize="12" />
                                 <TextBlock Grid.Column="2" Text="{Binding CpuPercent}"
-                                           AutomationProperties.Name="ProcessCpu" FontSize="12" />
+                                           AutomationProperties.AutomationId="ProcessCpu" AutomationProperties.Name="ProcessCpu" FontSize="12" />
                                 <TextBlock Grid.Column="3" Text="{Binding MemoryPercent}"
-                                           AutomationProperties.Name="ProcessMem" FontSize="12" />
+                                           AutomationProperties.AutomationId="ProcessMem" AutomationProperties.Name="ProcessMem" FontSize="12" />
                                 <TextBlock Grid.Column="4" Text="{Binding Command}"
-                                           AutomationProperties.Name="ProcessCommand"
+                                           AutomationProperties.AutomationId="ProcessCommand" AutomationProperties.Name="ProcessCommand"
                                            FontSize="12" TextTrimming="CharacterEllipsis" />
                             </Grid>
                         </DataTemplate>

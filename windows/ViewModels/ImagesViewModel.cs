@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ColimaDesktop.Windows.Services;
 
 namespace ColimaDesktop.Windows.ViewModels;
 
@@ -23,49 +24,65 @@ public sealed partial class ImagesViewModel : ViewModelBase
     [ObservableProperty] private bool _isProgressVisible;
 
     public override Task LoadAsync(CancellationToken ct = default) =>
-        RunAsync(async t =>
-        {
-            var resp = await Client.ListImagesAsync(Settings.ActiveProfile, Settings.UseWsl2, t);
-            RawJson = resp.Json;
-        }, ct);
+        RunAsync(LoadCoreAsync, ct);
 
-    [RelayCommand]
+    private async Task LoadCoreAsync(CancellationToken t)
+    {
+        await LoadCoreAsync(Settings.CaptureDockerTarget(), t);
+    }
+
+    private async Task LoadCoreAsync(DockerTarget target, CancellationToken t)
+    {
+        var resp = await Client.ListImagesAsync(target, t);
+        RawJson = resp.Json;
+    }
+
+    [RelayCommand(IncludeCancelCommand = true)]
     private async Task PullImageAsync(CancellationToken ct = default)
     {
-        IsProgressVisible = true;
-        ProgressMessage = $"Pulling {PullImageName}…";
-        ProgressValue = 0;
-        try
+        await RunAsync(async token =>
         {
-            using var call = Client.PullImageStream(PullImageName, Settings.ActiveProfile, Settings.UseWsl2);
-            await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
+            IsProgressVisible = true;
+            ProgressMessage = $"Pulling {PullImageName}…";
+            ProgressValue = 0;
+            var completed = false;
+            try
             {
-                ProgressMessage = evt.Message;
-                ProgressValue = evt.Progress;
-                if (evt.Done) break;
+                var target = Settings.CaptureDockerTarget();
+                using var call = Client.PullImageStream(PullImageName, target, token);
+                await foreach (var rawEvent in call.ResponseStream.ReadAllAsync(token))
+                {
+                    var evt = DaemonResponse.EnsureProgress(rawEvent, "Pull image");
+                    ProgressMessage = evt.Message;
+                    ProgressValue = evt.Progress;
+                    if (evt.Done) { completed = true; break; }
+                }
+                if (!completed)
+                    throw new DaemonOperationException("Pull image", "the progress stream ended before completion");
+                await LoadCoreAsync(target, token);
+                PullImageName = string.Empty;
             }
-            await LoadAsync(ct);
-        }
-        finally
-        {
-            IsProgressVisible = false;
-            PullImageName = string.Empty;
-        }
+            finally { IsProgressVisible = false; }
+        }, ct);
     }
 
     [RelayCommand]
     private Task RemoveImageAsync(string id) =>
-        RunAsync(async t =>
-        {
-            await Client.RemoveImageAsync(id, Settings.ActiveProfile, Settings.UseWsl2, t);
-            await LoadAsync(t);
-        });
+        RunDestructiveAsync(
+            new DestructiveAction("RemoveImage", $"remove image {id}",
+                $"Image '{id}' will be removed from the selected profile/provider.", "Remove"),
+            async t =>
+            {
+                var target = Settings.CaptureDockerTarget();
+                await Client.RemoveImageAsync(id, target, t);
+                await LoadCoreAsync(target, t);
+            });
 
     [RelayCommand]
     private Task InspectImageAsync(string name) =>
         RunAsync(async t =>
         {
-            var resp = await Client.InspectImageAsync(name, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var resp = await Client.InspectImageAsync(name, Settings.CaptureDockerTarget(), t);
             DetailJson = resp.Json;
         });
 
@@ -73,7 +90,7 @@ public sealed partial class ImagesViewModel : ViewModelBase
     private Task ImageHistoryAsync(string name) =>
         RunAsync(async t =>
         {
-            var resp = await Client.ImageHistoryAsync(name, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var resp = await Client.ImageHistoryAsync(name, Settings.CaptureDockerTarget(), t);
             DetailJson = resp.Json;
         });
 
@@ -81,42 +98,61 @@ public sealed partial class ImagesViewModel : ViewModelBase
     private Task TagImageAsync() =>
         RunAsync(async t =>
         {
-            await Client.TagImageAsync(TagName, TagRepo, TagTag, Settings.ActiveProfile, t);
-            await LoadAsync(t);
+            var target = Settings.CaptureDockerTarget();
+            await Client.TagImageAsync(TagName, TagRepo, TagTag, target, t);
+            await LoadCoreAsync(target, t);
         });
 
-    [RelayCommand]
+    [RelayCommand(IncludeCancelCommand = true)]
     private async Task PushImageAsync(string name, CancellationToken ct = default)
     {
-        IsProgressVisible = true;
-        ProgressMessage = $"Pushing {name}…";
-        ProgressValue = 0;
-        try
+        await RunAsync(async token =>
         {
-            using var call = Client.PushImageStream(name, Settings.ActiveProfile, Settings.UseWsl2);
-            await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
+            IsProgressVisible = true;
+            ProgressMessage = $"Pushing {name}…";
+            ProgressValue = 0;
+            var completed = false;
+            try
             {
-                ProgressMessage = evt.Message;
-                ProgressValue = evt.Progress;
-                if (evt.Done) break;
+                using var call = Client.PushImageStream(name, Settings.CaptureDockerTarget(), token);
+                await foreach (var rawEvent in call.ResponseStream.ReadAllAsync(token))
+                {
+                    var evt = DaemonResponse.EnsureProgress(rawEvent, "Push image");
+                    ProgressMessage = evt.Message;
+                    ProgressValue = evt.Progress;
+                    if (evt.Done) { completed = true; break; }
+                }
+                if (!completed)
+                    throw new DaemonOperationException("Push image", "the progress stream ended before completion");
             }
-        }
-        finally { IsProgressVisible = false; }
+            finally { IsProgressVisible = false; }
+        }, ct);
     }
 
     [RelayCommand]
     private Task SearchImagesAsync() =>
         RunAsync(async t =>
         {
-            var resp = await Client.SearchImagesAsync(SearchTerm, Settings.ActiveProfile, t);
+            var resp = await Client.SearchImagesAsync(SearchTerm, Settings.CaptureDockerTarget(), t);
             RawJson = resp.Json;
         });
 
     [RelayCommand]
     private Task PruneImagesAsync() =>
-        RunAsync(async t =>
-        {
-            await Client.PruneImagesAsync(Settings.ActiveProfile, Settings.UseWsl2, t);
-            await LoadAsync(t);
-        });
+        RunDestructiveAsync(
+            new DestructiveAction("PruneImages", "prune unused images",
+                "Unused images in the selected profile/provider will be removed.", "Prune"),
+            async t =>
+            {
+                var target = Settings.CaptureDockerTarget();
+                await Client.PruneImagesAsync(target, t);
+                await LoadCoreAsync(target, t);
+            });
+
+    [RelayCommand]
+    private void CancelTransfer()
+    {
+        PullImageCommand.Cancel();
+        PushImageCommand.Cancel();
+    }
 }

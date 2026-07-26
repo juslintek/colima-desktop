@@ -29,6 +29,12 @@ public sealed partial class ConnectionSettings : ObservableObject
     [ObservableProperty]
     private string _activeProfile = "default";
 
+    [ObservableProperty]
+    private bool _isConnected;
+
+    [ObservableProperty]
+    private string _connectionStatus = "Disconnected";
+
     /// <summary>Resolves the daemon address based on current mode.</summary>
     public string DaemonAddress => Mode switch
     {
@@ -39,4 +45,43 @@ public sealed partial class ConnectionSettings : ObservableObject
 
     /// <summary>Whether the WSL2 backend flag should be sent in Docker RPC scopes.</summary>
     public bool UseWsl2 => Mode == BackendMode.LocalWSL2;
+    public bool UseRemoteSsh => Mode == BackendMode.RemoteSSH;
+
+    /// <summary>
+    /// Captures one immutable target for an operation. Commands must take this snapshot once so a
+    /// settings change cannot split one multi-step action across different profiles/providers.
+    /// </summary>
+    public DockerTarget CaptureDockerTarget() => new(
+        NormalizeProfile(ActiveProfile),
+        Mode == BackendMode.RemoteSSH ? SshTarget.Trim() : string.Empty,
+        UseWsl2);
+
+    public static string NormalizeProfile(string? profile) =>
+        string.IsNullOrWhiteSpace(profile) ? "default" : profile.Trim();
+
+    partial void OnModeChanged(BackendMode value)
+    {
+        OnPropertyChanged(nameof(DaemonAddress));
+        OnPropertyChanged(nameof(UseWsl2));
+        OnPropertyChanged(nameof(UseRemoteSsh));
+        IsConnected = false;
+        ConnectionStatus = "Connection settings changed; apply to reconnect.";
+    }
+
+    partial void OnRemoteHostChanged(string value) => MarkConnectionDirty();
+
+    partial void OnWsl2HostChanged(string value) => MarkConnectionDirty();
+
+    private void MarkConnectionDirty()
+    {
+        OnPropertyChanged(nameof(DaemonAddress));
+        IsConnected = false;
+        ConnectionStatus = "Connection settings changed; apply to reconnect.";
+    }
+}
+
+/// <summary>Profile and provider fields available on Docker RPC messages.</summary>
+public readonly record struct DockerTarget(string Profile, string Host, bool Wsl2)
+{
+    public bool UsesProviderRouting => Wsl2 || !string.IsNullOrWhiteSpace(Host);
 }

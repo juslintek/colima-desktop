@@ -35,10 +35,11 @@ ColimaDesktop.Windows/
 ├── MainWindow.xaml / .cs           — NavigationView shell; routes to 13 pages
 ├── Services/
 │   ├── DaemonClient.cs             — grpc-dotnet wrapper for ColimaService + DockerService
-│   │                                 (all CONTRACT v1 Parts A+B RPCs); reconnect support
-│   ├── ConnectionSettings.cs       — remote-SSH / local-WSL2 toggle + profile selector
-│   └── DependencyManager.cs        — detect/install WSL2, Docker Desktop, colima-daemon;
-│                                     GitHub release version tracking (CONTRACT Part C)
+│   │                                 (all 65 frozen-v1 RPCs); reconnect + health checks
+│   ├── ConnectionSettings.cs       — immutable remote-SSH/local-WSL2/profile snapshots
+│   ├── DaemonConnectionManager.cs  — bounded health/bootstrap on loopback only
+│   └── DependencyManager.cs        — detect/install WSL2 and Docker; validates only a daemon
+│                                     bundled beside the installed app
 ├── ViewModels/
 │   ├── ViewModelBase.cs            — ObservableObject base; RunAsync error handling; LoadCommand
 │   ├── DashboardViewModel.cs       — VM status, start/stop/restart streaming, SSH config
@@ -81,17 +82,23 @@ ColimaDesktop.Windows/
 
 | Mode | How to configure | What it uses |
 |------|-----------------|--------------|
-| Local WSL2 / Docker | Settings page → "Local WSL2 / Docker" | colima-daemon running inside WSL2 on `localhost:50051` |
-| Remote SSH / gRPC | Settings page → "Remote SSH / gRPC" + remote address | colima-daemon on a remote host (pre-opened SSH tunnel) |
+| Local WSL2 / Docker | Settings page → "Local WSL2 / Docker" | Native daemon on `127.0.0.1:50051`, routing Docker requests to WSL2 |
+| Remote SSH / gRPC | Settings page → "Remote SSH / gRPC" + SSH target | Daemon reached through a pre-opened loopback SSH tunnel; Docker `host` is the SSH target |
 
 The `DependencyManager` on the Settings page detects and installs:
 - **WSL2** via `winget install Microsoft.WSL`
 - **Docker Desktop** via `winget install Docker.DockerDesktop`
-- **colima-daemon** downloaded from the latest GitHub release (looks for `colima-daemon-*-windows*.exe`)
+
+It does **not** download or execute an unverified daemon. Automatic startup is allowed only when an
+exact `colima-daemon.exe` file is installed beside the application, resolves inside that directory,
+and is not a reparse point. The daemon is started with
+`--listen tcp:127.0.0.1:50051`; non-loopback gRPC endpoints are rejected. Install the daemon through
+the trusted application package or a documented local build/package process.
 
 ## CONTRACT coverage
 
-All CONTRACT v1 surfaces are bound to gRPC calls:
+All CONTRACT v1 surfaces are bound to gRPC calls. See [`RPC_AUDIT.md`](RPC_AUDIT.md) for the exact
+65-RPC inventory, frozen-message provider limitations, and evidence boundary.
 
 | CONTRACT section | Covered |
 |-----------------|---------|
@@ -108,7 +115,17 @@ All CONTRACT v1 surfaces are bound to gRPC calls:
 | Part B — Images (9 operations) | ✅ ImagesPage |
 | Part B — Volumes (5 operations) | ✅ VolumesPage |
 | Part B — Networks (7 operations) | ✅ NetworksPage |
-| Part C — DependencyManager (WSL2/Docker/daemon detect+install) | ✅ SettingsPage |
+| Part C — DependencyManager (WSL2/Docker install + trusted daemon detection) | ✅ SettingsPage |
+
+## Deterministic tests
+
+The headless project compiles all production service and view-model sources without launching
+WinUI, then verifies payload scope, provider rejection, application-level response errors, busy
+state, cancellation, confirmation decisions, and loopback enforcement:
+
+```powershell
+dotnet test Tests/ColimaDesktop.Windows.Tests.csproj
+```
 
 ## AutomationProperties
 
@@ -121,7 +138,8 @@ Buttons follow the pattern `BtnStartVM`, `BtnRefreshContainers`, etc.
 - XAML binding uses `x:Bind` (compile-time) throughout for type safety and performance.
 - ViewModels use `CommunityToolkit.Mvvm` source generators (`[ObservableProperty]`,
   `[RelayCommand]`). No manual `INotifyPropertyChanged` boilerplate.
-- Streaming RPCs (Start, Restart, PullImage, VMStats, ModelSetup, ModelRun) consume
-  `AsyncServerStreamingCall<T>` with `ReadAllAsync` and update observable properties live.
+- Streaming RPCs (Start, Restart, PullImage, PushImage, VMStats, ModelSetup, ModelRun,
+  StreamEvents, StreamLogs, StreamStats) consume `AsyncServerStreamingCall<T>` with cancellation
+  propagated into gRPC and page-lifecycle cleanup.
 - The `DaemonClient` lazily creates the gRPC channel and supports `Reconnect(address)` to
   switch backends without restarting the app.

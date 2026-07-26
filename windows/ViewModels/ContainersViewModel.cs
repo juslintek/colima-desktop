@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using ColimaDesktop.Windows.Services;
 
 namespace ColimaDesktop.Windows.ViewModels;
 
@@ -19,67 +20,96 @@ public sealed partial class ContainersViewModel : ViewModelBase
     [ObservableProperty] private string _newContainerName = string.Empty;
     [ObservableProperty] private string _newContainerImage = string.Empty;
     [ObservableProperty] private string _renameNewName = string.Empty;
+    [ObservableProperty] private string _streamText = string.Empty;
+    [ObservableProperty] private bool _isStreaming;
+
+    private StreamLifetime? _streamLifetime;
 
     public override Task LoadAsync(CancellationToken ct = default) =>
-        RunAsync(async token =>
-        {
-            var resp = await Client.ListContainersAsync(
-                Settings.ActiveProfile, all: true, wsl2: Settings.UseWsl2, ct: token);
-            RawJson = resp.Json;
-        }, ct);
+        RunAsync(LoadCoreAsync, ct);
+
+    private async Task LoadCoreAsync(CancellationToken token)
+    {
+        var target = Settings.CaptureDockerTarget();
+        await LoadCoreAsync(target, token);
+    }
+
+    private async Task LoadCoreAsync(DockerTarget target, CancellationToken token)
+    {
+        var resp = await Client.ListContainersAsync(target, all: true, ct: token);
+        RawJson = resp.Json;
+    }
 
     [RelayCommand]
     private Task StartContainerAsync(string id) =>
-        RunAsync(t => Client.ContainerActionAsync(id, "start", Settings.ActiveProfile, Settings.UseWsl2, t).ContinueWith(_ => LoadAsync(t)).Unwrap());
+        RunContainerActionAsync(id, "start");
 
     [RelayCommand]
     private Task StopContainerAsync(string id) =>
-        RunAsync(t => Client.ContainerActionAsync(id, "stop", Settings.ActiveProfile, Settings.UseWsl2, t).ContinueWith(_ => LoadAsync(t)).Unwrap());
+        RunContainerActionAsync(id, "stop");
 
     [RelayCommand]
     private Task KillContainerAsync(string id) =>
-        RunAsync(t => Client.ContainerActionAsync(id, "kill", Settings.ActiveProfile, Settings.UseWsl2, t).ContinueWith(_ => LoadAsync(t)).Unwrap());
+        RunDestructiveAsync(
+            new DestructiveAction("KillContainer", $"kill container {id}",
+                $"Confirm kill for container '{id}'. This can interrupt workloads or remove data.", "Kill"),
+            t => ContainerActionCoreAsync(id, "kill", t));
 
     [RelayCommand]
     private Task RestartContainerAsync(string id) =>
-        RunAsync(t => Client.ContainerActionAsync(id, "restart", Settings.ActiveProfile, Settings.UseWsl2, t).ContinueWith(_ => LoadAsync(t)).Unwrap());
+        RunContainerActionAsync(id, "restart");
 
     [RelayCommand]
     private Task PauseContainerAsync(string id) =>
-        RunAsync(t => Client.ContainerActionAsync(id, "pause", Settings.ActiveProfile, Settings.UseWsl2, t).ContinueWith(_ => LoadAsync(t)).Unwrap());
+        RunContainerActionAsync(id, "pause");
 
     [RelayCommand]
     private Task UnpauseContainerAsync(string id) =>
-        RunAsync(t => Client.ContainerActionAsync(id, "unpause", Settings.ActiveProfile, Settings.UseWsl2, t).ContinueWith(_ => LoadAsync(t)).Unwrap());
+        RunContainerActionAsync(id, "unpause");
 
     [RelayCommand]
     private Task RemoveContainerAsync(string id) =>
-        RunAsync(t => Client.ContainerActionAsync(id, "remove", Settings.ActiveProfile, Settings.UseWsl2, t).ContinueWith(_ => LoadAsync(t)).Unwrap());
+        RunDestructiveAsync(
+            new DestructiveAction("RemoveContainer", $"remove container {id}",
+                $"Confirm remove for container '{id}'. This can interrupt workloads or remove data.", "Remove"),
+            t => ContainerActionCoreAsync(id, "remove", t));
+
+    private Task RunContainerActionAsync(string id, string action) =>
+        RunAsync(t => ContainerActionCoreAsync(id, action, t));
+
+    private async Task ContainerActionCoreAsync(string id, string action, CancellationToken t)
+    {
+        var target = Settings.CaptureDockerTarget();
+        await Client.ContainerActionAsync(id, action, target, t);
+        await LoadCoreAsync(target, t);
+    }
 
     [RelayCommand]
     private Task CreateContainerAsync() =>
         RunAsync(async t =>
         {
-            await Client.CreateContainerAsync(NewContainerName, NewContainerImage, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var target = Settings.CaptureDockerTarget();
+            await Client.CreateContainerAsync(NewContainerName, NewContainerImage, target, t);
             NewContainerName = string.Empty;
             NewContainerImage = string.Empty;
-            await LoadAsync(t);
+            await LoadCoreAsync(target, t);
         });
 
     [RelayCommand]
     private Task RenameContainerAsync(string id) =>
         RunAsync(async t =>
         {
-            await Client.RenameContainerAsync(id, RenameNewName, Settings.ActiveProfile, t);
+            var target = Settings.CaptureDockerTarget();
+            await Client.RenameContainerAsync(id, RenameNewName, target, t);
             RenameNewName = string.Empty;
-            await LoadAsync(t);
+            await LoadCoreAsync(target, t);
         });
 
     [RelayCommand]
     private Task InspectContainerAsync(string id) =>
         RunAsync(async t =>
         {
-            var resp = await Client.InspectContainerAsync(id, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var resp = await Client.InspectContainerAsync(id, Settings.CaptureDockerTarget(), t);
             DetailJson = resp.Json;
         });
 
@@ -87,7 +117,7 @@ public sealed partial class ContainersViewModel : ViewModelBase
     private Task ContainerTopAsync(string id) =>
         RunAsync(async t =>
         {
-            var resp = await Client.ContainerTopAsync(id, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var resp = await Client.ContainerTopAsync(id, Settings.CaptureDockerTarget(), t);
             DetailJson = resp.Json;
         });
 
@@ -95,7 +125,7 @@ public sealed partial class ContainersViewModel : ViewModelBase
     private Task ContainerStatsAsync(string id) =>
         RunAsync(async t =>
         {
-            var resp = await Client.ContainerStatsAsync(id, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var resp = await Client.ContainerStatsAsync(id, Settings.CaptureDockerTarget(), t);
             DetailJson = resp.Json;
         });
 
@@ -103,7 +133,7 @@ public sealed partial class ContainersViewModel : ViewModelBase
     private Task ContainerChangesAsync(string id) =>
         RunAsync(async t =>
         {
-            var resp = await Client.ContainerChangesAsync(id, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var resp = await Client.ContainerChangesAsync(id, Settings.CaptureDockerTarget(), t);
             DetailJson = resp.Json;
         });
 
@@ -111,15 +141,73 @@ public sealed partial class ContainersViewModel : ViewModelBase
     private Task ContainerLogsAsync(string id) =>
         RunAsync(async t =>
         {
-            var resp = await Client.ContainerLogsAsync(id, Settings.ActiveProfile, Settings.UseWsl2, t);
+            var resp = await Client.ContainerLogsAsync(id, Settings.CaptureDockerTarget(), t);
             LogsText = resp.Json;
         });
 
     [RelayCommand]
     private Task PruneContainersAsync() =>
-        RunAsync(async t =>
+        RunDestructiveAsync(
+            new DestructiveAction("PruneContainers", "prune stopped containers",
+                "All stopped containers in the selected profile/provider will be removed.", "Prune"),
+            async t =>
+            {
+                var target = Settings.CaptureDockerTarget();
+                await Client.PruneContainersAsync(target, t);
+                await LoadCoreAsync(target, t);
+            });
+
+    [RelayCommand]
+    private Task StreamEventsAsync() => RunDockerStreamAsync(
+        (target, ct) => Client.StreamEventsStream(target, ct));
+
+    [RelayCommand]
+    private Task StreamLogsAsync(string id) => RunDockerStreamAsync(
+        (target, ct) => Client.StreamLogsStream(id, target, ct));
+
+    [RelayCommand]
+    private Task StreamStatsAsync(string id) => RunDockerStreamAsync(
+        (target, ct) => Client.StreamStatsStream(id, target, ct));
+
+    private async Task RunDockerStreamAsync(
+        Func<DockerTarget, CancellationToken, Grpc.Core.AsyncServerStreamingCall<Colimaui.JsonResponse>> start)
+    {
+        if (_streamLifetime is not null)
         {
-            await Client.PruneContainersAsync(Settings.ActiveProfile, Settings.UseWsl2, t);
-            await LoadAsync(t);
-        });
+            ErrorMessage = "A Docker stream is already active. Stop it before starting another stream.";
+            HasError = true;
+            return;
+        }
+
+        _streamLifetime = new StreamLifetime();
+        var streamLifetime = _streamLifetime;
+        IsStreaming = true;
+        StreamText = string.Empty;
+        try
+        {
+            await RunAsync(async ct =>
+            {
+                var target = Settings.CaptureDockerTarget();
+                using var call = start(target, ct);
+                await foreach (var evt in call.ResponseStream.ReadAllAsync(ct))
+                {
+                    var json = DaemonResponse.EnsureJson(evt, "Docker stream").Json;
+                    StreamText = StreamOutput.AppendBounded(StreamText, json);
+                }
+            }, streamLifetime.Token);
+        }
+        finally
+        {
+            if (ReferenceEquals(_streamLifetime, streamLifetime))
+                _streamLifetime = null;
+            streamLifetime.Dispose();
+            IsStreaming = false;
+        }
+    }
+
+    [RelayCommand]
+    private void StopDockerStream()
+    {
+        _streamLifetime?.Cancel();
+    }
 }

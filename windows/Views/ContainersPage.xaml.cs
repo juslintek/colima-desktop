@@ -11,6 +11,8 @@ public sealed partial class ContainersPage : Page
     public ContainersPage()
     {
         InitializeComponent();
+        ViewModel.DestructiveConfirmationHandler = action =>
+            DestructiveConfirmationDialog.ShowAsync(XamlRoot, action);
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -19,24 +21,50 @@ public sealed partial class ContainersPage : Page
         await ViewModel.LoadAsync();
     }
 
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        ViewModel.StopDockerStreamCommand.Execute(null);
+        base.OnNavigatedFrom(e);
+    }
+
     // Code-behind helpers pass TextBox values to commands (x:Bind doesn't support passing
     // UI elements to commands directly; we read the TextBox here and delegate to the VM).
 
-    private async void ContainerAction_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    // Kill/Remove commands present the accessible confirmation themselves (via the view-model's
+    // DestructiveConfirmationHandler), so this handler just dispatches to the mapped command.
+    private void ContainerAction_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         var id = ContainerIdBox.Text.Trim();
         if (string.IsNullOrEmpty(id)) return;
         var action = (sender as Microsoft.UI.Xaml.Controls.Button)?.Tag?.ToString() ?? string.Empty;
         switch (action)
         {
-            case "start":   await ViewModel.StartContainerCommand.ExecuteAsync(id); break;
-            case "stop":    await ViewModel.StopContainerCommand.ExecuteAsync(id); break;
-            case "kill":    await ViewModel.KillContainerCommand.ExecuteAsync(id); break;
-            case "restart": await ViewModel.RestartContainerCommand.ExecuteAsync(id); break;
-            case "pause":   await ViewModel.PauseContainerCommand.ExecuteAsync(id); break;
-            case "unpause": await ViewModel.UnpauseContainerCommand.ExecuteAsync(id); break;
-            case "remove":  await ViewModel.RemoveContainerCommand.ExecuteAsync(id); break;
+            case "start":   ViewModel.StartContainerCommand.Execute(id); break;
+            case "stop":    ViewModel.StopContainerCommand.Execute(id); break;
+            case "kill":    ViewModel.KillContainerCommand.Execute(id); break;
+            case "restart": ViewModel.RestartContainerCommand.Execute(id); break;
+            case "pause":   ViewModel.PauseContainerCommand.Execute(id); break;
+            case "unpause": ViewModel.UnpauseContainerCommand.Execute(id); break;
+            case "remove":  ViewModel.RemoveContainerCommand.Execute(id); break;
         }
+    }
+
+    private void PruneContainers_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) =>
+        ViewModel.PruneContainersCommand.Execute(null);
+
+    private void StreamEvents_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) =>
+        ViewModel.StreamEventsCommand.Execute(null);
+
+    private void StreamLogs_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        var id = ContainerIdBox.Text.Trim();
+        if (!string.IsNullOrEmpty(id)) ViewModel.StreamLogsCommand.Execute(id);
+    }
+
+    private void StreamStats_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    {
+        var id = ContainerIdBox.Text.Trim();
+        if (!string.IsNullOrEmpty(id)) ViewModel.StreamStatsCommand.Execute(id);
     }
 
     private async void InspectContainer_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)

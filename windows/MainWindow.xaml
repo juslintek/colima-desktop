@@ -9,7 +9,7 @@
 
     <NavigationView
         x:Name="NavView"
-        AutomationProperties.Name="MainNavigation"
+        AutomationProperties.AutomationId="MainNavigation" AutomationProperties.Name="MainNavigation"
         IsBackButtonVisible="Collapsed"
         SelectionFollowsFocus="Enabled"
         OpenPaneLength="200"
@@ -21,7 +21,7 @@
                 x:Name="NavDashboard"
                 Content="Dashboard"
                 Tag="Dashboard"
-                AutomationProperties.Name="NavDashboard">
+                AutomationProperties.AutomationId="NavDashboard" AutomationProperties.Name="NavDashboard">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE80F;" />
                 </NavigationViewItem.Icon>
@@ -30,7 +30,7 @@
                 x:Name="NavContainers"
                 Content="Containers"
                 Tag="Containers"
-                AutomationProperties.Name="NavContainers">
+                AutomationProperties.AutomationId="NavContainers" AutomationProperties.Name="NavContainers">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE7B8;" />
                 </NavigationViewItem.Icon>
@@ -39,7 +39,7 @@
                 x:Name="NavImages"
                 Content="Images"
                 Tag="Images"
-                AutomationProperties.Name="NavImages">
+                AutomationProperties.AutomationId="NavImages" AutomationProperties.Name="NavImages">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xEB9F;" />
                 </NavigationViewItem.Icon>
@@ -48,7 +48,7 @@
                 x:Name="NavVolumes"
                 Content="Volumes"
                 Tag="Volumes"
-                AutomationProperties.Name="NavVolumes">
+                AutomationProperties.AutomationId="NavVolumes" AutomationProperties.Name="NavVolumes">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xEDA2;" />
                 </NavigationViewItem.Icon>
@@ -57,7 +57,7 @@
                 x:Name="NavNetworks"
                 Content="Networks"
                 Tag="Networks"
-                AutomationProperties.Name="NavNetworks">
+                AutomationProperties.AutomationId="NavNetworks" AutomationProperties.Name="NavNetworks">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE968;" />
                 </NavigationViewItem.Icon>
@@ -66,7 +66,7 @@
                 x:Name="NavMachines"
                 Content="Machines"
                 Tag="Machines"
-                AutomationProperties.Name="NavMachines">
+                AutomationProperties.AutomationId="NavMachines" AutomationProperties.Name="NavMachines">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE7F4;" />
                 </NavigationViewItem.Icon>
@@ -75,7 +75,7 @@
                 x:Name="NavKubernetes"
                 Content="Kubernetes"
                 Tag="Kubernetes"
-                AutomationProperties.Name="NavKubernetes">
+                AutomationProperties.AutomationId="NavKubernetes" AutomationProperties.Name="NavKubernetes">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE81E;" />
                 </NavigationViewItem.Icon>
@@ -84,7 +84,7 @@
                 x:Name="NavConfiguration"
                 Content="Configuration"
                 Tag="Configuration"
-                AutomationProperties.Name="NavConfiguration">
+                AutomationProperties.AutomationId="NavConfiguration" AutomationProperties.Name="NavConfiguration">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE713;" />
                 </NavigationViewItem.Icon>
@@ -93,7 +93,7 @@
                 x:Name="NavRuntime"
                 Content="Runtime"
                 Tag="Runtime"
-                AutomationProperties.Name="NavRuntime">
+                AutomationProperties.AutomationId="NavRuntime" AutomationProperties.Name="NavRuntime">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE756;" />
                 </NavigationViewItem.Icon>
@@ -102,7 +102,7 @@
                 x:Name="NavAIWorkloads"
                 Content="AI Workloads"
                 Tag="AIWorkloads"
-                AutomationProperties.Name="NavAIWorkloads">
+                AutomationProperties.AutomationId="NavAIWorkloads" AutomationProperties.Name="NavAIWorkloads">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE99A;" />
                 </NavigationViewItem.Icon>
@@ -111,7 +111,7 @@
                 x:Name="NavProfiles"
                 Content="Profiles"
                 Tag="Profiles"
-                AutomationProperties.Name="NavProfiles">
+                AutomationProperties.AutomationId="NavProfiles" AutomationProperties.Name="NavProfiles">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE748;" />
                 </NavigationViewItem.Icon>
@@ -120,7 +120,7 @@
                 x:Name="NavMonitoring"
                 Content="Monitoring"
                 Tag="Monitoring"
-                AutomationProperties.Name="NavMonitoring">
+                AutomationProperties.AutomationId="NavMonitoring" AutomationProperties.Name="NavMonitoring">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE9D9;" />
                 </NavigationViewItem.Icon>
@@ -132,7 +132,7 @@
                 x:Name="NavSettings"
                 Content="Settings &amp; Deps"
                 Tag="Settings"
-                AutomationProperties.Name="NavSettings">
+                AutomationProperties.AutomationId="NavSettings" AutomationProperties.Name="NavSettings">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE713;" />
                 </NavigationViewItem.Icon>
@@ -140,6 +140,6 @@
         </NavigationView.FooterMenuItems>
 
         <!-- Content frame -->
-        <Frame x:Name="ContentFrame" AutomationProperties.Name="ContentFrame" />
+        <Frame x:Name="ContentFrame" AutomationProperties.AutomationId="ContentFrame" AutomationProperties.Name="ContentFrame" />
     </NavigationView>
 </Window>

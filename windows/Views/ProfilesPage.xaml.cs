@@ -11,6 +11,8 @@ public sealed partial class ProfilesPage : Page
     public ProfilesPage()
     {
         InitializeComponent();
+        ViewModel.DestructiveConfirmationHandler = action =>
+            DestructiveConfirmationDialog.ShowAsync(XamlRoot, action);
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -26,10 +28,11 @@ public sealed partial class ProfilesPage : Page
             ViewModel.SelectProfileCommand.Execute(name);
     }
 
-    private async void DeleteProfile_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    // DeleteProfileCommand presents the accessible confirmation itself.
+    private void DeleteProfile_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         var name = (sender as Microsoft.UI.Xaml.Controls.Button)?.Tag?.ToString();
         if (!string.IsNullOrEmpty(name))
-            await ViewModel.DeleteProfileCommand.ExecuteAsync(name);
+            ViewModel.DeleteProfileCommand.Execute(name);
     }
 }

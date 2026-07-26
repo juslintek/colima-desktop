@@ -9,13 +9,24 @@
     <ScrollViewer Padding="24">
         <StackPanel Spacing="20" MaxWidth="700">
             <TextBlock Text="Settings &amp; Dependencies" Style="{ThemeResource TitleTextBlockStyle}"
-                       AutomationProperties.Name="SettingsTitle" />
+                       AutomationProperties.AutomationId="SettingsTitle" AutomationProperties.Name="SettingsTitle" />
 
-            <InfoBar AutomationProperties.Name="SettingsStatusBanner"
+            <InfoBar AutomationProperties.AutomationId="SettingsStatusBanner" AutomationProperties.Name="SettingsStatusBanner"
                      IsOpen="{x:Bind ViewModel.StatusMessage, Mode=OneWay, Converter={StaticResource NonEmptyToBoolConverter}}"
                      Severity="Informational"
                      Message="{x:Bind ViewModel.StatusMessage, Mode=OneWay}"
                      Title="Status" />
+            <InfoBar AutomationProperties.AutomationId="SettingsErrorBanner" AutomationProperties.Name="SettingsErrorBanner"
+                     IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
+                     AutomationProperties.LiveSetting="Assertive" Severity="Error"
+                     Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
+                     Title="Error" />
+            <InfoBar x:Name="DaemonConnectionInfoBar"
+                     AutomationProperties.AutomationId="DaemonConnectionBanner" AutomationProperties.Name="DaemonConnectionBanner"
+                     IsOpen="True"
+                     IsClosable="False"
+                     Message="{x:Bind ViewModel.ConnectionSettings.ConnectionStatus, Mode=OneWay}"
+                     Title="Daemon connection" />
 
             <!-- ── Backend Connection ─────────────────────────────── -->
             <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
@@ -23,18 +34,19 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="16">
                     <TextBlock Text="Backend Connection" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="ConnectionHeader" />
+                               AutomationProperties.AutomationId="ConnectionHeader" AutomationProperties.Name="ConnectionHeader" />
 
                     <!-- Mode toggle -->
                     <StackPanel Spacing="8">
-                        <TextBlock Text="Backend mode:" AutomationProperties.Name="LabelBackendMode" />
+                        <TextBlock Text="Backend mode:" AutomationProperties.AutomationId="LabelBackendMode" AutomationProperties.Name="LabelBackendMode" />
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <RadioButton Content="Local WSL2 / Docker"
-                                         AutomationProperties.Name="RadioLocalWSL2"
+                                         AutomationProperties.AutomationId="RadioLocalWSL2" AutomationProperties.Name="RadioLocalWSL2"
                                          IsChecked="{x:Bind ViewModel.ConnectionSettings.UseWsl2, Mode=OneWay}"
                                          Click="RadioLocalWSL2_Click" />
                             <RadioButton Content="Remote SSH / gRPC"
-                                         AutomationProperties.Name="RadioRemoteSSH"
+                                         AutomationProperties.AutomationId="RadioRemoteSSH" AutomationProperties.Name="RadioRemoteSSH"
+                                         IsChecked="{x:Bind ViewModel.ConnectionSettings.UseRemoteSsh, Mode=OneWay}"
                                          Click="RadioRemoteSSH_Click" />
                         </StackPanel>
                     </StackPanel>
@@ -43,21 +55,21 @@
                     <Grid ColumnDefinitions="140,*" RowSpacing="8">
                         <TextBlock Grid.Column="0" Text="Local (WSL2) address:"
                                    VerticalAlignment="Center"
-                                   AutomationProperties.Name="LabelWsl2Host" />
+                                   AutomationProperties.AutomationId="LabelWsl2Host" AutomationProperties.Name="LabelWsl2Host" />
                         <TextBox Grid.Column="1"
-                                 AutomationProperties.Name="FieldWsl2Host"
+                                 AutomationProperties.AutomationId="FieldWsl2Host" AutomationProperties.Name="FieldWsl2Host"
                                  PlaceholderText="http://127.0.0.1:50051"
                                  Text="{x:Bind ViewModel.ConnectionSettings.Wsl2Host, Mode=TwoWay}" />
                     </Grid>
 
                     <!-- Remote SSH host -->
                     <Grid ColumnDefinitions="140,*" RowSpacing="8">
-                        <TextBlock Grid.Column="0" Text="Remote address:"
+                        <TextBlock Grid.Column="0" Text="SSH tunnel address:"
                                    VerticalAlignment="Center"
-                                   AutomationProperties.Name="LabelRemoteHost" />
+                                   AutomationProperties.AutomationId="LabelRemoteHost" AutomationProperties.Name="LabelRemoteHost" />
                         <TextBox Grid.Column="1"
-                                 AutomationProperties.Name="FieldRemoteHost"
-                                 PlaceholderText="http://remote-host:50051"
+                                 AutomationProperties.AutomationId="FieldRemoteHost" AutomationProperties.Name="FieldRemoteHost"
+                                 PlaceholderText="http://127.0.0.1:50051"
                                  Text="{x:Bind ViewModel.ConnectionSettings.RemoteHost, Mode=TwoWay}" />
                     </Grid>
 
@@ -65,9 +77,9 @@
                     <Grid ColumnDefinitions="140,*" RowSpacing="8">
                         <TextBlock Grid.Column="0" Text="SSH target:"
                                    VerticalAlignment="Center"
-                                   AutomationProperties.Name="LabelSshTarget" />
+                                   AutomationProperties.AutomationId="LabelSshTarget" AutomationProperties.Name="LabelSshTarget" />
                         <TextBox Grid.Column="1"
-                                 AutomationProperties.Name="FieldSshTarget"
+                                 AutomationProperties.AutomationId="FieldSshTarget" AutomationProperties.Name="FieldSshTarget"
                                  PlaceholderText="user@host"
                                  Text="{x:Bind ViewModel.ConnectionSettings.SshTarget, Mode=TwoWay}" />
                     </Grid>
@@ -76,15 +88,15 @@
                     <Grid ColumnDefinitions="140,*" RowSpacing="8">
                         <TextBlock Grid.Column="0" Text="Active profile:"
                                    VerticalAlignment="Center"
-                                   AutomationProperties.Name="LabelActiveProfile" />
+                                   AutomationProperties.AutomationId="LabelActiveProfile" AutomationProperties.Name="LabelActiveProfile" />
                         <TextBox Grid.Column="1"
-                                 AutomationProperties.Name="FieldActiveProfile"
+                                 AutomationProperties.AutomationId="FieldActiveProfile" AutomationProperties.Name="FieldActiveProfile"
                                  PlaceholderText="default"
                                  Text="{x:Bind ViewModel.ConnectionSettings.ActiveProfile, Mode=TwoWay}" />
                     </Grid>
 
                     <Button Content="Apply Connection"
-                            AutomationProperties.Name="BtnApplyConnection"
+                            AutomationProperties.AutomationId="BtnApplyConnection" AutomationProperties.Name="BtnApplyConnection"
                             Command="{x:Bind ViewModel.ApplyConnectionSettingsCommand}"
                             Style="{ThemeResource AccentButtonStyle}" />
                 </StackPanel>
@@ -97,21 +109,21 @@
                 <StackPanel Spacing="16">
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <TextBlock Text="Dependencies" Style="{ThemeResource SubtitleTextBlockStyle}"
-                                   AutomationProperties.Name="DepsHeader" />
+                                   AutomationProperties.AutomationId="DepsHeader" AutomationProperties.Name="DepsHeader" />
                         <Button Content="Check All"
-                                AutomationProperties.Name="BtnCheckDeps"
+                                AutomationProperties.AutomationId="BtnCheckDeps" AutomationProperties.Name="BtnCheckDeps"
                                 Command="{x:Bind ViewModel.LoadCommand}" />
                         <Button Content="Check for Updates"
-                                AutomationProperties.Name="BtnCheckUpdates"
+                                AutomationProperties.AutomationId="BtnCheckUpdates" AutomationProperties.Name="BtnCheckUpdates"
                                 Command="{x:Bind ViewModel.CheckForUpdatesCommand}" />
                         <ProgressRing IsActive="{x:Bind ViewModel.DependencyManager.IsChecking, Mode=OneWay}"
-                                      AutomationProperties.Name="DepsChecking"
+                                      AutomationProperties.AutomationId="DepsChecking" AutomationProperties.Name="DepsChecking"
                                       Width="24" Height="24" />
                     </StackPanel>
 
                     <!-- Overall status -->
                     <InfoBar x:Name="DepsOverallInfoBar"
-                             AutomationProperties.Name="DepsOverallStatus"
+                             AutomationProperties.AutomationId="DepsOverallStatus" AutomationProperties.Name="DepsOverallStatus"
                              IsOpen="True"
                              Severity="Informational"
                              Message="{x:Bind ViewModel.DependencyManager.OverallStatus, Mode=OneWay}"
@@ -120,29 +132,29 @@
                     <!-- WSL2 -->
                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
                             CornerRadius="4" Padding="12"
-                            AutomationProperties.Name="DepCardWSL2">
+                            AutomationProperties.AutomationId="DepCardWSL2" AutomationProperties.Name="DepCardWSL2">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <TextBlock Text="WSL2" FontWeight="SemiBold"
-                                           AutomationProperties.Name="DepNameWSL2" />
+                                           AutomationProperties.AutomationId="DepNameWSL2" AutomationProperties.Name="DepNameWSL2" />
                                 <TextBlock Text="{x:Bind ViewModel.Wsl2Dep.StatusMessage, Mode=OneWay}"
-                                           AutomationProperties.Name="DepStatusWSL2"
+                                           AutomationProperties.AutomationId="DepStatusWSL2" AutomationProperties.Name="DepStatusWSL2"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-                                <TextBlock AutomationProperties.Name="DepVersionWSL2"
+                                <TextBlock AutomationProperties.AutomationId="DepVersionWSL2" AutomationProperties.Name="DepVersionWSL2"
                                            Text="{x:Bind ViewModel.Wsl2Dep.InstalledVersion, Mode=OneWay}"
                                            FontSize="12" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE73E;"
-                                          AutomationProperties.Name="DepCheckWSL2"
+                                          AutomationProperties.AutomationId="DepCheckWSL2" AutomationProperties.Name="DepCheckWSL2"
                                           Foreground="Green"
                                           Visibility="{x:Bind ViewModel.Wsl2Dep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 <Button Content="Install WSL2"
-                                        AutomationProperties.Name="BtnInstallWSL2"
+                                        AutomationProperties.AutomationId="BtnInstallWSL2" AutomationProperties.Name="BtnInstallWSL2"
                                         Command="{x:Bind ViewModel.InstallWsl2Command}"
                                         Visibility="{x:Bind ViewModel.Wsl2Dep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
                                 <ProgressRing IsActive="{x:Bind ViewModel.Wsl2Dep.IsInstalling, Mode=OneWay}"
-                                             AutomationProperties.Name="DepInstallingWSL2"
+                                             AutomationProperties.AutomationId="DepInstallingWSL2" AutomationProperties.Name="DepInstallingWSL2"
                                              Width="20" Height="20" />
                             </StackPanel>
                         </Grid>
@@ -151,29 +163,29 @@
                     <!-- Docker -->
                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
                             CornerRadius="4" Padding="12"
-                            AutomationProperties.Name="DepCardDocker">
+                            AutomationProperties.AutomationId="DepCardDocker" AutomationProperties.Name="DepCardDocker">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <TextBlock Text="Docker" FontWeight="SemiBold"
-                                           AutomationProperties.Name="DepNameDocker" />
+                                           AutomationProperties.AutomationId="DepNameDocker" AutomationProperties.Name="DepNameDocker" />
                                 <TextBlock Text="{x:Bind ViewModel.DockerDep.StatusMessage, Mode=OneWay}"
-                                           AutomationProperties.Name="DepStatusDocker"
+                                           AutomationProperties.AutomationId="DepStatusDocker" AutomationProperties.Name="DepStatusDocker"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-                                <TextBlock AutomationProperties.Name="DepVersionDocker"
+                                <TextBlock AutomationProperties.AutomationId="DepVersionDocker" AutomationProperties.Name="DepVersionDocker"
                                            Text="{x:Bind ViewModel.DockerDep.InstalledVersion, Mode=OneWay}"
                                            FontSize="12" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE73E;"
-                                          AutomationProperties.Name="DepCheckDocker"
+                                          AutomationProperties.AutomationId="DepCheckDocker" AutomationProperties.Name="DepCheckDocker"
                                           Foreground="Green"
                                           Visibility="{x:Bind ViewModel.DockerDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
                                 <Button Content="Install Docker"
-                                        AutomationProperties.Name="BtnInstallDocker"
+                                        AutomationProperties.AutomationId="BtnInstallDocker" AutomationProperties.Name="BtnInstallDocker"
                                         Command="{x:Bind ViewModel.InstallDockerCommand}"
                                         Visibility="{x:Bind ViewModel.DockerDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
                                 <ProgressRing IsActive="{x:Bind ViewModel.DockerDep.IsInstalling, Mode=OneWay}"
-                                             AutomationProperties.Name="DepInstallingDocker"
+                                             AutomationProperties.AutomationId="DepInstallingDocker" AutomationProperties.Name="DepInstallingDocker"
                                              Width="20" Height="20" />
                             </StackPanel>
                         </Grid>
@@ -182,33 +194,33 @@
                     <!-- Daemon -->
                     <Border Background="{ThemeResource LayerFillColorDefaultBrush}"
                             CornerRadius="4" Padding="12"
-                            AutomationProperties.Name="DepCardDaemon">
+                            AutomationProperties.AutomationId="DepCardDaemon" AutomationProperties.Name="DepCardDaemon">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Grid.Column="0" Spacing="4">
                                 <TextBlock Text="colima-daemon" FontWeight="SemiBold"
-                                           AutomationProperties.Name="DepNameDaemon" />
+                                           AutomationProperties.AutomationId="DepNameDaemon" AutomationProperties.Name="DepNameDaemon" />
                                 <TextBlock Text="{x:Bind ViewModel.DaemonDep.StatusMessage, Mode=OneWay}"
-                                           AutomationProperties.Name="DepStatusDaemon"
+                                           AutomationProperties.AutomationId="DepStatusDaemon" AutomationProperties.Name="DepStatusDaemon"
                                            Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-                                <TextBlock AutomationProperties.Name="DepVersionDaemon"
+                                <TextBlock AutomationProperties.AutomationId="DepVersionDaemon" AutomationProperties.Name="DepVersionDaemon"
                                            Text="{x:Bind ViewModel.DaemonDep.InstalledVersion, Mode=OneWay}"
                                            FontSize="12" />
                                 <HyperlinkButton Content="Update available"
-                                                 AutomationProperties.Name="DepUpdateAvailableDaemon"
+                                                 AutomationProperties.AutomationId="DepUpdateAvailableDaemon" AutomationProperties.Name="DepUpdateAvailableDaemon"
                                                  Visibility="{x:Bind ViewModel.DaemonDep.UpdateAvailable, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}"
                                                  Command="{x:Bind ViewModel.InstallDaemonCommand}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Orientation="Vertical" Spacing="4" VerticalAlignment="Center">
                                 <FontIcon Glyph="&#xE73E;"
-                                          AutomationProperties.Name="DepCheckDaemon"
+                                          AutomationProperties.AutomationId="DepCheckDaemon" AutomationProperties.Name="DepCheckDaemon"
                                           Foreground="Green"
                                           Visibility="{x:Bind ViewModel.DaemonDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}}" />
-                                <Button Content="Install Daemon"
-                                        AutomationProperties.Name="BtnInstallDaemon"
+                                <Button Content="Daemon install help"
+                                        AutomationProperties.AutomationId="BtnInstallDaemon" AutomationProperties.Name="BtnInstallDaemon"
                                         Command="{x:Bind ViewModel.InstallDaemonCommand}"
                                         Visibility="{x:Bind ViewModel.DaemonDep.IsInstalled, Mode=OneWay, Converter={StaticResource BoolToInverseVisibilityConverter}}" />
                                 <ProgressRing IsActive="{x:Bind ViewModel.DaemonDep.IsInstalling, Mode=OneWay}"
-                                             AutomationProperties.Name="DepInstallingDaemon"
+                                             AutomationProperties.AutomationId="DepInstallingDaemon" AutomationProperties.Name="DepInstallingDaemon"
                                              Width="20" Height="20" />
                             </StackPanel>
                         </Grid>

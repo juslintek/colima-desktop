@@ -11,6 +11,8 @@ public sealed partial class ImagesPage : Page
     public ImagesPage()
     {
         InitializeComponent();
+        ViewModel.DestructiveConfirmationHandler = action =>
+            DestructiveConfirmationDialog.ShowAsync(XamlRoot, action);
     }
 
     protected override async void OnNavigatedTo(NavigationEventArgs e)
@@ -19,12 +21,23 @@ public sealed partial class ImagesPage : Page
         await ViewModel.LoadAsync();
     }
 
-    private async void RemoveImage_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        ViewModel.PullImageCommand.Cancel();
+        ViewModel.PushImageCommand.Cancel();
+        base.OnNavigatedFrom(e);
+    }
+
+    // RemoveImage/PruneImages commands present the accessible confirmation themselves.
+    private void RemoveImage_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {
         var id = ImageIdBox.Text.Trim();
         if (!string.IsNullOrEmpty(id))
-            await ViewModel.RemoveImageCommand.ExecuteAsync(id);
+            ViewModel.RemoveImageCommand.Execute(id);
     }
+
+    private void PruneImages_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e) =>
+        ViewModel.PruneImagesCommand.Execute(null);
 
     private async void InspectImage_Click(object sender, Microsoft.UI.Xaml.RoutedEventArgs e)
     {

@@ -16,6 +16,7 @@ public sealed partial class ConfigurationViewModel : ViewModelBase
     [ObservableProperty] private ColimaConfig? _config;
     [ObservableProperty] private ColimaConfig? _template;
     [ObservableProperty] private string _statusMessage = string.Empty;
+    [ObservableProperty] private bool _isEditingTemplate;
 
     // Flattened editable fields (bound individually in XAML).
     // NumberBox.Value is double, so cpu/memory/disk are double to avoid XamlCompiler type errors.
@@ -35,6 +36,7 @@ public sealed partial class ConfigurationViewModel : ViewModelBase
         {
             Config = await Client.GetConfigAsync(Settings.ActiveProfile, t);
             ApplyConfigToFields(Config);
+            IsEditingTemplate = false;
         }, ct);
 
     [RelayCommand]
@@ -42,13 +44,17 @@ public sealed partial class ConfigurationViewModel : ViewModelBase
         RunAsync(async t =>
         {
             Template = await Client.GetTemplateAsync(t);
+            ApplyConfigToFields(Template);
+            IsEditingTemplate = true;
+            StatusMessage = "Editing the default template. Save Template applies these fields globally.";
         });
 
     [RelayCommand]
     private Task SaveConfigAsync() =>
         RunAsync(async t =>
         {
-            if (Config is null) return;
+            if (Config is null)
+                throw new InvalidOperationException("Load the selected profile configuration before saving.");
             ApplyFieldsToConfig(Config);
             var resp = await Client.SetConfigAsync(Settings.ActiveProfile, Config, t);
             StatusMessage = resp.Success ? "Configuration saved." : $"Error: {resp.Error}";
@@ -58,7 +64,9 @@ public sealed partial class ConfigurationViewModel : ViewModelBase
     private Task SaveTemplateAsync() =>
         RunAsync(async t =>
         {
-            if (Template is null) return;
+            if (Template is null)
+                throw new InvalidOperationException("Load the template before saving.");
+            ApplyFieldsToConfig(Template);
             var resp = await Client.SetTemplateAsync(Template, t);
             StatusMessage = resp.Success ? "Template saved." : $"Error: {resp.Error}";
         });

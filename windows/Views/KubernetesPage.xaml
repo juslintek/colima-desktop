@@ -8,11 +8,11 @@
     <ScrollViewer Padding="24">
         <StackPanel Spacing="16">
             <TextBlock Text="Kubernetes" Style="{ThemeResource TitleTextBlockStyle}"
-                       AutomationProperties.Name="KubernetesTitle" />
+                       AutomationProperties.AutomationId="KubernetesTitle" AutomationProperties.Name="KubernetesTitle" />
 
-            <InfoBar AutomationProperties.Name="KubernetesErrorBanner"
+            <InfoBar AutomationProperties.AutomationId="KubernetesErrorBanner" AutomationProperties.Name="KubernetesErrorBanner"
                      IsOpen="{x:Bind ViewModel.HasError, Mode=OneWay}"
-                     Severity="Error"
+                     AutomationProperties.LiveSetting="Assertive" Severity="Error"
                      Message="{x:Bind ViewModel.ErrorMessage, Mode=OneWay}"
                      Title="Error" />
 
@@ -22,10 +22,10 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="8">
                     <TextBlock Text="Cluster Status" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="K8sStatusHeader" />
+                               AutomationProperties.AutomationId="K8sStatusHeader" AutomationProperties.Name="K8sStatusHeader" />
                     <ProgressRing IsActive="{x:Bind ViewModel.IsLoading, Mode=OneWay}"
-                                  AutomationProperties.Name="K8sLoading" />
-                    <TextBlock AutomationProperties.Name="K8sStatusEnabled"
+                                  AutomationProperties.AutomationId="K8sLoading" AutomationProperties.Name="K8sLoading" />
+                    <TextBlock AutomationProperties.AutomationId="K8sStatusEnabled" AutomationProperties.Name="K8sStatusEnabled"
                                Text="{x:Bind ViewModel.VmStatus.Kubernetes, Mode=OneWay, Converter={StaticResource BoolToEnabledConverter}, FallbackValue='Unknown'}" />
                 </StackPanel>
             </Border>
@@ -36,18 +36,18 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
                     <TextBlock Text="Cluster Controls" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="K8sControlsHeader" />
+                               AutomationProperties.AutomationId="K8sControlsHeader" AutomationProperties.Name="K8sControlsHeader" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <Button Content="Start"
-                                AutomationProperties.Name="BtnK8sStart"
+                                AutomationProperties.AutomationId="BtnK8sStart" AutomationProperties.Name="BtnK8sStart"
                                 Command="{x:Bind ViewModel.StartKubernetesCommand}"
                                 Style="{ThemeResource AccentButtonStyle}" />
                         <Button Content="Stop"
-                                AutomationProperties.Name="BtnK8sStop"
+                                AutomationProperties.AutomationId="BtnK8sStop" AutomationProperties.Name="BtnK8sStop"
                                 Command="{x:Bind ViewModel.StopKubernetesCommand}" />
                         <Button Content="Reset"
-                                AutomationProperties.Name="BtnK8sReset"
-                                Command="{x:Bind ViewModel.ResetKubernetesCommand}" />
+                                AutomationProperties.AutomationId="BtnK8sReset" AutomationProperties.Name="BtnK8sReset"
+                                Click="ResetKubernetes_Click" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -58,22 +58,22 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}" BorderThickness="1">
                 <StackPanel Spacing="12">
                     <TextBlock Text="kubectl exec" Style="{ThemeResource SubtitleTextBlockStyle}"
-                               AutomationProperties.Name="K8sExecHeader" />
+                               AutomationProperties.AutomationId="K8sExecHeader" AutomationProperties.Name="K8sExecHeader" />
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <TextBox AutomationProperties.Name="FieldKubectlCommand"
+                        <TextBox AutomationProperties.AutomationId="FieldKubectlCommand" AutomationProperties.Name="FieldKubectlCommand"
                                  PlaceholderText="kubectl args (e.g. get pods -n default)"
                                  Width="400"
                                  Text="{x:Bind ViewModel.KubectlCommand, Mode=TwoWay}" />
                         <Button Content="Run"
-                                AutomationProperties.Name="BtnKubectlExec"
+                                AutomationProperties.AutomationId="BtnKubectlExec" AutomationProperties.Name="BtnKubectlExec"
                                 Command="{x:Bind ViewModel.ExecKubectlCommand}"
                                 Style="{ThemeResource AccentButtonStyle}" />
                     </StackPanel>
-                    <TextBlock AutomationProperties.Name="K8sExitCode"
+                    <TextBlock AutomationProperties.AutomationId="K8sExitCode" AutomationProperties.Name="K8sExitCode"
                                Text="{x:Bind ViewModel.KubectlExitCode, Mode=OneWay, Converter={StaticResource IntToExitCodeConverter}}"
                                Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     <ScrollViewer Height="200">
-                        <TextBlock AutomationProperties.Name="K8sExecOutput"
+                        <TextBlock AutomationProperties.AutomationId="K8sExecOutput" AutomationProperties.Name="K8sExecOutput"
                                    Text="{x:Bind ViewModel.KubectlOutput, Mode=OneWay}"
                                    FontFamily="Cascadia Code, Consolas, monospace"
                                    TextWrapping="Wrap" FontSize="11" />

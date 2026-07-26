@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Colimaui;
+using ColimaDesktop.Windows.Services;
 
 namespace ColimaDesktop.Windows.ViewModels;
 
@@ -19,10 +20,12 @@ public sealed partial class ProfilesViewModel : ViewModelBase
     [ObservableProperty] private string _statusMessage = string.Empty;
 
     public override Task LoadAsync(CancellationToken ct = default) =>
-        RunAsync(async t =>
-        {
-            Profiles = await Client.ListProfilesAsync(t);
-        }, ct);
+        RunAsync(LoadCoreAsync, ct);
+
+    private async Task LoadCoreAsync(CancellationToken t)
+    {
+        Profiles = await Client.ListProfilesAsync(t);
+    }
 
     [RelayCommand]
     private Task CreateProfileAsync() =>
@@ -31,17 +34,20 @@ public sealed partial class ProfilesViewModel : ViewModelBase
             var resp = await Client.CreateProfileAsync(NewProfileName, new ColimaConfig(), t);
             StatusMessage = resp.Success ? $"Profile '{NewProfileName}' created." : $"Error: {resp.Error}";
             NewProfileName = string.Empty;
-            await LoadAsync(t);
+            await LoadCoreAsync(t);
         });
 
     [RelayCommand]
     private Task DeleteProfileAsync(string name) =>
-        RunAsync(async t =>
-        {
-            var resp = await Client.DeleteProfileAsync(name, ct: t);
-            StatusMessage = resp.Success ? $"Profile '{name}' deleted." : $"Error: {resp.Error}";
-            await LoadAsync(t);
-        });
+        RunDestructiveAsync(
+            new DestructiveAction("DeleteProfile", $"delete profile {name}",
+                $"Profile '{name}' will be deleted. This action cannot be undone.", "Delete"),
+            async t =>
+            {
+                var resp = await Client.DeleteProfileAsync(name, ct: t);
+                StatusMessage = resp.Success ? $"Profile '{name}' deleted." : $"Error: {resp.Error}";
+                await LoadCoreAsync(t);
+            });
 
     [RelayCommand]
     private Task CloneProfileAsync() =>
@@ -53,9 +59,13 @@ public sealed partial class ProfilesViewModel : ViewModelBase
                 : $"Error: {resp.Error}";
             CloneSource = string.Empty;
             CloneDestination = string.Empty;
-            await LoadAsync(t);
+            await LoadCoreAsync(t);
         });
 
     [RelayCommand]
-    private void SelectProfile(string name) => Settings.ActiveProfile = name;
+    private void SelectProfile(string name)
+    {
+        Settings.ActiveProfile = ConnectionSettings.NormalizeProfile(name);
+        StatusMessage = $"Selected profile '{Settings.ActiveProfile}'. Other pages will use it on their next action or refresh.";
+    }
 }

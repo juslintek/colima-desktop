@@ -27,22 +27,22 @@ public sealed partial class SettingsViewModel : ViewModelBase
 
     [RelayCommand]
     private Task InstallWsl2Async() =>
-        DependencyManager.InstallWsl2Async(
-            new Progress<string>(msg => StatusMessage = msg));
+        RunAsync(t => DependencyManager.InstallWsl2Async(
+            new Progress<string>(msg => StatusMessage = msg), t));
 
     [RelayCommand]
     private Task InstallDockerAsync() =>
-        DependencyManager.InstallDockerAsync(
-            new Progress<string>(msg => StatusMessage = msg));
+        RunAsync(t => DependencyManager.InstallDockerAsync(
+            new Progress<string>(msg => StatusMessage = msg), t));
 
     [RelayCommand]
     private Task InstallDaemonAsync() =>
-        DependencyManager.InstallDaemonAsync(
-            new Progress<string>(msg => StatusMessage = msg));
+        RunAsync(t => DependencyManager.InstallDaemonAsync(
+            new Progress<string>(msg => StatusMessage = msg), t));
 
     [RelayCommand]
     private Task CheckForUpdatesAsync() =>
-        DependencyManager.CheckForUpdatesAsync();
+        RunAsync(DependencyManager.CheckForUpdatesAsync);
 
     [RelayCommand]
     private void SwitchToRemoteSSH() =>
@@ -53,9 +53,17 @@ public sealed partial class SettingsViewModel : ViewModelBase
         ConnectionSettings.Mode = ConnectionSettings.BackendMode.LocalWSL2;
 
     [RelayCommand]
-    private void ApplyConnectionSettings()
+    private async Task ApplyConnectionSettingsAsync(CancellationToken ct = default)
     {
-        App.DaemonClient.Reconnect(ConnectionSettings.DaemonAddress);
-        StatusMessage = $"Reconnected to {ConnectionSettings.DaemonAddress}";
+        await RunAsync(async token =>
+        {
+            var result = await App.DaemonConnectionManager.ConnectAsync(
+                App.DaemonClient,
+                ConnectionSettings,
+                DependencyManager,
+                allowTrustedLocalStart: true,
+                token);
+            StatusMessage = result.Message;
+        }, ct);
     }
 }

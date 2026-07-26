@@ -20,6 +20,13 @@ public sealed partial class AIWorkloadsPage : Page
         SetComboByTag(RunnerCombo, ViewModel.Runner);
     }
 
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        ViewModel.SetupModelCommand.Cancel();
+        ViewModel.RunModelCommand.Cancel();
+        base.OnNavigatedFrom(e);
+    }
+
     private static void SetComboByTag(ComboBox combo, string value)
     {
         foreach (var item in combo.Items)
