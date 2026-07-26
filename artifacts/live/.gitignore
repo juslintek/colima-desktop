@@ -1,0 +1,5 @@
+# Transient live-backend evidence — contains host-specific paths/data.
+# Never commit (Requirement 8.6 / R6 global gate).
+# Regenerate with: scripts/live/e2e-env.sh evidence
+*
+!.gitignore

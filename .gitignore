@@ -29,3 +29,11 @@ colima-desktop.json
 # Python generated artifacts
 __pycache__/
 *.py[cod]
+
+# Build
+linux/target
+
+# Agents
+.kiro
+.omc
+.vscode
