@@ -22,8 +22,10 @@ set -euo pipefail
 SCHEME="ColimaDesktop"
 APP_NAME="Colima Desktop"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BUILD_DIR="$ROOT/build/Release"
-DIST_DIR="$ROOT/dist"
+# Both dirs are overridable so a verification/CI build can isolate its
+# derivedDataPath + output (e.g. DERIVED_DATA=/tmp/... DIST_DIR=/tmp/... package.sh).
+BUILD_DIR="${DERIVED_DATA:-$ROOT/build/Release}"
+DIST_DIR="${DIST_DIR:-$ROOT/dist}"
 ENTITLEMENTS="$ROOT/packaging/ColimaDesktop.entitlements"
 APP_PATH="$BUILD_DIR/Build/Products/Release/$APP_NAME.app"
 
@@ -105,3 +107,49 @@ echo "==> Done: $DMG_PATH"
 ls -lh "$DMG_PATH"
 [[ -n "${SIGN_IDENTITY:-}" ]] && spctl --assess --type open --context context:primary-signature -v "$DMG_PATH" 2>&1 || \
   echo "NOTE: unsigned DMG — Gatekeeper will block until signed + notarized."
+
+# ── Honest signing-status sidecar for the DMG (consumed by checksums.sh) ──
+# Credential-gated: SIGNED only when a Developer ID identity was supplied; when
+# absent we emit the exact "UNSIGNED — signing credential <NAME> absent" label
+# and list the credential names a fully-signed release needs. Never faked.
+if [[ -n "${SIGN_IDENTITY:-}" ]]; then
+  if [[ "${NOTARIZE:-0}" == "1" ]]; then
+    DMG_SIGNED=true
+    DMG_STATUS="SIGNED + NOTARIZED (Developer ID: ${SIGN_IDENTITY})"
+    DMG_REQ='[]'
+  else
+    DMG_SIGNED=true
+    DMG_STATUS="SIGNED (Developer ID: ${SIGN_IDENTITY}) — NOT notarized (set NOTARIZE=1 + NOTARY_PROFILE)"
+    DMG_REQ='["NOTARY_APPLE_ID","NOTARY_TEAM_ID","NOTARY_PASSWORD"]'
+  fi
+else
+  DMG_SIGNED=false
+  DMG_STATUS="UNSIGNED — signing credential MACOS_SIGN_IDENTITY absent (ad-hoc signed only; Gatekeeper will block)"
+  DMG_REQ='["MACOS_SIGN_IDENTITY","MACOS_CERTIFICATE_P12","MACOS_CERTIFICATE_PASSWORD","KEYCHAIN_PASSWORD","NOTARY_APPLE_ID","NOTARY_TEAM_ID","NOTARY_PASSWORD"]'
+fi
+cat > "$DMG_PATH.meta.json" <<META
+{
+  "component": "macos-app",
+  "os": "darwin",
+  "arch": "universal",
+  "version": "${MARKETING_VERSION}",
+  "signed": ${DMG_SIGNED},
+  "signing_status": "${DMG_STATUS}",
+  "required_credentials": ${DMG_REQ}
+}
+META
+
+# ── Ship the Go daemon + TUI binaries alongside the macOS app (versioned) ──
+# Skippable via PACKAGE_GO=0. Uses package-go.sh so the version stamp + signing
+# gate are identical to the CI path.
+if [[ "${PACKAGE_GO:-1}" == "1" ]] && command -v go >/dev/null 2>&1; then
+  echo "==> Building versioned Go binaries (daemon + tui)"
+  DIST_DIR="$DIST_DIR" MACOS_SIGN_IDENTITY="${SIGN_IDENTITY:-}" "$ROOT/scripts/package-go.sh" daemon --universal || echo "WARN: daemon package failed"
+  DIST_DIR="$DIST_DIR" MACOS_SIGN_IDENTITY="${SIGN_IDENTITY:-}" "$ROOT/scripts/package-go.sh" tui --universal || echo "WARN: tui package failed"
+fi
+
+# ── SHA-256 checksums manifest for every artifact in DIST_DIR ──
+if [[ "${SKIP_MANIFEST:-0}" != "1" ]]; then
+  echo "==> Generating SHA-256 checksums manifest"
+  "$ROOT/scripts/release/checksums.sh" --dir "$DIST_DIR" --version "$MARKETING_VERSION" || echo "WARN: manifest generation failed"
+fi

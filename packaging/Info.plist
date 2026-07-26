@@ -7,7 +7,15 @@
       standard/auto keys (versions, category, etc.) on top. Holds Sparkle keys that
       Xcode's INFOPLIST_KEY_* mechanism does NOT inject (arbitrary custom keys).
 
-      SUPublicEDKey: replace the placeholder with `make sparkle-keys` output before shipping.
+      SUPublicEDKey: the REAL production Ed25519 public key used by Sparkle to verify
+                     auto-update signatures. Committing the PUBLIC key is safe and
+                     required; it is NOT a placeholder. Its matching PRIVATE key is never
+                     committed — it lives in the macOS login keychain (generic password
+                     "Private key for signing Sparkle updates", account "ed25519", service
+                     "https://sparkle-project.org") and, for CI, in the SPARKLE_PRIVATE_KEY
+                     repo secret (which MUST be the export of that same private key so the
+                     appcast signatures verify against this public key). See SIGNING.md to
+                     enable signing or rotate the key.
       SUFeedURL:     where appcast.xml is hosted.
     -->
     <key>SUFeedURL</key>

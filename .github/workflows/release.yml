@@ -1,19 +1,49 @@
 name: Release
 
-# Cut a release when a vX.Y.Z tag is pushed:
+# R8 / task 13.1 — build SIGNED, VERSIONED artifacts for EVERY shipped component
+# when a version tag is pushed:
 #   git tag v1.0.0 && git push origin v1.0.0
 #
-# Works TODAY unsigned (GitHub-hosted DMG + Sparkle appcast). It also contains
-# Developer ID signing + notarization steps that stay DORMANT until you add the
-# corresponding secrets (after buying the Apple Developer Program membership).
+# Pipeline shape (task 13.6 — publish is ALL-GREEN gated):
+#   rc-gate ─────── the release-candidate gate (task 12.5) must be GREEN first  [reusable]
+#      │            (9 frontends.yml jobs + test.yml + verify.sh + security + perf + a11y +
+#      │             the P0/P1 defect gate); every build + the publish depend on it.
+#      ├─ release-gate ── the P0/P1 release-blocking gate (task 13.4) run DIRECTLY   [ubuntu]
+#      │                  (scripts/release-blocking-gate.sh; blocks the tag on any open P0/P1).
+#      ├─ macos    → .app / .dmg (+ Go daemon & TUI universal binaries)   [macos-15]
+#      ├─ windows  → WinUI 3 package (.zip, Authenticode-signed exe)        [windows-latest]
+#      ├─ linux    → GTK 4 package (.tar.gz + .deb, GPG-signed)             [ubuntu-latest]
+#      └─ release  → PUBLISH — needs: [rc-gate, release-gate, macos, windows, linux]  [macos-15]
+#                    (re-asserts the P0/P1 gate on-runner, then aggregate SHA-256 checksums
+#                     manifest + SBOMs, GitHub Release with every asset, Sparkle appcast)
 #
-# Optional repo secrets:
-#   SPARKLE_PRIVATE_KEY      EdDSA private key (no Apple membership needed) — enables auto-update
-#   MACOS_CERTIFICATE_P12    base64 of your Developer ID Application .p12   ┐
-#   MACOS_CERTIFICATE_PASSWORD                                              │ signing (later)
-#   KEYCHAIN_PASSWORD        any throwaway password for the CI keychain     │
-#   MACOS_SIGN_IDENTITY      "Developer ID Application: Name (TEAMID)"      ┘
-#   NOTARY_APPLE_ID / NOTARY_TEAM_ID / NOTARY_PASSWORD   notarization (later)
+# ALL-GREEN INVARIANT (Requirement 12.4): the publish job runs ONLY when EVERY gate + build
+# succeeds — the RC gate GREEN (12.5), the P0/P1 release-blocking gate GREEN (13.4), and all three
+# artifact builds succeed. A red RC gate, an open P0/P1, or a failed build SKIPS the publish (GitHub
+# Actions `needs:` requires every dependency to succeed; the publish carries no `if: always()`),
+# so no release notes/assets/checksums/appcast are ever published for a red tag. Publishing is
+# idempotent/re-runnable (clobbering upload + conditional appcast commit) and can be re-driven for an
+# existing tag via workflow_dispatch. Signing stays credential-gated (an unsigned-but-labelled
+# release still publishes; missing signing secrets NEVER block — only RC/P0-P1/build failure does).
+#
+# Versioning: a single source of truth (scripts/version.sh) derives the version
+# from the git tag and stamps it into each artifact — macOS Info.plist
+# (CFBundleShortVersionString/CFBundleVersion), the Go daemon/TUI (ldflags),
+# the Windows product version (-p:Version), and the Linux package version.
+#
+# Signing is CREDENTIAL-GATED and HONEST. When a signing credential is present
+# the artifact is signed; when ABSENT it is built UNSIGNED, labelled
+# "UNSIGNED — signing credential <NAME> absent" in the manifest, and the
+# notarize/publish step is SKIPPED with a clear message (never error-faked).
+# Required credentials for a FULLY-SIGNED release (add as repo secrets):
+#   macOS Developer ID : MACOS_CERTIFICATE_P12, MACOS_CERTIFICATE_PASSWORD,
+#                        MACOS_SIGN_IDENTITY, KEYCHAIN_PASSWORD
+#   macOS notarization : NOTARY_APPLE_ID, NOTARY_TEAM_ID, NOTARY_PASSWORD
+#   Sparkle auto-update: SPARKLE_PRIVATE_KEY (Ed25519)
+#   Windows Authenticode: WINDOWS_CERTIFICATE_PFX, WINDOWS_CERTIFICATE_PASSWORD
+#                        (+ optional WINDOWS_TIMESTAMP_URL)
+#   Linux GPG          : LINUX_GPG_PRIVATE_KEY, LINUX_GPG_PASSPHRASE
+#                        (+ optional LINUX_GPG_KEY_ID)
 
 on:
   push:
@@ -27,29 +57,53 @@ on:
 permissions:
   contents: write   # create releases + push appcast.xml
 
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
-  release:
+  # ── Release-candidate gate: task 13 (release) is BLOCKED unless this is GREEN ──
+  # Reuses the RC workflow (task 12.5): 9 frontends.yml jobs + test.yml + verify.sh
+  # + security-scan + perf + a11y + the P0/P1 defect gate. Every build job + the
+  # release-gate + the publish job below depend on it.
+  rc-gate:
+    uses: ./.github/workflows/release-candidate.yml
+    secrets: inherit
+
+  # ── P0/P1 release-blocking gate (task 13.4 / Requirement 12.5, design Property 22) ──
+  # Runs scripts/release-blocking-gate.sh DIRECTLY (the RC gate above also runs it, so this is
+  # defense-in-depth AND makes the publish's P0/P1 dependency explicit + self-evident). Blocks the
+  # tag IFF any OPEN defect in docs/release-defects.json is priority P0/P1 (also auto-ingests
+  # docs/sbom/vuln-summary.json: critical->P0, high->P1). Fail-closed (exit 2 => job fails) if the
+  # defect source is unreadable. The publish job `needs:` this, so an open P0/P1 SKIPS publishing.
+  release-gate:
+    needs: [rc-gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: Release-blocking P0/P1 defect gate
+        run: bash scripts/release-blocking-gate.sh
+
+  # ── macOS: .app / .dmg + Go daemon & TUI universal binaries ──
+  macos:
+    needs: [rc-gate]
     runs-on: macos-15
-    timeout-minutes: 40
+    timeout-minutes: 45
     env:
       TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
       HAS_SIGNING: ${{ secrets.MACOS_CERTIFICATE_P12 != '' && secrets.MACOS_SIGN_IDENTITY != '' }}
       HAS_NOTARY: ${{ secrets.NOTARY_APPLE_ID != '' }}
-      HAS_SPARKLE: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0   # tags + commit count for the build number
-
+        with: { fetch-depth: 0 }   # tags + commit count for the build number
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
       - name: Install XcodeGen
         run: brew install xcodegen
-
-      - name: Generate project + resolve packages (provides Sparkle tools)
-        run: |
-          xcodegen generate
-          xcodebuild -resolvePackageDependencies -scheme ColimaDesktop -derivedDataPath build/Release
-
-      - name: Import Developer ID certificate (dormant until secrets exist)
+      - name: Import Developer ID certificate (credential-gated; dormant until secrets exist)
         if: env.HAS_SIGNING == 'true'
         env:
           CERT_P12: ${{ secrets.MACOS_CERTIFICATE_P12 }}
@@ -63,8 +117,7 @@ jobs:
           security import /tmp/cert.p12 -k build.keychain -P "$CERT_PW" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KC_PW" build.keychain
           rm -f /tmp/cert.p12
-
-      - name: Configure notarization (dormant until secrets exist)
+      - name: Configure notarization (credential-gated)
         if: env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true'
         env:
           NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
@@ -73,61 +126,161 @@ jobs:
         run: |
           xcrun notarytool store-credentials ColimaDesktopNotary \
             --apple-id "$NOTARY_APPLE_ID" --team-id "$NOTARY_TEAM_ID" --password "$NOTARY_PASSWORD"
-
-      - name: Build DMG
+      - name: Build versioned macOS artifacts (.dmg + daemon + tui) — credential-gated signing
         env:
           VERSION: ${{ env.TAG }}
           SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
           NOTARIZE: ${{ (env.HAS_SIGNING == 'true' && env.HAS_NOTARY == 'true') && '1' || '0' }}
           NOTARY_PROFILE: ColimaDesktopNotary
         run: scripts/package.sh
+      - name: Package raw .app bundle (zip)
+        env:
+          VERSION: ${{ env.TAG }}
+        run: |
+          APP=$(find build dist -maxdepth 8 -name 'Colima Desktop.app' 2>/dev/null | head -1)
+          if [ -n "$APP" ]; then
+            ditto -c -k --keepParent "$APP" "dist/ColimaDesktop-${VERSION#v}-macos.app.zip"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-macos
+          path: |
+            dist/*.dmg
+            dist/*.zip
+            dist/colima-daemon-*
+            dist/colima-tui-*
+            dist/*.meta.json
+          if-no-files-found: error
 
+  # ── Windows: WinUI 3 package (native runner) ──
+  windows:
+    needs: [rc-gate]
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '8.0.x' }
+      - name: Compute version from tag
+        id: ver
+        shell: bash
+        run: |
+          TAG="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+      - name: Build + package Windows artifact (credential-gated Authenticode)
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_PFX: ${{ secrets.WINDOWS_CERTIFICATE_PFX }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_TIMESTAMP_URL: ${{ secrets.WINDOWS_TIMESTAMP_URL }}
+        run: scripts/windows/package-windows.ps1 -Version ${{ steps.ver.outputs.version }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-windows
+          path: |
+            dist/*.zip
+            dist/*.meta.json
+          if-no-files-found: error
+
+  # ── Linux: GTK 4 package (native runner) ──
+  linux:
+    needs: [rc-gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Install GTK/Adwaita build deps
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev protobuf-compiler
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build + package Linux artifacts (.tar.gz + .deb, credential-gated GPG)
+        env:
+          LINUX_GPG_PRIVATE_KEY: ${{ secrets.LINUX_GPG_PRIVATE_KEY }}
+          LINUX_GPG_PASSPHRASE: ${{ secrets.LINUX_GPG_PASSPHRASE }}
+          LINUX_GPG_KEY_ID: ${{ secrets.LINUX_GPG_KEY_ID }}
+        run: bash scripts/linux/package-linux.sh --deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-linux
+          path: |
+            dist/*.tar.gz
+            dist/*.deb
+            dist/*.asc
+            dist/*.meta.json
+          if-no-files-found: error
+
+  # ── Aggregate, checksum, SBOM, PUBLISH — gated on ALL of: RC gate + P0/P1 gate + every build ──
+  # `needs:` lists every gate/build explicitly, so GitHub Actions runs this job ONLY when all of them
+  # succeed (no `if: always()` — a red RC gate, an open P0/P1, or a failed macos/windows/linux build
+  # SKIPS publishing). The first step re-asserts the P0/P1 gate ON THIS RUNNER right before any
+  # GitHub Release create/upload/appcast, closing any gap (Requirement 12.4).
+  release:
+    needs: [rc-gate, release-gate, macos, windows, linux]
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      HAS_SPARKLE: ${{ secrets.SPARKLE_PRIVATE_KEY != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-go@v5
+        with: { go-version: '1.24' }
+      - name: Re-assert P0/P1 release-blocking gate before publishing (defense-in-depth)
+        run: bash scripts/release-blocking-gate.sh
+      - name: Download all component artifacts into dist/
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: artifacts-*
+          merge-multiple: true
+      - name: Generate SBOMs (all components) and attach as a release asset
+        run: |
+          bash scripts/sbom.sh --out-dir docs/sbom || echo "WARN: SBOM generation failed"
+          if [ -d docs/sbom ]; then
+            tar -C docs -czf "dist/colima-desktop-${TAG#v}-sbom.tar.gz" sbom
+          fi
+      - name: Generate aggregate SHA-256 checksums manifest
+        run: bash scripts/release/checksums.sh --dir dist --version "${TAG#v}"
       - name: Generate changelog notes for this tag
         run: |
           PREV=$(git describe --tags --abbrev=0 "${TAG}^" 2>/dev/null || true)
           if [ -n "$PREV" ]; then
             VERSION="$TAG" bash scripts/changelog.sh "${PREV}..${TAG}" > /tmp/notes.md
           elif [ -f CHANGELOG.md ]; then
-            # first release: use the committed changelog (drop the top preamble)
             awk '/^## /{p=1} p' CHANGELOG.md > /tmp/notes.md
           else
             VERSION="$TAG" bash scripts/changelog.sh > /tmp/notes.md
           fi
           [ -s /tmp/notes.md ] || echo "Release $TAG" > /tmp/notes.md
-          echo "## Release notes for $TAG" >> "$GITHUB_STEP_SUMMARY"
-          cat /tmp/notes.md >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Package raw .app bundle (zip)
-        run: |
-          APP=$(find build dist -maxdepth 8 -name 'Colima Desktop.app' 2>/dev/null | head -1)
-          if [ -n "$APP" ]; then
-            ditto -c -k --keepParent "$APP" "dist/ColimaDesktop-${TAG#v}-macos.app.zip"
-            echo "zipped $APP"
-          else
-            echo "no .app found to zip (DMG still published)"
-          fi
-
-      - name: Create / update GitHub Release (with changelog + precompiled assets)
+          {
+            echo ""
+            echo "### Verify downloads"
+            echo "\`shasum -a 256 -c SHA256SUMS.txt\` — signing status per artifact is in \`release-manifest.json\`."
+          } >> /tmp/notes.md
+      - name: Create / update GitHub Release with every asset + checksums manifest
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          DMG="dist/Colima Desktop-${TAG#v}.dmg"
-          ASSETS=("$DMG")
-          APPZIP="dist/ColimaDesktop-${TAG#v}-macos.app.zip"
-          [ -f "$APPZIP" ] && ASSETS+=("$APPZIP")
+          # Collect every artifact file (dmg names contain spaces — use an array).
+          ASSETS=()
+          while IFS= read -r f; do ASSETS+=("$f"); done < <(find dist -maxdepth 1 -type f ! -name '*.meta.json')
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${ASSETS[@]}" --clobber
             gh release edit "$TAG" --notes-file /tmp/notes.md
           else
             gh release create "$TAG" "${ASSETS[@]}" --title "$TAG" --notes-file /tmp/notes.md
           fi
-
-      - name: Generate + publish Sparkle appcast (enables auto-update)
+      - name: Generate + publish Sparkle appcast (credential-gated auto-update)
         if: env.HAS_SPARKLE == 'true'
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
           DOWNLOAD_URL_PREFIX: https://github.com/${{ github.repository }}/releases/download/${{ env.TAG }}/
         run: |
+          brew install xcodegen
+          xcodegen generate
+          xcodebuild -resolvePackageDependencies -scheme ColimaDesktop -derivedDataPath build/Release
           git fetch origin main
           git checkout -B main origin/main
           [ -f appcast.xml ] && cp appcast.xml dist/appcast.xml || true
@@ -140,9 +293,17 @@ jobs:
             git commit -m "chore(release): appcast for ${TAG}"
             git push origin main
           fi
-
-      - name: Summary
+      - name: Release summary (gates + artifacts + signing status + required credentials)
         run: |
-          echo "Released $TAG" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Signed/notarized: ${HAS_SIGNING}/${HAS_NOTARY}" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Auto-update appcast: ${HAS_SPARKLE}" >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Publish gates (all required GREEN before this ran)"
+            echo "| gate | status |"
+            echo "|------|--------|"
+            echo "| Release-candidate gate (12.5: 9 frontends.yml + test.yml + verify.sh + security + perf + a11y + P0/P1) | GREEN |"
+            echo "| P0/P1 release-blocking gate (13.4, run directly + re-asserted on-runner) | GREEN |"
+            echo "| macOS / Windows / Linux artifact builds | GREEN |"
+            echo ""
+            echo "_Publishing on tag \`$TAG\`. A red gate or build would have skipped this job._"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+          python3 scripts/release/summary.py dist/release-manifest.json >> "$GITHUB_STEP_SUMMARY"

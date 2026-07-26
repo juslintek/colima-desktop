@@ -2,7 +2,14 @@
 #
 # Generate (or update) appcast.xml for the DMGs in dist/.
 # Sparkle's generate_appcast signs each archive with the EdDSA private key from
-# your keychain and writes dist/appcast.xml (+ per-version release notes).
+# your keychain (local) or from $SPARKLE_PRIVATE_KEY via stdin (CI) and writes
+# dist/appcast.xml (+ per-version release notes).
+#
+# KEY CORRESPONDENCE (critical): the signing private key used here MUST be the
+# one whose PUBLIC half is committed as SUPublicEDKey in packaging/Info.plist
+# (s9mMrmm8Gydc6gn5JWOY2586TROs/PTaM6wm71s5Wcc=). Otherwise shipped apps reject
+# the update signature. Locally the keychain key is that key; in CI the
+# SPARKLE_PRIVATE_KEY secret MUST be the export of that same key (see SIGNING.md).
 #
 # Upload BOTH the .dmg and appcast.xml to where SUFeedURL points.
 #
