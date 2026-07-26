@@ -1,0 +1,46 @@
+{
+  "ecosystem": "go-tui",
+  "component": "colima-tui (Go)",
+  "tool": "govulncheck ./...",
+  "status": "vulnerable",
+  "total": 4,
+  "severities": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "unspecified": 4
+  },
+  "advisories": [
+    {
+      "id": "GO-2026-5856",
+      "severity": "unspecified",
+      "package": "crypto/tls@go1.26.2",
+      "title": "Invoking Encrypted Client Hello privacy leak in crypto/tls (fixed in crypto/tls@go1.26.5)",
+      "url": "https://pkg.go.dev/vuln/GO-2026-5856"
+    },
+    {
+      "id": "GO-2026-5039",
+      "severity": "unspecified",
+      "package": "net/textproto@go1.26.2",
+      "title": "Arbitrary inputs are included in errors without any escaping in net/textproto (fixed in net/textproto@go1.26.4)",
+      "url": "https://pkg.go.dev/vuln/GO-2026-5039"
+    },
+    {
+      "id": "GO-2026-5037",
+      "severity": "unspecified",
+      "package": "crypto/x509@go1.26.2",
+      "title": "Inefficient candidate hostname parsing in crypto/x509 (fixed in crypto/x509@go1.26.4)",
+      "url": "https://pkg.go.dev/vuln/GO-2026-5037"
+    },
+    {
+      "id": "GO-2026-4971",
+      "severity": "unspecified",
+      "package": "net@go1.26.2",
+      "title": "Panic in Dial and LookupPort when handling NUL byte on Windows in net (fixed in net@go1.26.3)",
+      "url": "https://pkg.go.dev/vuln/GO-2026-4971"
+    }
+  ],
+  "reason": "",
+  "raw": "scans/go-tui.txt"
+}

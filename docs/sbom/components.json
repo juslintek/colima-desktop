@@ -1,0 +1,47 @@
+{
+  "spec_version": "1.5",
+  "generator": "colima-desktop-sbom-gen 1.0.0",
+  "total_unique_components": 294,
+  "components": [
+    {
+      "component": "daemon",
+      "display": "colima-daemon (Go)",
+      "main": "github.com/colima-desktop/daemon",
+      "ecosystem": "go",
+      "source": "daemon/go.mod",
+      "count": 22
+    },
+    {
+      "component": "tui",
+      "display": "colima-tui (Go)",
+      "main": "github.com/colima-desktop/tui",
+      "ecosystem": "go",
+      "source": "tui/go.mod",
+      "count": 29
+    },
+    {
+      "component": "linux",
+      "display": "colima-desktop-linux (Rust/GTK4)",
+      "main": "colima-desktop-linux@0.2.0",
+      "ecosystem": "rust",
+      "source": "linux/Cargo.lock",
+      "count": 239
+    },
+    {
+      "component": "windows",
+      "display": "ColimaDesktop.Windows (.NET/WinUI3)",
+      "main": "ColimaDesktop.Windows",
+      "ecosystem": "dotnet",
+      "source": "windows/ColimaDesktop.Windows.csproj",
+      "count": 7
+    },
+    {
+      "component": "macos",
+      "display": "ColimaDesktop (Swift/SwiftUI)",
+      "main": "ColimaDesktop",
+      "ecosystem": "swift",
+      "source": "Package.resolved",
+      "count": 5
+    }
+  ]
+}

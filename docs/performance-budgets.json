@@ -1,0 +1,228 @@
+{
+  "schema": "colima-desktop/performance-budgets@1",
+  "generated_utc": "2026-07-23T12:43:19Z",
+  "profile": "desktop-e2e",
+  "measurement": "read-only via scripts/live/guard.sh (docker_e2e/colima_e2e); no resource create/destroy",
+  "host": {
+    "ncpu": 10,
+    "load_avg_1m": 6.06,
+    "under_load": true,
+    "docker_server_version": "29.2.1",
+    "containers": "0",
+    "images": "3",
+    "daemon_binary": "build/colima-daemon",
+    "daemon_binary_build_date": "2026-05-18",
+    "samples_per_rpc": 6,
+    "socket_present": true
+  },
+  "caveat": "Host was heavily loaded at measurement time (1-minute load average 6.06 on 10 CPUs). Latency and startup numbers are therefore PESSIMISTIC upper bounds; a value that exceeds its budget under this load is recorded honestly (pass=\"fail\") and attributed to load \u2014 `--check` treats it as a warning, not a gate failure. Re-run on a quiescent host for representative numbers.",
+  "budgets": [
+    {
+      "metric": "Daemon startup to gRPC-listening",
+      "category": "startup",
+      "threshold": 1500,
+      "unit": "ms",
+      "measured": 66,
+      "pass": "pass",
+      "samples_ms": [
+        66
+      ],
+      "measured_best": 66,
+      "note": "Time for the committed colima-daemon to create its listening socket (listen-only launch, no RPC)."
+    },
+    {
+      "metric": "macOS app cold start",
+      "category": "startup",
+      "threshold": 3000,
+      "unit": "ms",
+      "measured": "n/a",
+      "pass": "n/a",
+      "note": "macOS GUI cold-start is measured via an instrumented app launch / CI, not in this read-only headless harness \u2014 Cold launch of the SwiftUI app to first interactive frame."
+    },
+    {
+      "metric": "RPC round-trip: Status/Version (docker version)",
+      "category": "rpc",
+      "threshold": 300,
+      "unit": "ms",
+      "measured": 44,
+      "pass": "pass",
+      "samples_ms": [
+        48,
+        44,
+        52,
+        131,
+        39,
+        37
+      ],
+      "measured_best": 37,
+      "note": "Warm round-trip of a Ping/Version-class RPC (backs ColimaService.Status / DockerService version)."
+    },
+    {
+      "metric": "RPC round-trip: system info (docker info)",
+      "category": "rpc",
+      "threshold": 600,
+      "unit": "ms",
+      "measured": 89,
+      "pass": "pass",
+      "samples_ms": [
+        220,
+        89,
+        98,
+        98,
+        84,
+        81
+      ],
+      "measured_best": 81,
+      "note": "Warm round-trip of a system-status RPC."
+    },
+    {
+      "metric": "RPC round-trip: ListContainers (docker ps -a)",
+      "category": "rpc",
+      "threshold": 500,
+      "unit": "ms",
+      "measured": 37,
+      "pass": "pass",
+      "samples_ms": [
+        44,
+        37,
+        36,
+        37,
+        35,
+        124
+      ],
+      "measured_best": 35,
+      "note": "Warm round-trip of DockerService.ListContainers."
+    },
+    {
+      "metric": "RPC round-trip: ListImages (docker images)",
+      "category": "rpc",
+      "threshold": 500,
+      "unit": "ms",
+      "measured": 104,
+      "pass": "pass",
+      "samples_ms": [
+        109,
+        212,
+        104,
+        96,
+        92,
+        110
+      ],
+      "measured_best": 92,
+      "note": "Warm round-trip of DockerService.ListImages."
+    },
+    {
+      "metric": "Control-plane RPC: colima status",
+      "category": "rpc",
+      "threshold": 2000,
+      "unit": "ms",
+      "measured": 1592,
+      "pass": "pass",
+      "samples_ms": [
+        1704,
+        1634,
+        1550
+      ],
+      "measured_best": 1550,
+      "note": "Warm round-trip of the colima control-plane status (VM Status); CLI-spawn heavy."
+    },
+    {
+      "metric": "Stream first-frame: stats (docker stats --no-stream)",
+      "category": "stream",
+      "threshold": 2000,
+      "unit": "ms",
+      "measured": 38,
+      "pass": "pass",
+      "samples_ms": [
+        38,
+        115,
+        39
+      ],
+      "measured_best": 38,
+      "note": "Latency to the first frame of the stats stream (best of N; backs DockerService.StreamStats / VMStats)."
+    },
+    {
+      "metric": "Daemon idle memory (RSS)",
+      "category": "resource",
+      "threshold": 100,
+      "unit": "MB",
+      "measured": 14,
+      "pass": "pass",
+      "samples_ms": [
+        14
+      ],
+      "measured_best": 14,
+      "note": "Resident set size of the freshly-started, idle daemon (listen-only)."
+    },
+    {
+      "metric": "Cold container-list (first call)",
+      "category": "large-list",
+      "threshold": 800,
+      "unit": "ms",
+      "measured": 44,
+      "pass": "pass",
+      "samples_ms": [
+        44,
+        37,
+        36,
+        37,
+        35,
+        124
+      ],
+      "measured_best": 35,
+      "note": "First (cold) ListContainers after idle; upper bound scales with list size (see host.containers)."
+    },
+    {
+      "metric": "Cold image-list (first call)",
+      "category": "large-list",
+      "threshold": 800,
+      "unit": "ms",
+      "measured": 109,
+      "pass": "pass",
+      "samples_ms": [
+        109,
+        212,
+        104,
+        96,
+        92,
+        110
+      ],
+      "measured_best": 92,
+      "note": "First (cold) ListImages after idle; upper bound scales with list size (see host.images)."
+    },
+    {
+      "metric": "TUI displayed-output line cap (Property 14)",
+      "category": "memory-safety",
+      "threshold": 2000,
+      "unit": "lines",
+      "measured": 2000,
+      "pass": "pass",
+      "note": "maxOutputLines drop-oldest ring in tui/internal/ui/actions.go; enforced by the Property 14 tests."
+    },
+    {
+      "metric": "TUI displayed-output byte cap (Property 14)",
+      "category": "memory-safety",
+      "threshold": 262144,
+      "unit": "bytes",
+      "measured": 262144,
+      "pass": "pass",
+      "note": "maxOutputBytes (256 KiB) secondary ceiling in tui/internal/ui/actions.go; enforced by the Property 14 tests."
+    },
+    {
+      "metric": "gRPC max receive message size",
+      "category": "memory-safety",
+      "threshold": 4194304,
+      "unit": "bytes",
+      "measured": 4194304,
+      "pass": "pass",
+      "note": "grpc-go default MaxRecvMsgSize (4 MiB) bounds a single RPC payload held in memory."
+    }
+  ],
+  "summary": {
+    "pass": 13,
+    "fail": 0,
+    "na": 1,
+    "total": 14,
+    "result": "GREEN"
+  }
+}

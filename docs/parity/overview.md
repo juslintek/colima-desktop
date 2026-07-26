@@ -11,13 +11,13 @@ need to drop to a terminal for basic Colima operations.
 
 ## The Contract
 
-The frozen API contract (`.kiro/board/CONTRACT.md`) defines 53 operations organized
+The frozen API contract (`.kiro/board/CONTRACT.md`) defines 65 gRPC operations organized
 into three parts:
 
 | Part | Description | RPC Count |
 |------|-------------|:---------:|
-| **A** | Colima operations (VM, SSH, Profiles, Config, K8s, AI, Runtime, Monitoring) | 22 |
-| **B** | Docker resource operations (Containers, Images, Volumes, Networks, Streams) | 31 |
+| **A** | Colima operations (VM, SSH, Profiles, Config, K8s, AI, Runtime, Monitoring) | 31 |
+| **B** | Docker resource operations (Containers, Images, Volumes, Networks, Streams) | 34 |
 | **C** | Installation/turnkey (detect, install, auto-update) | — |
 
 Parts A and B are exposed as gRPC services in `proto/colima_ui.proto`. Part C is

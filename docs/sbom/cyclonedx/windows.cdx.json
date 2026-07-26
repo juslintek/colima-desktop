@@ -1,0 +1,63 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "tools": [
+      {
+        "vendor": "colima-desktop",
+        "name": "colima-desktop-sbom-gen",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "ColimaDesktop.Windows (.NET/WinUI3)",
+      "version": "1.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "CommunityToolkit.Mvvm",
+      "version": "8.2.2",
+      "purl": "pkg:nuget/CommunityToolkit.Mvvm@8.2.2"
+    },
+    {
+      "type": "library",
+      "name": "Google.Protobuf",
+      "version": "3.27.1",
+      "purl": "pkg:nuget/Google.Protobuf@3.27.1"
+    },
+    {
+      "type": "library",
+      "name": "Grpc.Net.Client",
+      "version": "2.63.0",
+      "purl": "pkg:nuget/Grpc.Net.Client@2.63.0"
+    },
+    {
+      "type": "library",
+      "name": "Grpc.Tools",
+      "version": "2.64.0",
+      "purl": "pkg:nuget/Grpc.Tools@2.64.0"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.Windows.SDK.BuildTools",
+      "version": "10.0.26100.1",
+      "purl": "pkg:nuget/Microsoft.Windows.SDK.BuildTools@10.0.26100.1"
+    },
+    {
+      "type": "library",
+      "name": "Microsoft.WindowsAppSDK",
+      "version": "1.5.240607001",
+      "purl": "pkg:nuget/Microsoft.WindowsAppSDK@1.5.240607001"
+    },
+    {
+      "type": "library",
+      "name": "System.Text.Json",
+      "version": "9.0.0",
+      "purl": "pkg:nuget/System.Text.Json@9.0.0"
+    }
+  ]
+}

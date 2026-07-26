@@ -1,0 +1,17 @@
+{
+  "ecosystem": "dotnet-windows",
+  "component": ".NET Windows runtime deps (net8.0 host project)",
+  "tool": "dotnet list package --vulnerable --include-transitive",
+  "status": "clean",
+  "total": 0,
+  "severities": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "unspecified": 0
+  },
+  "advisories": [],
+  "reason": "",
+  "raw": "scans/dotnet-windows.txt"
+}

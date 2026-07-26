@@ -1,0 +1,153 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "tools": [
+      {
+        "vendor": "colima-desktop",
+        "name": "colima-desktop-sbom-gen",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "colima-daemon (Go)",
+      "version": "1.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "github.com/Microsoft/go-winio",
+      "version": "v0.6.2",
+      "purl": "pkg:golang/github.com/Microsoft/go-winio@v0.6.2"
+    },
+    {
+      "type": "library",
+      "name": "github.com/abiosoft/colima",
+      "version": "v0.10.1",
+      "purl": "pkg:golang/github.com/abiosoft/colima@v0.10.1"
+    },
+    {
+      "type": "library",
+      "name": "github.com/coreos/go-semver",
+      "version": "v0.3.1",
+      "purl": "pkg:golang/github.com/coreos/go-semver@v0.3.1"
+    },
+    {
+      "type": "library",
+      "name": "github.com/docker/go-units",
+      "version": "v0.5.0",
+      "purl": "pkg:golang/github.com/docker/go-units@v0.5.0"
+    },
+    {
+      "type": "library",
+      "name": "github.com/fatih/color",
+      "version": "v1.18.0",
+      "purl": "pkg:golang/github.com/fatih/color@v1.18.0"
+    },
+    {
+      "type": "library",
+      "name": "github.com/google/shlex",
+      "version": "v0.0.0-20191202100458-e7afc7fbc510",
+      "purl": "pkg:golang/github.com/google/shlex@v0.0.0-20191202100458-e7afc7fbc510"
+    },
+    {
+      "type": "library",
+      "name": "github.com/mattn/go-colorable",
+      "version": "v0.1.13",
+      "purl": "pkg:golang/github.com/mattn/go-colorable@v0.1.13"
+    },
+    {
+      "type": "library",
+      "name": "github.com/mattn/go-isatty",
+      "version": "v0.0.20",
+      "purl": "pkg:golang/github.com/mattn/go-isatty@v0.0.20"
+    },
+    {
+      "type": "library",
+      "name": "github.com/mitchellh/colorstring",
+      "version": "v0.0.0-20190213212951-d06e56a500db",
+      "purl": "pkg:golang/github.com/mitchellh/colorstring@v0.0.0-20190213212951-d06e56a500db"
+    },
+    {
+      "type": "library",
+      "name": "github.com/rivo/uniseg",
+      "version": "v0.4.7",
+      "purl": "pkg:golang/github.com/rivo/uniseg@v0.4.7"
+    },
+    {
+      "type": "library",
+      "name": "github.com/rjeczalik/notify",
+      "version": "v0.9.3",
+      "purl": "pkg:golang/github.com/rjeczalik/notify@v0.9.3"
+    },
+    {
+      "type": "library",
+      "name": "github.com/schollz/progressbar/v3",
+      "version": "v3.19.0",
+      "purl": "pkg:golang/github.com/schollz/progressbar/v3@v3.19.0"
+    },
+    {
+      "type": "library",
+      "name": "github.com/sirupsen/logrus",
+      "version": "v1.9.4",
+      "purl": "pkg:golang/github.com/sirupsen/logrus@v1.9.4"
+    },
+    {
+      "type": "library",
+      "name": "golang.org/x/crypto",
+      "version": "v0.54.0",
+      "purl": "pkg:golang/golang.org/x/crypto@v0.54.0"
+    },
+    {
+      "type": "library",
+      "name": "golang.org/x/net",
+      "version": "v0.56.0",
+      "purl": "pkg:golang/golang.org/x/net@v0.56.0"
+    },
+    {
+      "type": "library",
+      "name": "golang.org/x/sys",
+      "version": "v0.47.0",
+      "purl": "pkg:golang/golang.org/x/sys@v0.47.0"
+    },
+    {
+      "type": "library",
+      "name": "golang.org/x/term",
+      "version": "v0.45.0",
+      "purl": "pkg:golang/golang.org/x/term@v0.45.0"
+    },
+    {
+      "type": "library",
+      "name": "golang.org/x/text",
+      "version": "v0.40.0",
+      "purl": "pkg:golang/golang.org/x/text@v0.40.0"
+    },
+    {
+      "type": "library",
+      "name": "google.golang.org/genproto/googleapis/rpc",
+      "version": "v0.0.0-20240318140521-94a12d6c2237",
+      "purl": "pkg:golang/google.golang.org/genproto/googleapis/rpc@v0.0.0-20240318140521-94a12d6c2237"
+    },
+    {
+      "type": "library",
+      "name": "google.golang.org/grpc",
+      "version": "v1.64.0",
+      "purl": "pkg:golang/google.golang.org/grpc@v1.64.0"
+    },
+    {
+      "type": "library",
+      "name": "google.golang.org/protobuf",
+      "version": "v1.34.1",
+      "purl": "pkg:golang/google.golang.org/protobuf@v1.34.1"
+    },
+    {
+      "type": "library",
+      "name": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "purl": "pkg:golang/gopkg.in/yaml.v3@v3.0.1"
+    }
+  ]
+}

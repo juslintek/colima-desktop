@@ -1,0 +1,1 @@
+The given project `ColimaDesktop.Windows.Tests` has no vulnerable packages given the current sources.

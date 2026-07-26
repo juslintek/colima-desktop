@@ -1,0 +1,16 @@
+{
+  "ecosystem": "swift-macos",
+  "component": "ColimaDesktop (Swift/SwiftUI)",
+  "tool": "(none \u2014 SPM scanner absent)",
+  "status": "not-run",
+  "total": 0,
+  "severities": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "unspecified": 0
+  },
+  "advisories": [],
+  "reason": "No SwiftPM vulnerability scanner installed (syft/grype/osv-scanner absent); SPM deps are test/dev-only (ViewInspector, swift-snapshot-testing + transitive) and are not linked into the shipped app. Components are inventoried in cyclonedx/macos.cdx.json."
+}

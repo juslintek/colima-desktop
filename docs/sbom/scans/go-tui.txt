@@ -1,0 +1,50 @@
+=== Symbol Results ===
+
+Vulnerability #1: GO-2026-5856
+    Invoking Encrypted Client Hello privacy leak in crypto/tls
+  More info: https://pkg.go.dev/vuln/GO-2026-5856
+  Standard library
+    Found in: crypto/tls@go1.26.2
+    Fixed in: crypto/tls@go1.26.5
+    Example traces found:
+      #1: internal/ui/model.go:601:30: ui.Model.View calls lipgloss.Style.Render, which eventually calls tls.Conn.Read
+      #2: internal/ui/model.go:896:14: ui.renderResourceItems calls fmt.Fprintf, which eventually calls tls.Conn.Write
+
+Vulnerability #2: GO-2026-5039
+    Arbitrary inputs are included in errors without any escaping in
+    net/textproto
+  More info: https://pkg.go.dev/vuln/GO-2026-5039
+  Standard library
+    Found in: net/textproto@go1.26.2
+    Fixed in: net/textproto@go1.26.4
+    Example traces found:
+      #1: internal/ui/model.go:601:30: ui.Model.View calls lipgloss.Style.Render, which eventually calls textproto.Reader.ReadMIMEHeader
+
+Vulnerability #3: GO-2026-5037
+    Inefficient candidate hostname parsing in crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2026-5037
+  Standard library
+    Found in: crypto/x509@go1.26.2
+    Fixed in: crypto/x509@go1.26.4
+    Example traces found:
+      #1: internal/ui/model.go:601:30: ui.Model.View calls lipgloss.Style.Render, which eventually calls x509.Certificate.Verify
+      #2: internal/ui/model.go:601:30: ui.Model.View calls lipgloss.Style.Render, which eventually calls x509.Certificate.VerifyHostname
+      #3: main.go:23:15: tui.main calls fmt.Fprintln, which eventually calls x509.HostnameError.Error
+
+Vulnerability #4: GO-2026-4971
+    Panic in Dial and LookupPort when handling NUL byte on Windows in net
+  More info: https://pkg.go.dev/vuln/GO-2026-4971
+  Standard library
+    Found in: net@go1.26.2
+    Fixed in: net@go1.26.3
+    Example traces found:
+      #1: internal/client/client.go:42:29: client.Dial calls grpc.NewClient, which eventually calls net.Dialer.DialContext
+      #2: internal/client/client.go:42:29: client.Dial calls grpc.NewClient, which eventually calls net.Resolver.LookupHost
+      #3: internal/client/client.go:42:29: client.Dial calls grpc.NewClient, which eventually calls net.Resolver.LookupSRV
+      #4: internal/client/client.go:42:29: client.Dial calls grpc.NewClient, which eventually calls net.Resolver.LookupTXT
+
+Your code is affected by 4 vulnerabilities from the Go standard library.
+This scan also found 9 vulnerabilities in packages you import and 2
+vulnerabilities in modules you require, but your code doesn't appear to call
+these vulnerabilities.
+Use '-show verbose' for more details.

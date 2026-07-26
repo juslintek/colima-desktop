@@ -1,0 +1,74 @@
+=== Symbol Results ===
+
+Vulnerability #1: GO-2026-5856
+    Invoking Encrypted Client Hello privacy leak in crypto/tls
+  More info: https://pkg.go.dev/vuln/GO-2026-5856
+  Standard library
+    Found in: crypto/tls@go1.26.2
+    Fixed in: crypto/tls@go1.26.5
+    Example traces found:
+      #1: internal/docker/client.go:64:27: docker.Client.CloseIdleConnections calls http.Client.CloseIdleConnections, which eventually calls tls.Conn.HandshakeContext
+      #2: internal/server/docker_server.go:466:13: server.streamLines calls bufio.Scanner.Scan, which eventually calls tls.Conn.Read
+      #3: internal/server/docker_server.go:358:2: server.DockerServer.PushImage calls http.http2transportResponseBody.Close, which eventually calls tls.Conn.Write
+      #4: internal/docker/client.go:95:22: docker.Client.request calls http.Client.Do, which eventually calls tls.Dialer.DialContext
+
+Vulnerability #2: GO-2026-5039
+    Arbitrary inputs are included in errors without any escaping in
+    net/textproto
+  More info: https://pkg.go.dev/vuln/GO-2026-5039
+  Standard library
+    Found in: net/textproto@go1.26.2
+    Fixed in: net/textproto@go1.26.4
+    Example traces found:
+      #1: internal/docker/client.go:101:29: docker.Client.request calls io.ReadAll, which eventually calls textproto.Reader.ReadMIMEHeader
+
+Vulnerability #3: GO-2026-5037
+    Inefficient candidate hostname parsing in crypto/x509
+  More info: https://pkg.go.dev/vuln/GO-2026-5037
+  Standard library
+    Found in: crypto/x509@go1.26.2
+    Fixed in: crypto/x509@go1.26.4
+    Example traces found:
+      #1: internal/server/docker_server.go:466:13: server.streamLines calls bufio.Scanner.Scan, which eventually calls x509.Certificate.Verify
+      #2: internal/server/docker_server.go:466:13: server.streamLines calls bufio.Scanner.Scan, which eventually calls x509.Certificate.VerifyHostname
+      #3: internal/server/colima_extra.go:155:43: server.ColimaServer.ModelServe calls fmt.Sprint, which eventually calls x509.HostnameError.Error
+
+Vulnerability #4: GO-2026-4971
+    Panic in Dial and LookupPort when handling NUL byte on Windows in net
+  More info: https://pkg.go.dev/vuln/GO-2026-4971
+  Standard library
+    Found in: net@go1.26.2
+    Fixed in: net@go1.26.3
+    Example traces found:
+      #1: internal/docker/transport.go:47:28: docker.sshTransport calls net.Dial
+      #2: cmd/main.go:177:34: cmd.prepareUnixSocket calls net.DialTimeout
+      #3: internal/docker/client.go:64:27: docker.Client.CloseIdleConnections calls http.Client.CloseIdleConnections, which eventually calls net.Dialer.DialContext
+      #4: cmd/main.go:140:29: cmd.listen calls net.Listen
+      #5: internal/server/server.go:279:20: server.ColimaServer.KubernetesStop calls incus.incusRuntime.Stop, which eventually calls net.LookupIP
+
+Vulnerability #5: GO-2026-4918
+    Infinite loop in HTTP/2 transport when given bad SETTINGS_MAX_FRAME_SIZE in
+    net/http/internal/http2 in golang.org/x/net
+  More info: https://pkg.go.dev/vuln/GO-2026-4918
+  Standard library
+    Found in: net/http@go1.26.2
+    Fixed in: net/http@go1.26.3
+    Example traces found:
+      #1: internal/docker/client.go:64:27: docker.Client.CloseIdleConnections calls http.Client.CloseIdleConnections
+      #2: internal/docker/client.go:95:22: docker.Client.request calls http.Client.Do
+
+Vulnerability #6: GO-2026-4762
+    Authorization bypass in gRPC-Go via missing leading slash in :path in
+    google.golang.org/grpc
+  More info: https://pkg.go.dev/vuln/GO-2026-4762
+  Module: google.golang.org/grpc
+    Found in: google.golang.org/grpc@v1.64.0
+    Fixed in: google.golang.org/grpc@v1.79.3
+    Example traces found:
+      #1: cmd/main.go:231:27: cmd.serve calls grpc.Server.Serve
+
+Your code is affected by 6 vulnerabilities from 1 module and the Go standard library.
+This scan also found 7 vulnerabilities in packages you import and 3
+vulnerabilities in modules you require, but your code doesn't appear to call
+these vulnerabilities.
+Use '-show verbose' for more details.

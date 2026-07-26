@@ -1,0 +1,176 @@
+{
+  "generated_by": "scripts/vuln_report.py",
+  "requirement": "11.3 (zero known critical vulnerabilities)",
+  "verdict": "GREEN",
+  "zero_known_critical": true,
+  "ecosystems_scanned": 4,
+  "ecosystems_clean": 2,
+  "ecosystems_with_findings": 2,
+  "ecosystems_not_run": 1,
+  "total_findings": 10,
+  "severity_totals": {
+    "critical": 0,
+    "high": 0,
+    "moderate": 0,
+    "low": 0,
+    "unspecified": 10
+  },
+  "ecosystems": [
+    {
+      "ecosystem": "go-daemon",
+      "component": "colima-daemon (Go)",
+      "tool": "govulncheck ./...",
+      "status": "vulnerable",
+      "total": 6,
+      "severities": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "unspecified": 6
+      },
+      "advisories": [
+        {
+          "id": "GO-2026-5856",
+          "severity": "unspecified",
+          "package": "crypto/tls@go1.26.2",
+          "title": "Invoking Encrypted Client Hello privacy leak in crypto/tls (fixed in crypto/tls@go1.26.5)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-5856"
+        },
+        {
+          "id": "GO-2026-5039",
+          "severity": "unspecified",
+          "package": "net/textproto@go1.26.2",
+          "title": "Arbitrary inputs are included in errors without any escaping in net/textproto (fixed in net/textproto@go1.26.4)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-5039"
+        },
+        {
+          "id": "GO-2026-5037",
+          "severity": "unspecified",
+          "package": "crypto/x509@go1.26.2",
+          "title": "Inefficient candidate hostname parsing in crypto/x509 (fixed in crypto/x509@go1.26.4)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-5037"
+        },
+        {
+          "id": "GO-2026-4971",
+          "severity": "unspecified",
+          "package": "net@go1.26.2",
+          "title": "Panic in Dial and LookupPort when handling NUL byte on Windows in net (fixed in net@go1.26.3)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-4971"
+        },
+        {
+          "id": "GO-2026-4918",
+          "severity": "unspecified",
+          "package": "net/http@go1.26.2",
+          "title": "Infinite loop in HTTP/2 transport when given bad SETTINGS_MAX_FRAME_SIZE in net/http/internal/http2 in golang.org/x/net (fixed in net/http@go1.26.3)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-4918"
+        },
+        {
+          "id": "GO-2026-4762",
+          "severity": "unspecified",
+          "package": "google.golang.org/grpc@v1.64.0",
+          "title": "Authorization bypass in gRPC-Go via missing leading slash in :path in google.golang.org/grpc (fixed in google.golang.org/grpc@v1.79.3)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-4762"
+        }
+      ],
+      "reason": "",
+      "raw": "scans/go-daemon.txt"
+    },
+    {
+      "ecosystem": "go-tui",
+      "component": "colima-tui (Go)",
+      "tool": "govulncheck ./...",
+      "status": "vulnerable",
+      "total": 4,
+      "severities": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "unspecified": 4
+      },
+      "advisories": [
+        {
+          "id": "GO-2026-5856",
+          "severity": "unspecified",
+          "package": "crypto/tls@go1.26.2",
+          "title": "Invoking Encrypted Client Hello privacy leak in crypto/tls (fixed in crypto/tls@go1.26.5)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-5856"
+        },
+        {
+          "id": "GO-2026-5039",
+          "severity": "unspecified",
+          "package": "net/textproto@go1.26.2",
+          "title": "Arbitrary inputs are included in errors without any escaping in net/textproto (fixed in net/textproto@go1.26.4)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-5039"
+        },
+        {
+          "id": "GO-2026-5037",
+          "severity": "unspecified",
+          "package": "crypto/x509@go1.26.2",
+          "title": "Inefficient candidate hostname parsing in crypto/x509 (fixed in crypto/x509@go1.26.4)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-5037"
+        },
+        {
+          "id": "GO-2026-4971",
+          "severity": "unspecified",
+          "package": "net@go1.26.2",
+          "title": "Panic in Dial and LookupPort when handling NUL byte on Windows in net (fixed in net@go1.26.3)",
+          "url": "https://pkg.go.dev/vuln/GO-2026-4971"
+        }
+      ],
+      "reason": "",
+      "raw": "scans/go-tui.txt"
+    },
+    {
+      "ecosystem": "rust-linux",
+      "component": "colima-desktop-linux (Rust/GTK4)",
+      "tool": "cargo audit",
+      "status": "clean",
+      "total": 0,
+      "severities": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "unspecified": 0
+      },
+      "advisories": [],
+      "reason": "1 informational advisory warning(s), not vulnerabilities: RUSTSEC-2025-0134 (rustls-pemfile, unmaintained)",
+      "raw": "scans/rust-linux.txt"
+    },
+    {
+      "ecosystem": "dotnet-windows",
+      "component": ".NET Windows runtime deps (net8.0 host project)",
+      "tool": "dotnet list package --vulnerable --include-transitive",
+      "status": "clean",
+      "total": 0,
+      "severities": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "unspecified": 0
+      },
+      "advisories": [],
+      "reason": "",
+      "raw": "scans/dotnet-windows.txt"
+    },
+    {
+      "ecosystem": "swift-macos",
+      "component": "ColimaDesktop (Swift/SwiftUI)",
+      "tool": "(none \u2014 SPM scanner absent)",
+      "status": "not-run",
+      "total": 0,
+      "severities": {
+        "critical": 0,
+        "high": 0,
+        "moderate": 0,
+        "low": 0,
+        "unspecified": 0
+      },
+      "advisories": [],
+      "reason": "No SwiftPM vulnerability scanner installed (syft/grype/osv-scanner absent); SPM deps are test/dev-only (ViewInspector, swift-snapshot-testing + transitive) and are not linked into the shipped app. Components are inventoried in cyclonedx/macos.cdx.json."
+    }
+  ]
+}

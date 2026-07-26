@@ -1,5 +1,12 @@
 # Colima Desktop — Exploration Findings
 
+> **Historical snapshot (retained for evidence).** This records a single macOS exploration
+> pass on 2026-06-19 against build v0.1.0. Artifact counts and cross-references have since been
+> superseded by the R0 board-vs-reality reconciliation — see the regenerated
+> [../gap-report.md](../gap-report.md) and [../truth-table.md](../truth-table.md) for the
+> current 65-RPC × 4-frontend evidence matrix. The per-view real-data findings below remain
+> accurate for the surfaces they describe.
+
 **Date:** 2026-06-19 · **Build:** v0.1.0 (Debug) · **Backend:** real, against live colima
 `default` (Running, 2 CPU / 2 GiB) + Lima · **Host:** macOS 26.5, Apple Silicon (12 cores / 32 GiB),
 colima 0.10.1, docker 29.5.2.
@@ -7,7 +14,9 @@ colima 0.10.1, docker 29.5.2.
 ## Method & constraints
 Each view was launched deep-linked (`--open-tab <name>`, added for deterministic capture),
 screenshotted, and quit. Screenshots + per-shot context: `manifest.json` + `screenshots/`.
-The full action/outcome space (7,996 rows) is enumerated in `../truth-table.csv` (built first).
+(Historical note: this pass referenced an earlier large action/outcome enumeration in
+`../truth-table.csv`; that file has since been regenerated as the 260-row RPC×frontend
+evidence matrix — see `../truth-table.md` and `../gap-report.md`.)
 
 **Honest constraint:** XCUITest cannot drive the host (it times out enabling automation mode),
 and the host machine can't run nested colima — so literal automated 1000+ click-combinations with a

@@ -25,10 +25,13 @@ platform's native UI toolkit.
 The daemon is a Go binary that listens on a Unix socket (or TCP) and serves two gRPC
 services defined in `proto/colima_ui.proto`:
 
-- **ColimaService** (22 RPCs) — VM lifecycle, profiles, SSH, configuration, Kubernetes,
+- **ColimaService** (31 RPCs) — VM lifecycle, profiles, SSH, configuration, Kubernetes,
   AI models, runtime management, and monitoring.
-- **DockerService** (31 RPCs) — container, image, volume, and network CRUD plus
+- **DockerService** (34 RPCs) — container, image, volume, and network CRUD plus
   streaming (events, logs, stats).
+
+The frozen v1 contract is **65 RPCs total** (31 `ColimaService` + 34 `DockerService`).
+See `docs/gap-report.md` for the regenerated per-RPC × per-frontend coverage matrix.
 
 The daemon wraps:
 - `colima` CLI (via `github.com/abiosoft/colima/app`) for VM operations
@@ -92,13 +95,14 @@ GTK4 application written in Rust:
 
 - `tonic` gRPC client connecting to the local daemon.
 - `tonic-build` generates stubs from the shared proto at compile time.
-- 13 UI surfaces defined in a `GtkStack` (placeholder).
+- The 12 canonical surfaces are defined in a `GtkStack`.
 
 ### 5. TUI (`tui/`)
 
 Terminal interface built with [Bubble Tea](https://github.com/charmbracelet/bubbletea):
 
-- 7-tab layout: Dashboard, Containers, Images, Volumes, Networks, Profiles, Machines.
+- All 12 canonical surfaces: Dashboard, Containers, Images, Volumes, Networks, Kubernetes,
+  Configuration, Machines, Profiles, AI Workloads, Runtime, Monitoring — navigable by number keys.
 - Same gRPC client (`tui/internal/client`) as other frontends.
 - Designed for headless/SSH environments.
 
@@ -107,12 +111,16 @@ Terminal interface built with [Bubble Tea](https://github.com/charmbracelet/bubb
 ## Proto Contract
 
 `proto/colima_ui.proto` is the **single source of truth** for the daemon API.
-It is frozen at CONTRACT v1 (2026-07-14). Changes require a version bump and
-multi-team acknowledgment.
+The RPC surface is frozen at CONTRACT v1 (2026-07-14): RPC names, counts (31 + 34 = 65),
+and existing field numbers do not change. An approved pre-v1 additive request-shape
+correction (v1.1, 2026-07-18) added profile/host/WSL2 scope fields to `Update`, `Prune`,
+`Rename`, `Tag`, `Search`, and `NetworkContainer` without altering any RPC name, count, or
+existing field number (see `.kiro/board/CONTRACT.md`). Further changes require a version
+bump and multi-team acknowledgment.
 
 Services:
-- `ColimaService` — 22 RPCs (unary + server-streaming)
-- `DockerService` — 31 RPCs (unary + server-streaming)
+- `ColimaService` — 31 RPCs (unary + server-streaming)
+- `DockerService` — 34 RPCs (unary + server-streaming)
 
 All frontends generate client stubs from this proto:
 - Go: `protoc-gen-go` + `protoc-gen-go-grpc`

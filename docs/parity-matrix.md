@@ -1,80 +1,154 @@
 # CLI-Parity Matrix
 
-> Single source of truth (owner: architect) mapping every Colima CLI capability to its
-> backend RPC (CONTRACT v1), the Swift `ServiceProvider` method, the UI surface, and its test.
-> Frontends (macOS SwiftUI ✅ exists · Windows WinUI 3 · Linux GTK4 · TUI) must each cover every
-> row. Status legend: ✅ done · 🟡 partial · ⬜ todo · n/a.
+> **Owner: architect** (single source of truth, reserved). **Regenerated from source** by
+> `scripts/gen-truth-table.py` from the current `proto/colima_ui.proto`, the concrete daemon
+> server methods under `daemon/internal/server/**`, and `exploration/action-inventory.json`
+> (schema_version 2, audited 2026-07-18). It is derived from the SAME
+> `build_matrix()` rows as `docs/truth-table.csv`, so the two cannot drift; regenerating is
+> byte-identical on repeated runs and every proto RPC appears at least once (design Property 9).
+>
+> This supersedes the earlier hand-maintained CLI→status matrix (which could drift and carried
+> stale claims). Every cell is exactly one level from the taxonomy {source-only,
+> deterministic-fake-data, CI-without-daemon, live-backend, environment-blocked} (design
+> Property 8); `live-backend` is the only level that closes a live-verification obligation and
+> `environment-blocked` is an honest terminal label (never counted as success).
 
-## A. VM lifecycle
-| CLI | Backend RPC | ServiceProvider | UI surface | mac | win | linux | tui | Test |
-|-----|-------------|-----------------|-----------|:--:|:--:|:--:|:--:|------|
-| `colima start` | Start (stream) | startVM | Dashboard ▸ Start | ✅ | ⬜ | ⬜ | ⬜ | ColimaLifecycleUITests |
-| `colima stop` | Stop | stopVM | Dashboard ▸ Stop | ✅ | ⬜ | ⬜ | ⬜ | ColimaLifecycleUITests |
-| `colima restart` | Restart (stream) | restartVM | Dashboard ▸ Restart | ✅ | ⬜ | ⬜ | ⬜ | ColimaLifecycleUITests |
-| `colima delete` | Delete | deleteVM | Profiles ▸ Delete | ✅ | ⬜ | ⬜ | ⬜ | VMConfigurationFlowUITests |
-| `colima status` | Status | vmStatus | Dashboard header | ✅ | ⬜ | ⬜ | ⬜ | AppShellUITests |
-| `colima version` | Version | vmVersion | About | ✅ | ⬜ | ⬜ | ⬜ | RealBackendTests |
-| `colima update` | Update | updateVM | Runtime Controls | ✅ | ⬜ | ⬜ | ⬜ | RealBackendTests |
-| `colima prune [--all]` | Prune | pruneVM | Runtime Controls | 🟡 | ⬜ | ⬜ | ⬜ | RealBackendTests |
+## Summary
 
-## B. SSH / profiles
-| CLI | RPC | ServiceProvider | UI | mac | win | linux | tui | Test |
-|-----|-----|-----------------|----|:--:|:--:|:--:|:--:|------|
-| `colima ssh-config` | SSHConfig | sshConfig | Dashboard ▸ SSH Config | ✅ | ⬜ | ⬜ | ⬜ | ColimaLifecycleUITests |
-| `colima list` | ListProfiles | listProfiles | Profiles | ✅ | ⬜ | ⬜ | ⬜ | ProfileManagementUITests |
-| `colima start --profile` | CreateProfile | createProfile | Profiles ▸ New | ✅ | ⬜ | ⬜ | ⬜ | VMConfigurationFlowUITests |
-| `colima delete --profile` | DeleteProfile | deleteProfile | Profiles ▸ Delete | ✅ | ⬜ | ⬜ | ⬜ | ProfileManagementUITests |
-| `colima clone` (hidden) | CloneProfile | cloneProfile | Profiles ▸ Clone | 🟡 | ⬜ | ⬜ | ⬜ | VMConfigurationFlowUITests |
-| `limactl list --json` | ListMachines* | listMachines | Machines | ✅ | ⬜ | ⬜ | ⬜ | MachinesUITests |
+- ColimaService RPCs: **31** (expected 31)
+- DockerService RPCs: **34** (expected 34)
+- Total RPCs: **65** (expected 65)
+- Concrete daemon server methods: **65/65**
+- Coverage cells (RPC × frontend): **260** (expected 260)
+- RPCs without a concrete server method: **none** — every RPC has a non-`Unimplemented` daemon receiver (Property 7).
 
-## C. Configuration
-| CLI/file | RPC | ServiceProvider | UI | mac | win | linux | tui | Test |
-|----------|-----|-----------------|----|:--:|:--:|:--:|:--:|------|
-| read `colima.yaml` | GetConfig | readConfig | Configuration | ✅ | ⬜ | ⬜ | ⬜ | ConfigurationUITests |
-| write `colima.yaml` | SetConfig | writeConfig | Configuration ▸ Save | ✅ | ⬜ | ⬜ | ⬜ | NativePerformanceConfigUITests |
-| template | GetTemplate/SetTemplate | — | Configuration | ⬜ | ⬜ | ⬜ | ⬜ | — |
-| cpu/mem/disk/vmType/mountType/arch/runtime/net/k8s | (ColimaConfig) | read/writeConfig | Configuration cards | ✅ | ⬜ | ⬜ | ⬜ | NativePerformanceConfigUITests |
+## Coverage by evidence level
 
-## D. Kubernetes
-| CLI | RPC | ServiceProvider | UI | mac | win | linux | tui | Test |
-|-----|-----|-----------------|----|:--:|:--:|:--:|:--:|------|
-| `colima kubernetes start` | KubernetesStart | k8sStart | Kubernetes ▸ Start | ✅ | ⬜ | ⬜ | ⬜ | KubernetesLifecycleUITests |
-| `... stop` | KubernetesStop | k8sStop | Kubernetes ▸ Stop | ✅ | ⬜ | ⬜ | ⬜ | KubernetesLifecycleUITests |
-| `... reset` | KubernetesReset | k8sReset | Kubernetes ▸ Reset | ✅ | ⬜ | ⬜ | ⬜ | KubernetesLifecycleUITests |
-| `kubectl …` | KubernetesExec | kubectlExec | Kubernetes tabs | ✅ | ⬜ | ⬜ | ⬜ | KubernetesLifecycleUITests |
+| Evidence level | Cells |
+|----------------|------:|
+| source-only | 8 |
+| deterministic-fake-data | 0 |
+| CI-without-daemon | 226 |
+| live-backend | 26 |
+| environment-blocked | 0 |
+| **total** | **260** |
 
-## E. Docker resources (CONTRACT Part B → DockerService in M1.5)
-| Area | RPC (M1.5) | ServiceProvider | UI | mac | win | linux | tui | Test |
-|------|-----------|-----------------|----|:--:|:--:|:--:|:--:|------|
-| Containers list/start/stop/kill/restart/pause/unpause/remove/create/rename/logs/inspect/top/stats/changes/prune | Docker* | (16 methods) | Containers | ✅ | ⬜ | ⬜ | ⬜ | ContainerManagementUITests, RealBackendTests |
-| Images list/pull/remove/inspect/history/tag/push/search/prune | Docker* | (9) | Images | ✅ | ⬜ | ⬜ | ⬜ | ImageManagementUITests, RealBackendTests |
-| Volumes list/create/remove/inspect/prune | Docker* | (5) | Volumes | ✅ | ⬜ | ⬜ | ⬜ | VolumeManagementUITests |
-| Networks list/create/remove/inspect/connect/disconnect/prune | Docker* | (7) | Networks | ✅ | ⬜ | ⬜ | ⬜ | NetworkManagementUITests |
-| streams: events/logs/stats | Docker* (stream) | stream* | Monitoring/Logs | ✅ | ⬜ | ⬜ | ⬜ | MonitoringUITests |
+## Coverage by frontend
 
-## F. AI models (krunkit)
-| CLI | RPC | ServiceProvider | UI | mac | win | linux | tui | Test |
-|-----|-----|-----------------|----|:--:|:--:|:--:|:--:|------|
-| `colima model list` | (ModelList*) | modelList | AI ▸ Downloaded | ✅ | ⬜ | ⬜ | ⬜ | AIWorkloadsUITests |
-| `colima model pull` | ModelSetup/pull* | modelPull | AI ▸ Pull | ✅ | ⬜ | ⬜ | ⬜ | AIWorkloadsUITests |
-| `colima model run` | ModelRun (stream) | modelRun | AI ▸ Run | ✅ | ⬜ | ⬜ | ⬜ | AIWorkloadsUITests |
-| `colima model serve` | ModelServe | modelServe | AI ▸ Serve | ✅ | ⬜ | ⬜ | ⬜ | AIWorkloadsUITests |
-| stop | ModelStop | modelStop | AI ▸ Stop | ✅ | ⬜ | ⬜ | ⬜ | AIWorkloadsUITests |
+| Frontend | Handlers | source-only | deterministic-fake-data | CI-without-daemon | live-backend | environment-blocked |
+|----------|---:|---:|---:|---:|---:|---:|
+| macos | 61/65 | 4 | 0 | 37 | 24 | 0 |
+| windows | 65/65 | 0 | 0 | 65 | 0 | 0 |
+| linux | 65/65 | 0 | 0 | 65 | 0 | 0 |
+| tui | 61/65 | 4 | 0 | 59 | 2 | 0 |
 
-## G. Runtime / monitoring
-| CLI | RPC | ServiceProvider | UI | mac | win | linux | tui | Test |
-|-----|-----|-----------------|----|:--:|:--:|:--:|:--:|------|
-| switch runtime | SwitchRuntime | (via config) | Runtime Controls | 🟡 | ⬜ | ⬜ | ⬜ | RuntimeControlsUITests |
-| update runtime | UpdateRuntime | updateVM | Runtime Controls | 🟡 | ⬜ | ⬜ | ⬜ | RuntimeControlsUITests |
-| process list | ProcessList | processList | Monitoring | ✅ | ⬜ | ⬜ | ⬜ | MonitoringUITests |
-| kill process | KillProcess | killProcess | Monitoring | ✅ | ⬜ | ⬜ | ⬜ | MonitoringUITests |
-| VM stats | VMStats (stream) | streamStats | Monitoring | ✅ | ⬜ | ⬜ | ⬜ | MonitoringUITests |
+## Legacy-claim reconciliation
 
-## H. Turnkey (M4.13)
-| Capability | ServiceProvider | UI | mac | win | linux | tui | Test |
-|-----------|-----------------|----|:--:|:--:|:--:|:--:|------|
-| detect colima | isColimaInstalled | Onboarding | ✅ | ⬜ | ⬜ | ⬜ | InstallDetectionTests |
-| install colima + deps | installColima / DependencyManager | Onboarding | 🟡 | ⬜ | ⬜ | ⬜ | InstallPromptUITests |
-| track + auto-update deps | DependencyManager | Settings | ⬜ | ⬜ | ⬜ | ⬜ | — |
+Computed from the current proto RPC set and the concrete daemon server methods (not hardcoded).
+These supersede the earlier stale notes ("no pull/push RPC", "config/template unimplemented"):
 
-`*` Added to `proto/colima_ui.proto` in M1.5: **ListMachines** ✅ and **DockerService** ✅ (31 RPCs, Part B). model-list RPC pending. All v1-additive. Daemon serves these over gRPC (bufconn-tested); frontends wire them in M2.
+- **DockerService.PullImage** (server-streaming) — proto RPC: declared; daemon server method: concrete; frontend handlers: macos, windows, linux, tui.
+- **DockerService.PushImage** (server-streaming) — proto RPC: declared; daemon server method: concrete; frontend handlers: windows, linux, tui.
+- **ColimaService.GetConfig** — proto RPC: declared; daemon server method: concrete; frontend handlers: macos, windows, linux, tui.
+- **ColimaService.SetConfig** — proto RPC: declared; daemon server method: concrete; frontend handlers: macos, windows, linux, tui.
+- **ColimaService.GetTemplate** — proto RPC: declared; daemon server method: concrete; frontend handlers: windows, linux, tui.
+- **ColimaService.SetTemplate** — proto RPC: declared; daemon server method: concrete; frontend handlers: windows, linux, tui.
+
+## Per-RPC × frontend evidence matrix
+
+Legend: S = source-only, D = deterministic-fake-data, C = CI-without-daemon, L = live-backend, E = environment-blocked. Server = concrete daemon method present. Every one of the 65 RPCs is listed (Property 9 coverage).
+
+### ColimaService (31 RPCs)
+
+| # | RPC | Surface | Stream | Server | macos | windows | linux | tui |
+|--:|-----|---------|:------:|:------:|:--:|:--:|:--:|:--:|
+| 1 | Start | dashboard | stream | yes | C | C | C | C |
+| 2 | Stop | dashboard | - | yes | C | C | C | C |
+| 3 | Restart | dashboard | stream | yes | C | C | C | C |
+| 4 | Delete | profiles | - | yes | C | C | C | C |
+| 5 | Status | dashboard | - | yes | L | C | C | C |
+| 6 | Version | dashboard | - | yes | C | C | C | S |
+| 7 | Update | runtime | - | yes | C | C | C | C |
+| 8 | Prune | runtime | - | yes | C | C | C | C |
+| 9 | SSHConfig | profiles | - | yes | C | C | C | C |
+| 10 | ListProfiles | profiles | - | yes | L | C | C | C |
+| 11 | ListMachines | machines | - | yes | C | C | C | C |
+| 12 | CreateProfile | profiles | - | yes | C | C | C | C |
+| 13 | DeleteProfile | profiles | - | yes | C | C | C | C |
+| 14 | CloneProfile | profiles | - | yes | C | C | C | C |
+| 15 | GetConfig | configuration | - | yes | L | C | C | C |
+| 16 | SetConfig | configuration | - | yes | L | C | C | C |
+| 17 | GetTemplate | configuration | - | yes | S | C | C | C |
+| 18 | SetTemplate | configuration | - | yes | S | C | C | C |
+| 19 | KubernetesStart | kubernetes | - | yes | C | C | C | C |
+| 20 | KubernetesStop | kubernetes | - | yes | C | C | C | C |
+| 21 | KubernetesReset | kubernetes | - | yes | C | C | C | C |
+| 22 | KubernetesExec | kubernetes | - | yes | C | C | C | C |
+| 23 | ModelSetup | ai_workloads | stream | yes | C | C | C | C |
+| 24 | ModelRun | ai_workloads | stream | yes | C | C | C | C |
+| 25 | ModelServe | ai_workloads | - | yes | C | C | C | C |
+| 26 | ModelStop | ai_workloads | - | yes | C | C | C | C |
+| 27 | SwitchRuntime | runtime | - | yes | L | C | C | C |
+| 28 | UpdateRuntime | runtime | - | yes | L | C | C | C |
+| 29 | VMStats | monitoring | stream | yes | S | C | C | C |
+| 30 | ProcessList | monitoring | - | yes | C | C | C | C |
+| 31 | KillProcess | monitoring | - | yes | C | C | C | C |
+
+### DockerService (34 RPCs)
+
+| # | RPC | Surface | Stream | Server | macos | windows | linux | tui |
+|--:|-----|---------|:------:|:------:|:--:|:--:|:--:|:--:|
+| 1 | ListContainers | containers | - | yes | L | C | C | C |
+| 2 | ContainerAction | containers | - | yes | L | C | C | C |
+| 3 | CreateContainer | containers | - | yes | L | C | C | C |
+| 4 | RenameContainer | containers | - | yes | C | C | C | C |
+| 5 | ContainerLogs | containers | - | yes | L | C | C | C |
+| 6 | InspectContainer | containers | - | yes | C | C | C | C |
+| 7 | ContainerTop | containers | - | yes | C | C | C | C |
+| 8 | ContainerStats | containers | - | yes | L | C | C | C |
+| 9 | ContainerChanges | containers | - | yes | C | C | C | C |
+| 10 | PruneContainers | containers | - | yes | C | C | C | C |
+| 11 | ListImages | images | - | yes | L | C | C | C |
+| 12 | PullImage | images | stream | yes | L | C | C | C |
+| 13 | RemoveImage | images | - | yes | L | C | C | L |
+| 14 | InspectImage | images | - | yes | L | C | C | L |
+| 15 | ImageHistory | images | - | yes | C | C | C | C |
+| 16 | TagImage | images | - | yes | L | C | C | C |
+| 17 | PushImage | images | stream | yes | S | C | C | C |
+| 18 | SearchImages | images | - | yes | C | C | C | C |
+| 19 | PruneImages | images | - | yes | C | C | C | C |
+| 20 | ListVolumes | volumes | - | yes | L | C | C | C |
+| 21 | CreateVolume | volumes | - | yes | L | C | C | C |
+| 22 | RemoveVolume | volumes | - | yes | L | C | C | C |
+| 23 | InspectVolume | volumes | - | yes | L | C | C | C |
+| 24 | PruneVolumes | volumes | - | yes | C | C | C | C |
+| 25 | ListNetworks | networks | - | yes | L | C | C | C |
+| 26 | CreateNetwork | networks | - | yes | L | C | C | C |
+| 27 | RemoveNetwork | networks | - | yes | L | C | C | C |
+| 28 | InspectNetwork | networks | - | yes | L | C | C | C |
+| 29 | ConnectNetwork | networks | - | yes | C | C | C | C |
+| 30 | DisconnectNetwork | networks | - | yes | C | C | C | C |
+| 31 | PruneNetworks | networks | - | yes | C | C | C | C |
+| 32 | StreamEvents | monitoring | stream | yes | C | C | C | S |
+| 33 | StreamLogs | containers | stream | yes | C | C | C | S |
+| 34 | StreamStats | containers | stream | yes | C | C | C | S |
+
+## Frontend-handler gaps (source-only cells)
+
+Server method exists but this frontend has no handler for the RPC (8 cell(s)). This is where the corrected claims land — e.g. the macOS **template** gap (`GetTemplate`/`SetTemplate`) is `source-only` (server-side concrete; the macOS UI handler is pending task 7.1), not "unimplemented":
+
+| RPC | Frontend | Surface |
+|-----|----------|---------|
+| Version | tui | dashboard |
+| GetTemplate | macos | configuration |
+| SetTemplate | macos | configuration |
+| VMStats | macos | monitoring |
+| PushImage | macos | images |
+| StreamEvents | tui | monitoring |
+| StreamLogs | tui | containers |
+| StreamStats | tui | containers |
+
+## Environment-blocked cells
+
+None in this per-RPC handler inventory. Windows/Linux live UIA/AT-SPI capture is tracked separately in `exploration/{windows,linux}` ground-truth (task 10.7); their per-RPC handler evidence is capped at CI-without-daemon.
+

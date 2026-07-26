@@ -1,0 +1,56 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "version": 1,
+  "metadata": {
+    "tools": [
+      {
+        "vendor": "colima-desktop",
+        "name": "colima-desktop-sbom-gen",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "ColimaDesktop (Swift/SwiftUI)",
+      "version": "1.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "viewinspector",
+      "version": "0.10.3",
+      "purl": "pkg:swift/github.com/nalexn/ViewInspector@0.10.3",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "swift-custom-dump",
+      "version": "1.6.1",
+      "purl": "pkg:swift/github.com/pointfreeco/swift-custom-dump@1.6.1",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "swift-snapshot-testing",
+      "version": "1.19.3",
+      "purl": "pkg:swift/github.com/pointfreeco/swift-snapshot-testing@1.19.3",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "xctest-dynamic-overlay",
+      "version": "1.11.0",
+      "purl": "pkg:swift/github.com/pointfreeco/xctest-dynamic-overlay@1.11.0",
+      "scope": "optional"
+    },
+    {
+      "type": "library",
+      "name": "swift-syntax",
+      "version": "603.0.2",
+      "purl": "pkg:swift/github.com/swiftlang/swift-syntax@603.0.2",
+      "scope": "optional"
+    }
+  ]
+}
