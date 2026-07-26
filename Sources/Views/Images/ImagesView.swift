@@ -98,7 +98,9 @@ struct ImagesView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityIdentifier("btn_pull_image_new_sheet")
-                    Button { appState.pruneImages() } label: {
+                    Button {
+                        appState.confirmPruneImages()
+                    } label: {
                         Image(systemName: "trash")
                     }
                     .accessibilityIdentifier("btn_prune_image_all")
@@ -142,7 +144,9 @@ struct ImagesView: View {
 
             Spacer()
 
-            Button { appState.removeImage(id: img.id) } label: {
+            Button {
+                appState.confirmRemoveImage(id: img.reference)
+            } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.plain)
@@ -150,18 +154,20 @@ struct ImagesView: View {
         }
         .padding(.vertical, 2)
         .contextMenu {
-            Button("Inspect") { appState.inspectImage(repo: img.repository) }
+            Button("Inspect") { appState.inspectImage(repo: img.reference) }
                 .accessibilityIdentifier("btn_inspect_image_\(img.repository)")
-            Button("History") { appState.historyImage(repo: img.repository) }
+            Button("History") { appState.historyImage(repo: img.reference) }
                 .accessibilityIdentifier("btn_history_image_\(img.repository)")
-            Button("Tag") { appState.tagImage(repo: img.repository, newTag: "new-tag") }
+            Button("Tag") { appState.tagImage(repo: img.reference, newTag: "new-tag") }
                 .accessibilityIdentifier("btn_tag_image_\(img.repository)")
-            Button("Push") { appState.pushImage(repo: img.repository) }
+            Button("Push") { appState.pushImage(repo: img.reference) }
                 .accessibilityIdentifier("btn_push_image_\(img.repository)")
-            Button("Export") { appState.exportImage(repo: img.repository) }
+            Button("Export") { appState.exportImage(repo: img.reference) }
                 .accessibilityIdentifier("btn_export_image_\(img.repository)")
             Divider()
-            Button("Remove", role: .destructive) { appState.removeImage(id: img.id) }
+            Button("Remove", role: .destructive) {
+                appState.confirmRemoveImage(id: img.reference)
+            }
         }
     }
 
@@ -220,7 +226,12 @@ struct ImagesView: View {
             }
 
             if let pulling = activePull {
-                PullProgressView(name: pulling) {
+                PullProgressView(
+                    name: pulling,
+                    progress: appState.imagePullProgress[pulling],
+                    status: appState.imagePullStatus[pulling] ?? "Waiting for Docker Engine…"
+                ) {
+                    appState.cancelImagePull(name: pulling)
                     activePull = nil
                 }
             }
@@ -261,8 +272,10 @@ struct ImageDetailView: View {
 
             switch selectedTab {
             case .info: infoTab
-            case .terminal: MockTerminalView(name: image.repository)
-            case .files: MockFileTree()
+            case .terminal:
+                ContentUnavailableView("Not a Running Container", systemImage: "terminal", description: Text("Create a container from this exact image tag to open a terminal."))
+            case .files:
+                ContentUnavailableView("Image File Browser Unavailable", systemImage: "folder.badge.questionmark", description: Text("The current backend does not expose an image filesystem browsing API."))
             }
         }
     }
@@ -275,7 +288,6 @@ struct ImageDetailView: View {
                 GridRow { Text("ID").foregroundStyle(.secondary); Text(image.id).font(.system(.body, design: .monospaced)) }
                 GridRow { Text("Size").foregroundStyle(.secondary); Text(image.size) }
                 GridRow { Text("Created").foregroundStyle(.secondary); Text(image.created) }
-                GridRow { Text("Layers").foregroundStyle(.secondary); Text("3 layers") }
             }
             .padding()
         }

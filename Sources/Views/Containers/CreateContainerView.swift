@@ -16,12 +16,15 @@ struct CreateContainerView: View {
     @State private var readOnly = false
     @State private var useInit = false
     @State private var nameError: String?
+    @State private var imageError: String?
 
     private let platforms = ["auto", "arm64", "amd64", "arm/v7", "riscv64", "ppc64le", "s390x"]
     private let restartPolicies = ["no", "always", "unless-stopped", "on-failure"]
 
     private var isValid: Bool {
-        !imageName.isEmpty && nameError == nil
+        appState.validateImageName(imageName) == nil
+            && nameError == nil
+            && !(removeAfterStop && restartPolicy != "no")
     }
 
     var body: some View {
@@ -39,6 +42,13 @@ struct CreateContainerView: View {
                         TextField("e.g. nginx:latest", text: $imageName)
                             .textFieldStyle(.roundedBorder)
                             .accessibilityIdentifier("field_create_container_image_full")
+                            .onChange(of: imageName) {
+                                imageError = imageName.isEmpty ? nil : appState.validateImageName(imageName)
+                            }
+                        if let err = imageError {
+                            Text(err).font(.caption).foregroundStyle(.red)
+                                .accessibilityIdentifier("text_create_container_image_error")
+                        }
                     }
 
                     // Platform
@@ -68,6 +78,12 @@ struct CreateContainerView: View {
                     // Toggles
                     Toggle("Remove after stop (--rm)", isOn: $removeAfterStop)
                         .accessibilityIdentifier("toggle_create_container_rm")
+
+                    if removeAfterStop && restartPolicy != "no" {
+                        Text("Auto-remove cannot be combined with a restart policy.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
 
                     // Restart policy
                     VStack(alignment: .leading, spacing: 4) {
@@ -135,10 +151,19 @@ struct CreateContainerView: View {
 
     private func createContainer(start: Bool) {
         let name = containerName.isEmpty ? imageName.replacingOccurrences(of: ":", with: "-").replacingOccurrences(of: "/", with: "-") : containerName
-        appState.createContainer(name: name, image: imageName)
-        if start {
-            appState.startContainer(name: name)
-        }
+        let dockerPlatform = platform == "auto" || platform.contains("/") ? platform : "linux/\(platform)"
+        let options = ContainerCreateOptions(
+            platform: dockerPlatform,
+            autoRemove: removeAfterStop,
+            restartPolicy: restartPolicy,
+            command: command,
+            entrypoint: entrypoint,
+            workingDirectory: workingDir,
+            privileged: privileged,
+            readOnlyRootFilesystem: readOnly,
+            useInit: useInit
+        )
+        appState.createContainer(name: name, image: imageName, options: options, start: start)
         dismiss()
     }
 }

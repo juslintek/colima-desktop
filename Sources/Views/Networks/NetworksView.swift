@@ -65,7 +65,9 @@ struct NetworksView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityIdentifier("btn_create_network_new")
-                    Button { appState.pruneNetworks() } label: {
+                    Button {
+                        appState.confirmPruneNetworks()
+                    } label: {
                         Image(systemName: "trash")
                     }
                     .accessibilityIdentifier("btn_prune_network_all")
@@ -108,7 +110,9 @@ struct NetworksView: View {
 
             Spacer()
 
-            Button { appState.removeNetwork(name: net.name) } label: {
+            Button {
+                appState.confirmRemoveNetwork(name: net.name)
+            } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.plain)
@@ -123,7 +127,9 @@ struct NetworksView: View {
             Button("Disconnect") { appState.disconnectNetwork(network: net.name, container: "web-server") }
                 .accessibilityIdentifier("btn_disconnect_network_\(net.name)")
             Divider()
-            Button("Remove", role: .destructive) { appState.removeNetwork(name: net.name) }
+            Button("Remove", role: .destructive) {
+                appState.confirmRemoveNetwork(name: net.name)
+            }
         }
     }
 

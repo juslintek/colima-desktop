@@ -116,15 +116,24 @@ hits `firstMatch`, which may be that phantom → "Not hittable", **order-depende
 the hover. **Fix:** `appState.isUITesting` (set from `--ui-testing`) forces
 `.opacity(... || isUITesting ? 1 : 0)`.
 
-### 5. Duplicate/orphaned views with conflicting identifiers
-There are **two** create-container UIs: the **live** `ContainersView.createSheet`
-(ids `field_create_container_name`, `field_create_container_image`, `btn_confirm_container_create`,
-captures **name + image only**) and an **orphaned** `CreateContainerView.swift`
-(ids `*_full`, with platform/restart/payload/flags) that is **not wired to any button**.
-Tests must target the live sheet. The `_full` view is dead code — wire it up or delete it.
-- **Lesson:** confirm which view actually renders (grep the `.sheet { ... }` wiring) before
-  writing identifiers into a test. This cost a full failing run when the new image tests were
-  first written against the orphaned view's `*_full` ids.
+### 5. Two-tier create-container flow — target the right sheet's identifiers
+There are **two** create-container UIs and **both are wired** (neither is dead code):
+- **Quick sheet** — `ContainersView.createSheet` (ids `field_create_container_name`,
+  `field_create_container_image`, `btn_confirm_container_create`, `btn_browse_images`,
+  `btn_cancel_container_create`, `text_container_name_error`), captures **name + image only**.
+  Opened by the `+` toolbar button (`btn_create_container_new`) and the empty-state
+  `btn_create_container_empty_state`.
+- **Advanced form** — `CreateContainerView.swift` (ids `*_full`: platform/restart/payload/flags),
+  reached from the Quick sheet's **Advanced…** button (`btn_create_container_advanced`) and the
+  **Cmd+K** Command Palette → "Create Container" — both set `appState.activeSheet = .createContainer`
+  (presented by `ContentView`'s `.createContainer` sheet). Validates name + image and submits via
+  `appState.createContainer(name:image:options:start:)`.
+- **Lesson:** clicking `btn_create_container_new` (the `+`) opens the **Quick** sheet, so XCUITests
+  driven from the toolbar must target the quick-sheet ids (`field_create_container_name` …), **not**
+  the `*_full` ids. To reach the Advanced form in a test, go through **Advanced…** or the Command
+  Palette. Confirm which view renders (grep the `.sheet { ... }` wiring) before writing identifiers
+  into a test. This once cost a full failing run when image tests were first written against the
+  `*_full` ids.
 
 ### 6. Timeouts
 No `sleep()` anywhere — all waits are `waitForExistence`/`XCTNSPredicateExpectation`. Use **5s**

@@ -5,49 +5,11 @@ struct DashboardView: View {
 
     // Check & Update state
     @State private var updateChecking = false
-    @State private var updateResult: (current: String, latest: String, changelog: String)?
-    @State private var autoUpdate = false
+    @State private var updateResult: (current: String, detail: String)?
 
     // Template editor state
     @State private var templateExpanded = false
-    @State private var templateContent = """
-# Default Colima configuration template
-cpu: 4
-memory: 8
-disk: 100
-runtime: docker
-vmType: vz
-rosetta: true
-mountType: virtiofs
-mounts:
-  - location: ~
-    writable: true
-  - location: /tmp/colima
-    writable: true
-network:
-  address: true
-  dns:
-    - 1.1.1.1
-    - 8.8.8.8
-kubernetes:
-  enabled: false
-  version: ""
-"""
-
-    // Prune state
-    @State private var pruneRunning = false
-    @State private var pruneItems: [(name: String, detail: String, status: PruneStatus)] = []
-
-    // Export state
-    @State private var activeExport: String?
-    @State private var exportPath: String?
-
-    // Migration state
-    @State private var migrationTarget: String?
-    @State private var migrationSteps: [String] = []
-    @State private var migrationStepIndex = 0
-
-    enum PruneStatus { case pending, clearing, done }
+    @State private var templateContent = "Loading active profile configuration…"
 
     var body: some View {
         ScrollView {
@@ -145,18 +107,18 @@ kubernetes:
 
                         if let result = updateResult {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text("Current: v\(result.current) → Latest: v\(result.latest)")
+                                Text("Installed: \(result.current)")
                                     .font(.caption.weight(.medium)).foregroundStyle(.blue)
-                                Text(result.changelog)
+                                Text(result.detail)
                                     .font(.caption2).foregroundStyle(.secondary)
                                     .padding(6).background(Color.secondary.opacity(0.05))
                                     .clipShape(RoundedRectangle(cornerRadius: 4))
-                                HStack {
-                                    Button("Update Now") { appState.updateColima() }
-                                        .controlSize(.small)
-                                    Toggle("Auto-update", isOn: $autoUpdate)
-                                        .controlSize(.small).toggleStyle(.checkbox)
+                                Button("Run Colima Update") {
+                                    appState.requestConfirmation("Run Colima's update command for '\(appState.activeProfile)'?") {
+                                        appState.updateColima()
+                                    }
                                 }
+                                .controlSize(.small)
                             }
                         }
                     }
@@ -169,11 +131,13 @@ kubernetes:
                             Image(systemName: "doc.text").foregroundStyle(.purple)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Configuration Template").font(.caption.weight(.medium))
-                                Text("~/.colima/_templates/default.yaml").font(.caption2.monospaced()).foregroundStyle(.secondary)
+                                Text(appState.services is MockServiceProvider ? "~/.colima/_templates/default.yaml" : "Active profile: \(appState.activeProfile)")
+                                    .font(.caption2.monospaced()).foregroundStyle(.secondary)
                             }
                             Spacer()
                             Button(templateExpanded ? "Collapse" : "Edit Template") {
                                 templateExpanded.toggle()
+                                if templateExpanded { loadActiveTemplate() }
                             }
                             .controlSize(.small)
                             .accessibilityIdentifier("btn_template_vm_dashboard")
@@ -189,7 +153,11 @@ kubernetes:
                                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.secondary.opacity(0.2)))
 
                             HStack {
-                                Button("Save") { appState.generateTemplate() }
+                                Button("Save to Active Profile") {
+                                    appState.requestConfirmation("Save this YAML to '\(appState.activeProfile)' and restart the VM if running?") {
+                                        appState.saveConfig(config: ColimaConfig.fromYAML(templateContent))
+                                    }
+                                }
                                     .controlSize(.small)
                                 Button("Reset to Default") { resetTemplate() }
                                     .controlSize(.small)
@@ -205,41 +173,16 @@ kubernetes:
                             Image(systemName: "trash.circle").foregroundStyle(.orange)
                             Text("Prune").font(.caption.weight(.medium))
                             Spacer()
-                            if !pruneRunning && pruneItems.isEmpty {
-                                Button("Start Prune") { startPrune() }
-                                    .controlSize(.small)
-                                    .accessibilityIdentifier("btn_prune_vm_dashboard")
-                            } else if pruneRunning {
-                                ProgressView().controlSize(.small)
+                            Button("Start Prune") {
+                                appState.requestConfirmation("Prune unused cache, images, and stopped containers for '\(appState.activeProfile)'?") {
+                                    appState.pruneColima(all: false)
+                                }
                             }
+                            .controlSize(.small)
+                            .accessibilityIdentifier("btn_prune_vm_dashboard")
                         }
                         Text("Removes unused build cache, dangling images, and stopped containers.").font(.caption2).foregroundStyle(.secondary)
 
-                        if !pruneItems.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                ForEach(Array(pruneItems.enumerated()), id: \.offset) { _, item in
-                                    HStack(spacing: 6) {
-                                        switch item.status {
-                                        case .pending:
-                                            Image(systemName: "circle").foregroundStyle(.secondary).font(.caption2)
-                                        case .clearing:
-                                            ProgressView().controlSize(.mini)
-                                        case .done:
-                                            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
-                                        }
-                                        Text(item.name).font(.caption2)
-                                        Text(item.detail).font(.caption2).foregroundStyle(.secondary)
-                                    }
-                                }
-                                if pruneItems.allSatisfy({ $0.status == .done }) {
-                                    Text("Total: 1.25 GB freed")
-                                        .font(.caption.weight(.medium)).foregroundStyle(.green)
-                                        .padding(.top, 4)
-                                }
-                            }
-                            .padding(6).background(Color.secondary.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 4))
-                        }
                     }
                 }
 
@@ -270,40 +213,28 @@ kubernetes:
                         }
                         .font(.caption)
 
-                        // MARK: Export
+                        // MARK: Backup and migration contract status
                         DisclosureGroup("Backup & Migration") {
-                            VStack(alignment: .leading, spacing: 8) {
-                                exportRow(id: "volumes", label: "Export all volumes as tar", path: "~/Desktop/colima-backup/volumes-2026-05-06.tar")
-                                exportRow(id: "compose", label: "Export docker-compose.yml", path: "~/Desktop/colima-backup/docker-compose.yml")
-                                exportRow(id: "containers", label: "Export container list (JSON)", path: "~/Desktop/colima-backup/containers-2026-05-06.json")
-
-                                Divider()
-
-                                // MARK: Migration
-                                Text("Migrate to:").font(.caption2).foregroundStyle(.secondary)
-                                migrationRow(target: "Docker Desktop", installed: true)
-                                migrationRow(target: "Podman", installed: false)
-                                migrationRow(target: "Another Profile", installed: true)
-
-                                if let target = migrationTarget, !migrationSteps.isEmpty {
-                                    VStack(alignment: .leading, spacing: 3) {
-                                        Text("Migrating to \(target)...").font(.caption2.weight(.medium))
-                                        ForEach(0..<migrationSteps.count, id: \.self) { i in
-                                            HStack(spacing: 4) {
-                                                if i < migrationStepIndex {
-                                                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
-                                                } else if i == migrationStepIndex {
-                                                    ProgressView().controlSize(.mini)
-                                                } else {
-                                                    Image(systemName: "circle").foregroundStyle(.secondary).font(.caption2)
-                                                }
-                                                Text(migrationSteps[i]).font(.caption2)
-                                            }
-                                        }
-                                    }
-                                    .padding(6).background(Color.secondary.opacity(0.05))
-                                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Automated full-volume backup and cross-runtime migration are not exposed by the current service contract. Per-container and per-image export actions use real Docker commands.")
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                                HStack {
+                                    Button("Export all volumes as tar") {}
+                                    Button("Export docker-compose.yml") {}
+                                    Button("Export container list (JSON)") {}
                                 }
+                                .disabled(true)
+                                Text("Migrate to:").font(.caption2).foregroundStyle(.secondary)
+                                HStack {
+                                    Text("Docker Desktop")
+                                    Text("Podman")
+                                    Text("Another Profile")
+                                    Spacer()
+                                    Button("Migrate") {}.disabled(true)
+                                    Button("Install via Homebrew") {}.disabled(true)
+                                }
+                                .font(.caption)
                             }
                             .padding(.top, 4)
                         }
@@ -325,9 +256,25 @@ kubernetes:
 
     private func checkForUpdate() {
         updateChecking = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+        appState.executeCommand(tool: "colima", args: ["version"]) { output in
             updateChecking = false
-            updateResult = (current: "0.10.1", latest: "0.10.3", changelog: "Bug fixes, improved virtiofs performance")
+            let version = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            updateResult = (
+                current: version.isEmpty ? appState.colimaVersion : version,
+                detail: "No remote release comparison is available through the current backend. The update action runs Colima's real update command."
+            )
+        }
+    }
+
+    private func loadActiveTemplate() {
+        Task { @MainActor in
+            do {
+                let config = try await appState.services.readConfig(profile: appState.activeProfile)
+                appState.colimaConfig = config
+                templateContent = config.sourceYAML ?? config.toYAML()
+            } catch {
+                templateContent = "# Failed to load active configuration: \(error.localizedDescription)"
+            }
         }
     }
 
@@ -347,89 +294,6 @@ kubernetes:
         """
     }
 
-    private func startPrune() {
-        pruneRunning = true
-        pruneItems = [
-            (name: "Dangling images (3)", detail: "— freed 450 MB", status: .pending),
-            (name: "Stopped containers (2)", detail: "— freed 120 MB", status: .pending),
-            (name: "Unused networks (1)", detail: "— freed 0 MB", status: .pending),
-            (name: "Build cache", detail: "— freed 680 MB", status: .pending),
-        ]
-        animatePruneItem(at: 0)
-    }
-
-    private func animatePruneItem(at index: Int) {
-        guard index < pruneItems.count else {
-            pruneRunning = false
-            appState.pruneColima(all: false)
-            return
-        }
-        pruneItems[index].status = .clearing
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-            pruneItems[index].status = .done
-            animatePruneItem(at: index + 1)
-        }
-    }
-
-    @ViewBuilder
-    private func exportRow(id: String, label: String, path: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Button(label) {
-                activeExport = id
-                exportPath = path
-            }.font(.caption)
-
-            if activeExport == id, let p = exportPath {
-                HStack(spacing: 4) {
-                    Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
-                    Text("Saved to: \(p)").font(.caption2).foregroundStyle(.secondary)
-                    Button("Show in Finder") { /* mock */ }
-                        .font(.caption2).controlSize(.mini)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func migrationRow(target: String, installed: Bool) -> some View {
-        HStack(spacing: 6) {
-            if installed {
-                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).font(.caption2)
-                Text(target).font(.caption)
-                Text("Installed").font(.caption2).foregroundStyle(.secondary)
-                Spacer()
-                Button("Migrate") { startMigration(target: target) }.font(.caption).controlSize(.mini)
-            } else {
-                Image(systemName: "xmark.circle").foregroundStyle(.red).font(.caption2)
-                Text(target).font(.caption)
-                Text("Not installed").font(.caption2).foregroundStyle(.secondary)
-                Spacer()
-                Button("Install via Homebrew") { appState.showToast("brew install \(target.lowercased())") }
-                    .font(.caption).controlSize(.mini)
-            }
-        }
-    }
-
-    private func startMigration(target: String) {
-        migrationTarget = target
-        migrationSteps = [
-            "Export volumes...",
-            "Export container configs...",
-            "Switch context...",
-            "Stop Colima VM...",
-            "Done! Suggest removal.",
-        ]
-        migrationStepIndex = 0
-        animateMigrationStep()
-    }
-
-    private func animateMigrationStep() {
-        guard migrationStepIndex < migrationSteps.count else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.7) {
-            migrationStepIndex += 1
-            animateMigrationStep()
-        }
-    }
 }
 
 // MARK: - Inline Terminal
@@ -438,9 +302,12 @@ struct DashboardTerminal: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
     @State private var command = ""
-    @State private var history: [(cmd: String, output: String)] = [
-        ("colima status", "INFO[0000] colima is running using macOS Virtualization.Framework\nINFO[0000] arch: aarch64\nINFO[0000] runtime: docker\nINFO[0000] mountType: virtiofs\nINFO[0000] socket: unix:///Users/user/.colima/default/docker.sock"),
-    ]
+    @State private var history: [(cmd: String, output: String)] = []
+
+    private var activeSocket: String {
+        FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".colima/\(appState.activeProfile)/docker.sock").path
+    }
 
     private var bgColor: Color {
         colorScheme == .dark ? Color(red: 0.96, green: 0.96, blue: 0.97) : Color(red: 0.1, green: 0.1, blue: 0.12)
@@ -461,7 +328,13 @@ struct DashboardTerminal: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Terminal").font(.caption.weight(.medium))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Terminal").font(.caption.weight(.medium))
+                    Text("\(appState.activeProfile) · \(appState.vmRunning ? "running" : "stopped") · unix://\(activeSocket)")
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                     .accessibilityIdentifier("panel_dashboard_terminal")
                 Spacer()
                 Button { history.removeAll() } label: {
@@ -473,6 +346,11 @@ struct DashboardTerminal: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 4) {
+                    if appState.services is MockServiceProvider {
+                        Text("$ colima status").foregroundStyle(promptColor)
+                        Text("INFO[0000] colima is running using macOS Virtualization.Framework\nINFO[0000] arch: aarch64\nINFO[0000] runtime: docker\nINFO[0000] mountType: virtiofs\nINFO[0000] socket: unix:///Users/user/.colima/default/docker.sock")
+                            .foregroundStyle(outputColor)
+                    }
                     ForEach(Array(history.enumerated()), id: \.offset) { _, entry in
                         Text("$ \(entry.cmd)")
                             .foregroundStyle(promptColor)
@@ -505,20 +383,20 @@ struct DashboardTerminal: View {
     }
 
     private func executeCommand() {
-        guard !command.isEmpty else { return }
-        let cmd = command
+        let cmd = command.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cmd.isEmpty else { return }
         command = ""
-        let output: String
-        switch cmd {
-        case let c where c.starts(with: "docker ps"):
-            output = "CONTAINER ID   IMAGE          STATUS\nabc123         nginx:latest   Up 2 hours\ndef456         postgres:16    Up 2 hours\nghi789         redis:7        Exited (0)"
-        case let c where c.starts(with: "colima status"):
-            output = "INFO[0000] colima is running\nINFO[0000] runtime: docker\nINFO[0000] arch: aarch64"
-        case let c where c.starts(with: "docker"):
-            output = "OK"
-        default:
-            output = "colima: command executed"
+        let parts = cmd.split(whereSeparator: \.isWhitespace).map(String.init)
+        guard let tool = parts.first,
+              ["colima", "docker", "nerdctl", "incus", "kubectl"].contains(tool) else {
+            history.append((cmd: cmd, output: "Unsupported tool. Use colima, docker, nerdctl, incus, or kubectl."))
+            return
         }
-        history.append((cmd: cmd, output: output))
+        let index = history.count
+        history.append((cmd: cmd, output: "Running against profile '\(appState.activeProfile)'…"))
+        appState.executeCommand(tool: tool, args: Array(parts.dropFirst())) { output in
+            guard history.indices.contains(index), history[index].cmd == cmd else { return }
+            history[index].output = output.isEmpty ? "Command completed with no output." : output
+        }
     }
 }

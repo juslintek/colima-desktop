@@ -55,10 +55,10 @@ struct MockTerminalView: View {
                         let cmd = command
                         output.append("$ \(cmd)")
                         command = ""
-                        let parts = cmd.components(separatedBy: " ")
-                        let tool = parts.first ?? "docker"
-                        let args = Array(parts.dropFirst())
-                        appState.executeCommand(tool: tool, args: args) { result in
+                        appState.executeCommand(
+                            tool: "docker",
+                            args: ["exec", name, "sh", "-lc", cmd]
+                        ) { result in
                             output.append(result)
                         }
                     }

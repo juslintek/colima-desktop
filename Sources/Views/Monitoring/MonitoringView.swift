@@ -236,7 +236,9 @@ struct MonitoringView: View {
                     Label("Restart", systemImage: "arrow.clockwise")
                 }
                 Divider()
-                Button(role: .destructive) { appState.killContainer(name: node.name) } label: {
+                Button(role: .destructive) {
+                    appState.confirmKillContainer(name: node.name)
+                } label: {
                     Label("Kill", systemImage: "xmark.circle")
                 }
             }

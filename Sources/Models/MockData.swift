@@ -16,6 +16,25 @@ struct MockImage: Identifiable, Equatable {
     let tag: String
     let size: String
     let created: String
+
+    /// Docker operations must target the exact tag the user selected. Using
+    /// only `repository` silently falls back to `latest` in the Engine API.
+    var reference: String {
+        guard repository != "<none>", tag != "<none>", !tag.isEmpty else { return id }
+        return "\(repository):\(tag)"
+    }
+}
+
+struct ContainerCreateOptions: Equatable {
+    var platform: String = "auto"
+    var autoRemove: Bool = false
+    var restartPolicy: String = "no"
+    var command: String = ""
+    var entrypoint: String = ""
+    var workingDirectory: String = ""
+    var privileged: Bool = false
+    var readOnlyRootFilesystem: Bool = false
+    var useInit: Bool = false
 }
 
 struct MockVolume: Identifiable, Equatable {

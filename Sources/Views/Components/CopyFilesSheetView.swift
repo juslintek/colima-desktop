@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 
 struct CopyFilesSheetView: View {
     let containerName: String
-    let onCopy: (String) -> Void
+    let onCopy: ([String]) -> Void
     @Environment(\.dismiss) private var dismiss
 
     enum Direction: String, CaseIterable {
@@ -23,6 +23,13 @@ struct CopyFilesSheetView: View {
             return "docker cp \(hostPath) \(containerName):\(containerPath)"
         case .fromContainer:
             return "docker cp \(containerName):\(containerPath) \(hostPath)"
+        }
+    }
+
+    private var arguments: [String] {
+        switch direction {
+        case .toContainer: return ["cp", hostPath, "\(containerName):\(containerPath)"]
+        case .fromContainer: return ["cp", "\(containerName):\(containerPath)", hostPath]
         }
     }
 
@@ -106,7 +113,7 @@ struct CopyFilesSheetView: View {
     }
 
     private func executeCopy() {
-        onCopy(command)
+        onCopy(arguments)
         dismiss()
     }
 }

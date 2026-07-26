@@ -41,8 +41,10 @@ struct ContentView: View {
             }
         }
         .confirmationDialog(appState.confirmationMessage, isPresented: $appState.showConfirmation) {
-            Button("Confirm", role: .destructive) { appState.confirmationAction?() }
-            Button("Cancel", role: .cancel) {}
+            Button("Confirm", role: .destructive) { appState.confirmPendingAction() }
+                .accessibilityIdentifier("btn_confirm_destructive")
+            Button("Cancel", role: .cancel) { appState.cancelPendingConfirmation() }
+                .accessibilityIdentifier("btn_cancel_destructive")
         }
         .sheet(item: $appState.activeSheet) { sheet in
             sheetContent(for: sheet)
@@ -177,11 +179,14 @@ struct ContentView: View {
         case .commandRunner:
             CommandRunnerView(tool: appState.sheetTool)
         case .copyFiles:
-            CopyFilesSheetView(containerName: appState.sheetEntityName) { cmd in
-                appState.showToast("Executed: \(cmd)")
+            CopyFilesSheetView(containerName: appState.sheetEntityName) { args in
+                appState.copyContainerFiles(args: args)
             }
         case .createContainer:
             CreateContainerView()
+                .environmentObject(appState)
+        case .templateEditor:
+            TemplateEditorView()
                 .environmentObject(appState)
         }
     }

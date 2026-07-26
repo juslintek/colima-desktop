@@ -267,9 +267,10 @@ struct KubernetesView: View {
 
     private func loadK8sResources() {
         guard appState.k8sRunning else { return }
+        let profile = appState.activeProfile
         Task {
             // Pods
-            if let json = try? await appState.services.kubectlExec("get pods -A -o json"),
+            if let json = try? await appState.services.kubectlExec("get pods -A -o json", profile: profile),
                let data = json.data(using: .utf8),
                let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let items = obj["items"] as? [[String: Any]] {
@@ -289,7 +290,7 @@ struct KubernetesView: View {
             }
 
             // Services
-            if let json = try? await appState.services.kubectlExec("get services -o json"),
+            if let json = try? await appState.services.kubectlExec("get services -o json", profile: profile),
                let data = json.data(using: .utf8),
                let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let items = obj["items"] as? [[String: Any]] {
@@ -303,7 +304,7 @@ struct KubernetesView: View {
             }
 
             // Deployments
-            if let json = try? await appState.services.kubectlExec("get deployments -o json"),
+            if let json = try? await appState.services.kubectlExec("get deployments -o json", profile: profile),
                let data = json.data(using: .utf8),
                let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let items = obj["items"] as? [[String: Any]] {
@@ -317,7 +318,7 @@ struct KubernetesView: View {
             }
 
             // Nodes
-            if let json = try? await appState.services.kubectlExec("get nodes -o json"),
+            if let json = try? await appState.services.kubectlExec("get nodes -o json", profile: profile),
                let data = json.data(using: .utf8),
                let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let items = obj["items"] as? [[String: Any]] {
@@ -333,7 +334,7 @@ struct KubernetesView: View {
             }
 
             // Events
-            if let json = try? await appState.services.kubectlExec("get events -o json"),
+            if let json = try? await appState.services.kubectlExec("get events -o json", profile: profile),
                let data = json.data(using: .utf8),
                let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let items = obj["items"] as? [[String: Any]] {
@@ -381,8 +382,9 @@ struct K8sServiceDetailView: View {
     }
 
     private func loadService() {
+        let profile = appState.activeProfile
         Task {
-            guard let json = try? await appState.services.kubectlExec("get service \(name) -o json"),
+            guard let json = try? await appState.services.kubectlExec("get service \(name) -o json", profile: profile),
                   let data = json.data(using: .utf8),
                   let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
             let spec = obj["spec"] as? [String: Any]
@@ -429,8 +431,9 @@ struct K8sDeploymentDetailView: View {
     }
 
     private func loadDeployment() {
+        let profile = appState.activeProfile
         Task {
-            guard let json = try? await appState.services.kubectlExec("get deployment \(name) -o json"),
+            guard let json = try? await appState.services.kubectlExec("get deployment \(name) -o json", profile: profile),
                   let data = json.data(using: .utf8),
                   let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
             let status = obj["status"] as? [String: Any]
@@ -482,8 +485,9 @@ struct K8sNodeDetailView: View {
     }
 
     private func loadNode() {
+        let profile = appState.activeProfile
         Task {
-            guard let json = try? await appState.services.kubectlExec("get node \(name) -o json"),
+            guard let json = try? await appState.services.kubectlExec("get node \(name) -o json", profile: profile),
                   let data = json.data(using: .utf8),
                   let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
             let status = obj["status"] as? [String: Any]

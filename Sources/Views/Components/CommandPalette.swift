@@ -36,7 +36,11 @@ struct CommandPalette: View {
         items.append(CommandItem(title: "Stop Colima", subtitle: "Stop the VM", icon: "stop.fill", category: "Actions") { appState.stopVM() })
         items.append(CommandItem(title: "Restart Colima", subtitle: "Restart the VM", icon: "arrow.clockwise", category: "Actions") { appState.restartVM() })
         items.append(CommandItem(title: "Create Container", subtitle: "Run a new container", icon: "plus.circle", category: "Actions") { appState.activeSheet = .createContainer })
-        items.append(CommandItem(title: "Prune System", subtitle: "Remove unused resources", icon: "trash", category: "Actions") { appState.pruneSystem() })
+        items.append(CommandItem(title: "Prune System", subtitle: "Remove unused resources", icon: "trash", category: "Actions") {
+            appState.requestConfirmation("Prune unused Colima resources for profile '\(appState.activeProfile)'?") {
+                appState.pruneSystem()
+            }
+        })
 
         // Containers (dynamic)
         for c in appState.containers {
@@ -49,7 +53,9 @@ struct CommandPalette: View {
         // Profiles
         for p in appState.profiles {
             items.append(CommandItem(title: "Switch to \(p.name)", subtitle: "\(p.runtime) — \(p.status)", icon: "person.crop.rectangle", category: "Profiles") {
-                appState.switchProfile(name: p.name)
+                Task { @MainActor in
+                    await appState.switchProfile(name: p.name)
+                }
             })
         }
 

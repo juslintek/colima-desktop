@@ -31,8 +31,8 @@ class MockServiceProvider: ServiceProvider {
         )
     }
     func vmVersion() async throws -> String { "0.10.1" }
-    func updateVM() async throws {}
-    func pruneVM(all: Bool) async throws {}
+    func updateVM(profile: String = "default") async throws {}
+    func pruneVM(profile: String = "default", all: Bool) async throws {}
     func sshConfig(profile: String) async throws -> String {
         "Host colima\n  HostName 192.168.106.2\n  User colima\n  Port 22"
     }
@@ -69,7 +69,7 @@ class MockServiceProvider: ServiceProvider {
     func k8sStart(profile: String) async throws { k8sRunning = true }
     func k8sStop(profile: String) async throws { k8sRunning = false }
     func k8sReset(profile: String) async throws { k8sRunning = false }
-    func kubectlExec(_ command: String) async throws -> String { "mock kubectl output" }
+    func kubectlExec(_ command: String, profile: String = "default") async throws -> String { "mock kubectl output" }
 
     // MARK: - Containers
 
@@ -110,6 +110,9 @@ class MockServiceProvider: ServiceProvider {
         containers.append(MockContainer(id: id, name: name, image: image, status: "Created", state: "created", ports: "", created: "just now"))
         return id
     }
+    func createContainer(name: String, image: String, options: ContainerCreateOptions) async throws -> String {
+        try await createContainer(name: name, image: image)
+    }
     func renameContainer(id: String, newName: String) async throws {
         guard let i = containers.firstIndex(where: { $0.name == id || $0.id == id }) else { return }
         containers[i].name = newName
@@ -131,7 +134,24 @@ class MockServiceProvider: ServiceProvider {
         }
     }
     func pullImage(name: String) async throws {
-        images.append(MockImage(id: "sha256:\(UUID().uuidString.prefix(6))", repository: name, tag: "latest", size: "100MB", created: "just now"))
+        let lastColon = name.lastIndex(of: ":")
+        let lastSlash = name.lastIndex(of: "/")
+        let hasTag = lastColon.map { colon in lastSlash.map { colon > $0 } ?? true } ?? false
+        let repository = hasTag ? String(name[..<lastColon!]) : name
+        let tag = hasTag ? String(name[name.index(after: lastColon!)...]) : "latest"
+        images.append(MockImage(id: "sha256:\(UUID().uuidString.prefix(6))", repository: repository, tag: tag, size: "100MB", created: "just now"))
+    }
+
+    func pullImage(name: String, onProgress: @escaping (ImagePullProgress) -> Void) async throws {
+        // Deterministic representative progress for previews/UI-testing. The
+        // real provider derives these values from the live Docker pull stream;
+        // the mock mimics the observed shape (byte totals + layer counts) so the
+        // determinate progress bar can be exercised without a backend.
+        let total: Int64 = 8_000_000
+        onProgress(ImagePullProgress(status: "Pulling fs layer", layerCount: 2, completedLayers: 0, currentBytes: 0, totalBytes: total, fraction: 0))
+        onProgress(ImagePullProgress(status: "Downloading", layerCount: 2, completedLayers: 0, currentBytes: total / 2, totalBytes: total, fraction: 0.5))
+        onProgress(ImagePullProgress(status: "Pull complete", layerCount: 2, completedLayers: 2, currentBytes: total, totalBytes: total, fraction: 1, finished: true))
+        try await pullImage(name: name)
     }
     func removeImage(id: String) async throws { images.removeAll { $0.id == id } }
     func inspectImage(name: String) async throws -> String { "{\"Id\":\"\(name)\",\"RepoTags\":[\"\(name):latest\"]}" }
@@ -199,9 +219,31 @@ class MockServiceProvider: ServiceProvider {
 
     func writeConfig(profile: String, config: ColimaConfig) async throws {}
 
+    // MARK: - Template
+
+    /// In-memory template store keyed by the profile's short name. Persisting as
+    /// YAML (encode on set, decode on get) mirrors the real file-backed path so
+    /// the mock honors the SetTemplate→GetTemplate round-trip (Property 18).
+    private var templateYAML: [String: String] = [:]
+
+    func getTemplate(profile: String) async throws -> ColimaConfig {
+        let key = ColimaTemplate.shortName(for: profile)
+        if let yaml = templateYAML[key] {
+            return ColimaTemplate.decode(yaml)
+        }
+        if let shared = templateYAML[ColimaTemplate.shortName(for: "default")] {
+            return ColimaTemplate.decode(shared)
+        }
+        return ColimaConfig()
+    }
+
+    func setTemplate(profile: String, config: ColimaConfig) async throws {
+        templateYAML[ColimaTemplate.shortName(for: profile)] = ColimaTemplate.encode(config)
+    }
+
     // MARK: - Command Execution
 
-    func executeCommand(tool: String, args: [String]) async throws -> String {
+    func executeCommand(tool: String, args: [String], profile: String? = nil) async throws -> String {
         "mock output for \(tool) \(args.joined(separator: " "))"
     }
 
@@ -215,11 +257,11 @@ class MockServiceProvider: ServiceProvider {
 
     // MARK: - AI Models
 
-    func modelList(runner: String) async throws -> [AIModelInfo] {
+    func modelList(runner: String, profile: String = "default") async throws -> [AIModelInfo] {
         MockK8sData.aiModels.map { AIModelInfo(id: $0.name, name: $0.name, size: $0.size, status: $0.status, port: $0.port) }
     }
-    func modelPull(name: String, runner: String) async throws {}
-    func modelRun(name: String, runner: String) async throws {}
-    func modelServe(name: String?, runner: String, port: Int?) async throws {}
-    func modelStop(name: String) async throws {}
+    func modelPull(name: String, runner: String, profile: String = "default") async throws {}
+    func modelRun(name: String, runner: String, profile: String = "default") async throws {}
+    func modelServe(name: String?, runner: String, port: Int?, profile: String = "default") async throws {}
+    func modelStop(name: String, profile: String = "default") async throws {}
 }

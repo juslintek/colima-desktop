@@ -111,7 +111,9 @@ struct ContainersView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityIdentifier("btn_create_container_new")
-                    Button { appState.pruneContainers() } label: {
+                    Button {
+                        appState.confirmPruneContainers()
+                    } label: {
                         Image(systemName: "trash")
                     }
                     .accessibilityIdentifier("btn_prune_container_all")
@@ -133,6 +135,7 @@ struct ContainersView: View {
                 .foregroundStyle(.secondary)
             Button("Create Container") { showCreateSheet = true }
                 .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("btn_create_container_empty_state")
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -221,6 +224,11 @@ struct ContainersView: View {
             HStack {
                 Button("Cancel") { resetAndClose() }
                     .accessibilityIdentifier("btn_cancel_container_create")
+                Button("Advanced…") {
+                    resetAndClose()
+                    DispatchQueue.main.async { appState.activeSheet = .createContainer }
+                }
+                .accessibilityIdentifier("btn_create_container_advanced")
                 Spacer()
                 Button("Create") {
                     appState.createContainer(name: newContainerName, image: newContainerImage)
@@ -424,9 +432,7 @@ struct ContainerRowView: View {
                 }
 
                 Button {
-                    appState.requestConfirmation("Remove container '\(container.name)'?") {
-                        appState.removeContainer(name: container.name)
-                    }
+                    appState.confirmRemoveContainer(name: container.name)
                 } label: {
                     Image(systemName: "trash")
                 }
@@ -449,7 +455,9 @@ struct ContainerRowView: View {
             .disabled(c.state == "running")
         Button("Stop") { appState.stopContainer(name: c.name) }
             .disabled(c.state == "exited")
-        Button("Kill") { appState.killContainer(name: c.name) }
+        Button("Kill") {
+            appState.confirmKillContainer(name: c.name)
+        }
             .accessibilityIdentifier("btn_kill_container_\(c.name)")
         Button("Pause") { appState.pauseContainer(name: c.name) }
             .accessibilityIdentifier("btn_pause_container_\(c.name)")
@@ -484,9 +492,7 @@ struct ContainerRowView: View {
             .accessibilityIdentifier("btn_copy_container_\(c.name)")
         Divider()
         Button("Remove", role: .destructive) {
-            appState.requestConfirmation("Remove container '\(c.name)'?") {
-                appState.removeContainer(name: c.name)
-            }
+            appState.confirmRemoveContainer(name: c.name)
         }
     }
 }

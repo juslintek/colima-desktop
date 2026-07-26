@@ -41,10 +41,15 @@ struct ContainerDetailView: View {
 
             switch selectedTab {
             case .info: infoTab
-            case .stats: MockStatsView(name: container.name)
+            case .stats: StatsSheetView(name: container.name)
             case .logs: MockLogsView(name: container.name)
             case .terminal: MockTerminalView(name: container.name)
-            case .files: MockFileTree()
+            case .files:
+                ContentUnavailableView(
+                    "File Browser Unavailable",
+                    systemImage: "folder.badge.questionmark",
+                    description: Text("The current backend has no directory-listing API. Use the Copy action or the profile-scoped terminal instead.")
+                )
             }
         }
         .accessibilityIdentifier("container_detail_panel")

@@ -48,12 +48,20 @@ struct SidebarView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
 
-            Picker("Profile", selection: $appState.activeProfile) {
+            Picker("Profile", selection: Binding(
+                get: { appState.activeProfile },
+                set: { profile in
+                    Task { @MainActor in
+                        await appState.switchProfile(name: profile)
+                    }
+                }
+            )) {
                 ForEach(appState.profiles) { p in
                     Text(p.name).tag(p.name)
                 }
             }
             .accessibilityIdentifier("picker_sidebar_profile")
+            .disabled(appState.isLoading || appState.profiles.isEmpty)
             .padding(8)
         }
         .navigationTitle("Colima Desktop")

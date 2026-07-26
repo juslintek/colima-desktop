@@ -116,11 +116,11 @@ actor DaemonClient {
     }
 
     func update(profile: String = "default") async throws {
-        _ = try await exec("colima", "update", profile)
+        _ = try await exec("colima", "--profile", profile, "update")
     }
 
-    func prune(all: Bool = false) async throws {
-        var args = ["prune", "--force"]
+    func prune(profile: String = "default", all: Bool = false) async throws {
+        var args = ["--profile", profile, "prune", "--force"]
         if all { args += ["--all"] }
         _ = try await exec("colima", args)
     }
@@ -137,9 +137,9 @@ actor DaemonClient {
         _ = try await exec("colima", "kubernetes", "reset", "--profile", profile)
     }
 
-    func kubectlExec(_ command: String) async throws -> String {
+    func kubectlExec(_ command: String, profile: String = "default") async throws -> String {
         let args = command.components(separatedBy: " ")
-        return try await exec("kubectl", args)
+        return try await exec("kubectl", ["--context", "colima-\(profile)"] + args)
     }
 
     func processList(profile: String = "default") async throws -> String {
@@ -150,11 +150,6 @@ actor DaemonClient {
         _ = try await exec("colima", "ssh", "--profile", profile, "--", "kill", "-\(signal)", "\(pid)")
     }
 
-    func switchProfile(name: String) async throws {
-        _ = try await exec("colima", "stop")
-        _ = try await exec("colima", "start", "--profile", name)
-    }
-
     // MARK: - Configuration (read/write YAML directly — NEVER use colima template)
 
     func readConfig(profile: String = "default") async throws -> ColimaConfig {
@@ -163,11 +158,37 @@ actor DaemonClient {
             throw DaemonError.commandFailed("readConfig", 1, "Config file not found: \(path)")
         }
         let yaml = try String(contentsOfFile: path, encoding: .utf8)
-        return ColimaConfig.fromYAML(yaml)
+        // Surface a structurally-unsafe config with actionable context instead
+        // of silently loading a lossy best-effort model. When this throws, the
+        // model is never populated from the file, so the write guard below then
+        // refuses to overwrite the config we failed to parse.
+        do {
+            return try ColimaConfig.parse(yaml)
+        } catch let error as ColimaConfig.ParseError {
+            throw DaemonError.commandFailed(
+                "readConfig", 2,
+                "\(path) exists but could not be parsed. \(error.localizedDescription) "
+                    + "Fix it with Edit YAML before saving so its contents are not lost."
+            )
+        }
     }
 
     func writeConfig(profile: String = "default", config: ColimaConfig) async throws {
         let path = configPath(profile: profile)
+        // Never silently overwrite a config we did not successfully load. A
+        // config that originated from a real load carries the file's
+        // `sourceYAML`; a blank/reconstructed model (empty `sourceYAML`) written
+        // over an existing file would drop every unknown key, so refuse it and
+        // surface an actionable error. Writing a fresh config to a new profile
+        // (no file yet) is still allowed.
+        if FileManager.default.fileExists(atPath: path), (config.sourceYAML ?? "").isEmpty {
+            throw DaemonError.commandFailed(
+                "writeConfig", 2,
+                "Refusing to overwrite \(path): its current contents were not loaded, so "
+                    + "unknown keys would be lost. Reopen the profile to load the existing config, "
+                    + "or use Edit YAML to inspect it."
+            )
+        }
         let dir = (path as NSString).deletingLastPathComponent
         try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         try config.toYAML().write(toFile: path, atomically: true, encoding: .utf8)
@@ -176,6 +197,49 @@ actor DaemonClient {
     private func configPath(profile: String) -> String {
         let home = FileManager.default.homeDirectoryForCurrentUser.path
         return "\(home)/.colima/\(profile)/colima.yaml"
+    }
+
+    // MARK: - Template (base config for newly created VMs — read/write YAML directly)
+    //
+    // Mirrors the daemon's GetTemplate/SetTemplate contract
+    // (daemon/internal/server/config_server.go): the template YAML file is read
+    // and written directly — never the interactive `colima template` editor,
+    // which opens $EDITOR and cannot be scripted. The default profile resolves
+    // to ~/.colima/_templates/default.yaml (byte-identical to the daemon and the
+    // colima CLI); a named profile resolves to a profile-scoped override
+    // ~/.colima/_templates/<profile>.yaml so editing one profile's template
+    // never clobbers the shared default other new VMs rely on.
+
+    /// Read the template for a profile. Falls back to the shared default
+    /// template when a profile-scoped override does not exist, and returns an
+    /// empty config when no template exists at all (daemon parity: an absent
+    /// template yields an empty ColimaConfig rather than an error).
+    func getTemplate(profile: String = "default") async throws -> ColimaConfig {
+        let path = ColimaTemplate.path(profile: profile, colimaHome: colimaHome())
+        if FileManager.default.fileExists(atPath: path) {
+            let yaml = try String(contentsOfFile: path, encoding: .utf8)
+            return ColimaTemplate.decode(yaml)
+        }
+        let defaultPath = ColimaTemplate.defaultPath(colimaHome: colimaHome())
+        if path != defaultPath, FileManager.default.fileExists(atPath: defaultPath) {
+            let yaml = try String(contentsOfFile: defaultPath, encoding: .utf8)
+            return ColimaTemplate.decode(yaml)
+        }
+        return ColimaConfig()
+    }
+
+    /// Write the template for a profile, creating the templates directory when
+    /// needed. Saving through `setTemplate` and reading back through
+    /// `getTemplate` returns equivalent content (Property 18).
+    func setTemplate(profile: String = "default", config: ColimaConfig) async throws {
+        let path = ColimaTemplate.path(profile: profile, colimaHome: colimaHome())
+        let dir = (path as NSString).deletingLastPathComponent
+        try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        try ColimaTemplate.encode(config).write(toFile: path, atomically: true, encoding: .utf8)
+    }
+
+    private func colimaHome() -> String {
+        "\(FileManager.default.homeDirectoryForCurrentUser.path)/.colima"
     }
 
     // MARK: - Process Execution
@@ -283,10 +347,12 @@ struct ProfileListItem {
 
 enum DaemonError: Error, LocalizedError {
     case commandFailed(String, Int32, String)
+    case invalidProfile(String)
 
     var errorDescription: String? {
         switch self {
         case .commandFailed(let cmd, let code, let msg): return "\(cmd) failed (\(code)): \(msg)"
+        case .invalidProfile(let profile): return "Invalid profile name: \(profile)"
         }
     }
 }

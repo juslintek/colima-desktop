@@ -65,7 +65,9 @@ struct VolumesView: View {
                         Image(systemName: "plus")
                     }
                     .accessibilityIdentifier("btn_create_volume_new")
-                    Button { appState.pruneVolumes() } label: {
+                    Button {
+                        appState.confirmPruneVolumes()
+                    } label: {
                         Image(systemName: "trash")
                     }
                     .accessibilityIdentifier("btn_prune_volume_all")
@@ -108,7 +110,9 @@ struct VolumesView: View {
 
             Spacer()
 
-            Button { appState.removeVolume(name: vol.name) } label: {
+            Button {
+                appState.confirmRemoveVolume(name: vol.name)
+            } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.plain)
@@ -119,7 +123,9 @@ struct VolumesView: View {
             Button("Inspect") { appState.inspectVolume(name: vol.name) }
                 .accessibilityIdentifier("btn_inspect_volume_\(vol.name)")
             Divider()
-            Button("Remove", role: .destructive) { appState.removeVolume(name: vol.name) }
+            Button("Remove", role: .destructive) {
+                appState.confirmRemoveVolume(name: vol.name)
+            }
         }
     }
 
@@ -193,7 +199,12 @@ struct VolumeDetailView: View {
 
             switch selectedTab {
             case .info: infoTab
-            case .files: MockFileTree()
+            case .files:
+                ContentUnavailableView(
+                    "Volume File Browser Unavailable",
+                    systemImage: "folder.badge.questionmark",
+                    description: Text("The Docker API does not expose direct volume browsing. Mount this volume into a disposable container to inspect it safely.")
+                )
             }
         }
     }
@@ -205,7 +216,6 @@ struct VolumeDetailView: View {
                 GridRow { Text("Driver").foregroundStyle(.secondary); Text(volume.driver) }
                 GridRow { Text("Mountpoint").foregroundStyle(.secondary); Text(volume.mountpoint).font(.system(.body, design: .monospaced)) }
                 GridRow { Text("Size").foregroundStyle(.secondary); Text(volume.size) }
-                GridRow { Text("Created").foregroundStyle(.secondary); Text("2026-04-20 14:30:00") }
             }
             .padding()
         }

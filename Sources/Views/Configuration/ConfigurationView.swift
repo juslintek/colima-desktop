@@ -4,15 +4,15 @@ struct ConfigurationView: View {
     @EnvironmentObject var appState: AppState
 
     // VM Resources
-    @State private var cpus: Double = 4
-    @State private var memory: Double = 8
+    @State private var cpus: Double = 2
+    @State private var memory: Double = 2
     @State private var disk: Double = 100
-    @State private var rootDisk: Double = 60
+    @State private var rootDisk: Double = 20
 
     // VM Settings
-    @State private var arch = "host"
-    @State private var vmType = "qemu"
-    @State private var cpuType = "host"
+    @State private var arch = "aarch64"
+    @State private var vmType = "vz"
+    @State private var cpuType = ""
     @State private var rosetta = false
     @State private var nestedVirt = false
     @State private var hostname = ""
@@ -25,7 +25,7 @@ struct ConfigurationView: View {
     @State private var runtime = "docker"
     @State private var autoActivate = true
     @State private var modelRunner = "docker"
-    @State private var dockerJSON = "{\n  \"log-driver\": \"json-file\"\n}"
+    @State private var dockerJSON = "{}"
     @State private var jsonError = ""
 
     // Kubernetes
@@ -44,7 +44,7 @@ struct ConfigurationView: View {
     @State private var networkInterface = ""
     @State private var dnsServers = ""
     @State private var dnsStatus = ""
-    @State private var dnsHosts = "db.local=192.168.1.10"
+    @State private var dnsHosts = ""
     @State private var gateway = ""
     @State private var gatewayStatus = ""
     @State private var hostAddresses = false
@@ -54,9 +54,7 @@ struct ConfigurationView: View {
     @State private var mountType = "virtiofs"
     @State private var mountInotify = true
     @State private var disableMounts = false
-    @State private var mounts: [(location: String, writable: Bool)] = [
-        ("~", true), ("/tmp/colima", true)
-    ]
+    @State private var mounts: [(location: String, writable: Bool)] = [("~", true), ("/tmp/colima", true)]
     @State private var showAddMount = false
     @State private var newMountPath = ""
     @State private var newMountWritable = true
@@ -69,23 +67,22 @@ struct ConfigurationView: View {
     @State private var sshConfig = true
 
     // Provisioning
-    @State private var provisions: [(mode: String, script: String)] = [
-        ("system", "apt-get update")
-    ]
+    @State private var provisions: [(mode: String, script: String)] = [("system", "apt-get update")]
     @State private var provisionValidation = ""
 
     // Environment
-    @State private var envVars: [(key: String, value: String)] = [
-        ("DOCKER_BUILDKIT", "1")
-    ]
+    @State private var envVars: [(key: String, value: String)] = [("DOCKER_BUILDKIT", "1")]
     @State private var showAddEnv = false
     @State private var newEnvKey = ""
     @State private var newEnvValue = ""
     @State private var newEnvBulk = ""
 
-    private let hostCPUs: Double = 12
-    private let hostMemory: Double = 32
-    private let hostDisk: Double = 500
+    private var hostCPUs: Double { Double(ProcessInfo.processInfo.processorCount) }
+    private var hostMemory: Double { Double(ProcessInfo.processInfo.physicalMemory) / 1_073_741_824 }
+    private var hostDisk: Double {
+        let values = try? FileManager.default.homeDirectoryForCurrentUser.resourceValues(forKeys: [.volumeTotalCapacityKey])
+        return max(Double(values?.volumeTotalCapacity ?? 0) / 1_073_741_824, disk)
+    }
 
     var body: some View {
         ScrollView {
@@ -224,7 +221,9 @@ struct ConfigurationView: View {
                             Text("Registers QEMU emulators for cross-architecture execution. Required for multi-arch Docker builds (buildx) — e.g. building x86 images on ARM. Minimal overhead.")
                                 .font(.caption2).foregroundStyle(.secondary)
                         }
-                        Toggle("Foreground", isOn: $foreground).accessibilityIdentifier("toggle_config_foreground")
+                        Toggle("Foreground (CLI-only; not saved by this form)", isOn: $foreground)
+                            .disabled(true)
+                            .accessibilityIdentifier("toggle_config_foreground")
                         HStack {
                             Picker("Port Forwarder", selection: $portForwarder) {
                                 Text("ssh").tag("ssh"); Text("grpc").tag("grpc"); Text("none").tag("none")
@@ -373,15 +372,16 @@ struct ConfigurationView: View {
                         HStack(spacing: 16) {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("IP").font(.caption2).foregroundStyle(.secondary)
-                                Text("192.168.106.2").font(.caption.monospaced())
+                                Text(appState.services is MockServiceProvider ? "192.168.106.2" : (networkAddress ? "Enabled (assigned on start)" : "Not configured"))
+                                    .font(.caption.monospaced())
                             }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Gateway").font(.caption2).foregroundStyle(.secondary)
-                                Text("192.168.106.1").font(.caption.monospaced())
+                                Text(gateway.isEmpty ? "Not configured" : gateway).font(.caption.monospaced())
                             }
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("DNS").font(.caption2).foregroundStyle(.secondary)
-                                Text("1.1.1.1").font(.caption.monospaced())
+                                Text(dnsServers.isEmpty ? "System default" : dnsServers).font(.caption.monospaced())
                             }
                         }
                         .padding(8).background(Color.secondary.opacity(0.05))
@@ -692,18 +692,41 @@ struct ConfigurationView: View {
                 }
 
                 // MARK: Template
-                configCard(icon: "doc.badge.gearshape", title: "Template", description: "Load or save configuration templates") {
-                    HStack {
-                        Button("Load Template") { appState.loadTemplate() }
-                            .accessibilityIdentifier("btn_load_template")
-                        Button("Save Template") { appState.saveTemplate() }
-                            .accessibilityIdentifier("btn_save_template")
+                configCard(icon: "doc.badge.gearshape", title: "Template", description: "Read, edit, and save the colima VM template (base config for newly created VMs)") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Button {
+                            appState.openTemplateEditor()
+                        } label: {
+                            Label("Edit VM Template", systemImage: "square.and.pencil")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("btn_edit_vm_template")
+
+                        Text("Edits the profile-scoped colima template (\(ColimaTemplate.fileName(for: appState.activeProfile))). Applies to newly created VMs only.")
+                            .font(.caption2).foregroundStyle(.secondary)
+
+                        Divider()
+
+                        HStack {
+                            Button("Import from File…") { appState.loadTemplate() }
+                                .accessibilityIdentifier("btn_load_template")
+                            Button("Export to File…") { appState.saveTemplate() }
+                                .accessibilityIdentifier("btn_save_template")
+                        }
                     }
                 }
 
                 // MARK: Actions
                 HStack {
-                    Button("Save Configuration") { saveCurrentConfig() }
+                    Button("Save Configuration") {
+                        if appState.vmRunning {
+                            appState.requestConfirmation("Save configuration for '\(appState.activeProfile)' and restart its VM now?") {
+                                saveCurrentConfig()
+                            }
+                        } else {
+                            saveCurrentConfig()
+                        }
+                    }
                         .accessibilityIdentifier("btn_save_config_all")
                     Button("Reset to Defaults") {
                         appState.resetConfig()
@@ -719,6 +742,10 @@ struct ConfigurationView: View {
         }
         .navigationTitle("Configuration")
         .onAppear { loadConfig() }
+        .onChange(of: appState.colimaConfig) { _, config in
+            if let config { applyConfig(config) }
+        }
+        .onChange(of: appState.activeProfile) { _, _ in loadConfig() }
     }
 
     private func loadConfig() {
@@ -728,7 +755,12 @@ struct ConfigurationView: View {
                 appState.colimaConfig = config
                 applyConfig(config)
             } catch {
-                // Config file may not exist yet — use defaults
+                // Clear any previously-loaded config so a stale model from another
+                // profile can never be saved over the config we just failed to
+                // load — the write guard then refuses to overwrite it. (Requirement
+                // 7.4: never silently overwrite a config you failed to parse.)
+                appState.colimaConfig = nil
+                appState.showError("Failed to load configuration for '\(appState.activeProfile)': \(error.localizedDescription)")
             }
         }
     }
@@ -758,6 +790,10 @@ struct ConfigurationView: View {
         networkMode = config.network.mode
         networkInterface = config.network.interface
         dnsServers = config.network.dns.joined(separator: ", ")
+        dnsHosts = config.network.dnsHosts
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: "\n")
         gateway = config.network.gatewayAddress
         hostAddresses = config.network.hostAddresses
         preferredRoute = config.network.preferredRoute
@@ -769,10 +805,34 @@ struct ConfigurationView: View {
         sshConfig = config.sshConfig
         provisions = config.provision.map { ($0.mode, $0.script) }
         envVars = config.env.map { ($0.key, $0.value) }
+        if JSONSerialization.isValidJSONObject(config.docker),
+           let data = try? JSONSerialization.data(withJSONObject: config.docker, options: [.prettyPrinted, .sortedKeys]),
+           let json = String(data: data, encoding: .utf8) {
+            dockerJSON = json
+        } else {
+            dockerJSON = "{}"
+        }
     }
 
     private func saveCurrentConfig() {
-        var config = ColimaConfig()
+        guard let dockerData = dockerJSON.data(using: .utf8),
+              let dockerObject = try? JSONSerialization.jsonObject(with: dockerData),
+              let docker = dockerObject as? [String: Any] else {
+            jsonError = "Invalid JSON object"
+            return
+        }
+        var parsedDNSHosts: [String: String] = [:]
+        for line in dnsHosts.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            let parts = trimmed.split(separator: "=", maxSplits: 1).map(String.init)
+            guard parts.count == 2, !parts[0].isEmpty, !parts[1].isEmpty else {
+                dnsStatus = "✗ DNS host entries must use name=address"
+                return
+            }
+            parsedDNSHosts[parts[0]] = parts[1]
+        }
+        var config = appState.colimaConfig ?? ColimaConfig()
         config.cpu = Int(cpus)
         config.memory = memory
         config.disk = Int(disk)
@@ -790,14 +850,15 @@ struct ConfigurationView: View {
         config.autoActivate = autoActivate
         config.modelRunner = modelRunner
         config.kubernetes.enabled = k8sEnabled
-        config.kubernetes.version = k8sVersion.isEmpty ? "v1.35.0+k3s1" : k8sVersion
-        config.kubernetes.k3sArgs = k8sArgs.isEmpty ? ["--disable=traefik"] : k8sArgs.components(separatedBy: ",")
+        config.kubernetes.version = k8sVersion
+        config.kubernetes.k3sArgs = k8sArgs.isEmpty ? [] : k8sArgs.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
         config.kubernetes.port = Int(k8sPort) ?? 0
         config.network.address = networkAddress
         config.network.mode = networkMode
         config.network.interface = networkInterface
         config.network.dns = dnsServers.isEmpty ? [] : dnsServers.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
-        config.network.gatewayAddress = gateway.isEmpty ? "192.168.5.2" : gateway
+        config.network.dnsHosts = parsedDNSHosts
+        config.network.gatewayAddress = gateway
         config.network.hostAddresses = hostAddresses
         config.network.preferredRoute = preferredRoute
         config.mountType = mountType
@@ -808,6 +869,7 @@ struct ConfigurationView: View {
         config.sshConfig = sshConfig
         config.provision = provisions.map { ColimaConfig.Provision(mode: $0.mode, script: $0.script) }
         config.env = Dictionary(uniqueKeysWithValues: envVars.map { ($0.key, $0.value) })
+        config.docker = docker
         appState.saveConfig(config: config)
     }
 

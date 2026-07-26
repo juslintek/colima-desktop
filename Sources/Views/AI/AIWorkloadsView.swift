@@ -38,12 +38,14 @@ struct AIWorkloadsView: View {
                         .accessibilityIdentifier("status_indicator_krunkit")
                     Text(krunkitAvailable ? "Krunkit Available" : "Krunkit Not Found")
                     Spacer()
-                    Button("Install Krunkit") { appState.showToast("Krunkit installed") }
+                    Button("Install Krunkit") {
+                        appState.showError("Automatic Krunkit installation is not available in this build. Install it explicitly, then refresh the profile.")
+                    }
                         .accessibilityIdentifier("btn_install_ai_krunkit")
                 }
                 if !krunkitAvailable {
                     warningRow("VM type is '\(vmType)'. krunkit recommended for AI workloads.") {
-                        Button("Switch to krunkit") { appState.showToast("Requires VM recreation with --vm-type krunkit") }.font(.caption)
+                        Button("Switch to krunkit") { appState.showError("Changing VM type requires explicit profile recreation and is not performed automatically.") }.font(.caption)
                     }
                 }
                 if let err = errorMessage {
@@ -112,7 +114,11 @@ struct AIWorkloadsView: View {
                             Button("Serve") { serveModel(model.name) }
                                 .font(.caption).accessibilityIdentifier("btn_ai_serve_\(model.name)")
                         }
-                        Button("Delete") { deleteModel(model.name) }
+                        Button("Delete") {
+                            appState.requestConfirmation("Remove model image '\(model.name)'?") {
+                                deleteModel(model.name)
+                            }
+                        }
                             .foregroundStyle(.red).font(.caption).accessibilityIdentifier("btn_ai_delete_\(model.name)")
                     }
                     .padding(.vertical, 4)
@@ -188,7 +194,9 @@ struct AIWorkloadsView: View {
     private var legacyQuickActions: some View {
         GroupBox("Quick Actions") {
             HStack(spacing: 8) {
-                Button("Setup") { showSetupFlow = true }.accessibilityIdentifier("btn_setup_ai_model")
+                Button("Setup") {
+                    appState.showError("Automated AI setup is not available in this build. Model pull/run/serve actions use the real selected profile directly.")
+                }.accessibilityIdentifier("btn_setup_ai_model")
                 Button("Browse Models") { showModelBrowser = true }.accessibilityIdentifier("btn_browse_ai_registry")
                 Button("Create AI Profile") {
                     Task {
@@ -215,9 +223,10 @@ struct AIWorkloadsView: View {
     private func pullModel(_ name: String) {
         pullingModel = name
         errorMessage = nil
+        let profile = appState.activeProfile
         Task {
             do {
-                try await appState.services.modelPull(name: name, runner: runner)
+                try await appState.services.modelPull(name: name, runner: runner, profile: profile)
                 await appState.refreshAIModels(runner: runner)
                 pullingModel = nil
             } catch {
@@ -229,9 +238,10 @@ struct AIWorkloadsView: View {
 
     private func runModel(_ name: String) {
         errorMessage = nil
+        let profile = appState.activeProfile
         Task {
             do {
-                try await appState.services.modelRun(name: name, runner: runner)
+                try await appState.services.modelRun(name: name, runner: runner, profile: profile)
                 await appState.refreshAIModels(runner: runner)
             } catch { errorMessage = "Run failed: \(error.localizedDescription)" }
         }
@@ -239,28 +249,31 @@ struct AIWorkloadsView: View {
 
     private func serveModel(_ name: String) {
         errorMessage = nil
+        let profile = appState.activeProfile
         Task {
             do {
-                try await appState.services.modelServe(name: name, runner: runner, port: 8080)
+                try await appState.services.modelServe(name: name, runner: runner, port: 8080, profile: profile)
                 await appState.refreshAIModels(runner: runner)
             } catch { errorMessage = "Serve failed: \(error.localizedDescription)" }
         }
     }
 
     private func stopModel(_ name: String) {
+        let profile = appState.activeProfile
         Task {
             do {
-                try await appState.services.modelStop(name: name)
+                try await appState.services.modelStop(name: name, profile: profile)
                 await appState.refreshAIModels(runner: runner)
             } catch { errorMessage = "Stop failed: \(error.localizedDescription)" }
         }
     }
 
     private func deleteModel(_ name: String) {
+        let profile = appState.activeProfile
         Task {
             do {
                 // colima model doesn't have a delete — remove via docker rmi
-                _ = try await appState.services.executeCommand(tool: "docker", args: ["rmi", name])
+                _ = try await appState.services.executeCommand(tool: "docker", args: ["rmi", name], profile: profile)
                 await appState.refreshAIModels(runner: runner)
             } catch { errorMessage = "Delete failed: \(error.localizedDescription)" }
         }

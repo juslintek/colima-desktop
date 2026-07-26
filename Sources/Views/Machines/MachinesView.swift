@@ -80,15 +80,8 @@ struct MachinesView: View {
         }
         .padding(.vertical, 2)
         .contextMenu {
-            if vm.status == "running" {
-                Button("Stop") { appState.showToast("Stopping \(vm.name)...") }
-                Button("Restart") { appState.showToast("Restarting \(vm.name)...") }
-                Button("SSH") { appState.showToast("ssh \(vm.name)") }
-            } else {
-                Button("Start") { appState.showToast("Starting \(vm.name)...") }
-            }
-            Divider()
-            Button("Delete", role: .destructive) { appState.showToast("Deleted \(vm.name)") }
+            Button("Machine lifecycle is read-only in this build") {}
+                .disabled(true)
         }
         .accessibilityIdentifier("row_machine_\(vm.name)")
     }
@@ -110,12 +103,7 @@ struct MachineDetailView: View {
                 Text(vm.name).font(.title3.weight(.semibold))
                 Circle().fill(vm.status == "running" ? .green : .gray).frame(width: 8, height: 8)
                 Spacer()
-                if vm.status == "running" {
-                    Button("Stop") {}
-                    Button("Restart") {}
-                } else {
-                    Button("Start") {}
-                }
+                Text("Inventory only").font(.caption).foregroundStyle(.secondary)
             }
             .padding()
 
@@ -130,10 +118,10 @@ struct MachineDetailView: View {
             Group {
                 switch selectedTab {
                 case .info: machineInfo
-                case .stats: MockStatsView(name: vm.name)
-                case .logs: MockLogsView(name: vm.name)
-                case .terminal: MockTerminalView(name: vm.name)
-                case .files: MockFileTree()
+                case .stats: unavailable("Machine stats are not exposed by the current daemon contract.", icon: "chart.xyaxis.line")
+                case .logs: unavailable("Machine logs are not exposed by the current daemon contract.", icon: "doc.text")
+                case .terminal: unavailable("Machine shell execution is not exposed by the current daemon contract.", icon: "terminal")
+                case .files: unavailable("Machine file browsing is not exposed by the current daemon contract.", icon: "folder")
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -157,14 +145,15 @@ struct MachineDetailView: View {
                         GridRow { Text("Disk").foregroundStyle(.secondary); Text("\(vm.disk) GiB") }
                     }.font(.caption)
                 }
-                GroupBox("Network") {
-                    Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 6) {
-                        GridRow { Text("IP").foregroundStyle(.secondary); Text("192.168.64.\(Int.random(in: 2...20))") }
-                        GridRow { Text("SSH").foregroundStyle(.secondary); Text("ssh admin@\(vm.name).local") }
-                    }.font(.caption)
-                }
+                Text("Network address and SSH endpoint are not included in the machine inventory response.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }.padding()
         }
+    }
+
+    private func unavailable(_ message: String, icon: String) -> some View {
+        ContentUnavailableView("Unavailable", systemImage: icon, description: Text(message))
     }
 }
 
@@ -241,11 +230,15 @@ struct CreateMachineSheet: View {
             HStack {
                 Button("Cancel") { dismiss() }
                 Spacer()
-                Button("Create") { dismiss() }
+                Button("Create") {}
                     .buttonStyle(.borderedProminent)
-                    .disabled(name.isEmpty)
+                    .disabled(true)
             }
             .padding()
+            Text("Machine creation is not available in the current daemon contract. This form is preview-only and will not claim success.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .padding(.horizontal)
         }
         .frame(width: 480, height: 520)
     }
