@@ -154,8 +154,11 @@ const waitTimeout = 8 * time.Second
 // program (drained by a single background goroutine) so sequential markers can
 // each be found without consuming the stream.
 type outputTail struct {
-	mu  sync.Mutex
-	buf []byte
+	mu       sync.Mutex
+	buf      []byte
+	stop     chan struct{}
+	done     chan struct{}
+	doneOnce sync.Once
 }
 
 func (o *outputTail) contains(substr string) bool {
@@ -165,11 +168,19 @@ func (o *outputTail) contains(substr string) bool {
 }
 
 func drainOutput(tm *teatest.TestModel) *outputTail {
-	o := &outputTail{}
+	o := &outputTail{stop: make(chan struct{}), done: make(chan struct{})}
 	go func() {
+		defer close(o.done)
 		reader := tm.Output()
 		chunk := make([]byte, 4096)
+		ticker := time.NewTicker(15 * time.Millisecond)
+		defer ticker.Stop()
 		for {
+			select {
+			case <-o.stop:
+				return
+			default:
+			}
 			n, err := reader.Read(chunk)
 			if n > 0 {
 				o.mu.Lock()
@@ -177,11 +188,24 @@ func drainOutput(tm *teatest.TestModel) *outputTail {
 				o.mu.Unlock()
 			}
 			if err != nil {
-				return // program ended (EOF) or output closed on Quit
+				if errors.Is(err, io.EOF) {
+					select {
+					case <-o.stop:
+						return
+					case <-ticker.C:
+						continue
+					}
+				}
+				return
 			}
 		}
 	}()
 	return o
+}
+
+func (o *outputTail) stopDraining() {
+	o.doneOnce.Do(func() { close(o.stop) })
+	<-o.done
 }
 
 // awaitContains polls the cumulative output until substr appears or the cap
@@ -559,6 +583,7 @@ func driveDispatch(t *testing.T, c dispatchCase, profile string) error {
 	m.tab = c.tab
 	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(200, 50))
 	out := drainOutput(tm)
+	defer out.stopDraining()
 
 	if !awaitContains(out, tabReadyMarker(c.tab)) {
 		_ = tm.Quit()
@@ -677,6 +702,7 @@ func driveConfirmationGate(t *testing.T, c dispatchCase, profile string, confirm
 	m.tab = c.tab
 	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(200, 50))
 	out := drainOutput(tm)
+	defer out.stopDraining()
 
 	if !awaitContains(out, tabReadyMarker(c.tab)) {
 		_ = tm.Quit()
@@ -818,6 +844,7 @@ func driveBoundedOutput(t *testing.T, profile string, events []*pb.ProgressEvent
 	m.tab = TabDashboard
 	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(200, 50))
 	out := drainOutput(tm)
+	defer out.stopDraining()
 
 	if !awaitContains(out, tabReadyMarker(TabDashboard)) {
 		_ = tm.Quit()
@@ -900,6 +927,7 @@ func driveErrorRendering(t *testing.T, c errorCase, profile, errText string, var
 	m.tab = c.tab
 	tm := teatest.NewTestModel(t, m, teatest.WithInitialTermSize(200, 50))
 	out := drainOutput(tm)
+	defer out.stopDraining()
 
 	if !awaitContains(out, tabReadyMarker(c.tab)) {
 		_ = tm.Quit()
